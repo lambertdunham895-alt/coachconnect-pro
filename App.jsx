@@ -1006,15 +1006,17 @@ function LoginScreen({onAuth}) {
     if(!name.trim()){ setError("Please enter your name."); setLoading(false); return; }
     if(role==="coach"&&!teamName.trim()){ setError("Please enter your team name."); setLoading(false); return; }
     const {data,error} = await supabase.auth.signUp({email,password:pass});
-    if(error){ setError(error.message); setLoading(false); return; }
-    const userId = data.user.id;
-    // Create team (coaches only) then profile
+    if(error){ setError("Auth error: " + error.message); setLoading(false); return; }
+    const userId = data.user?.id;
+    if(!userId){ setError("No user ID returned — check Supabase email confirmation is OFF"); setLoading(false); return; }
     let teamId = null;
     if(role==="coach"){
-      const {data:team} = await supabase.from("teams").insert({name:teamName}).select().single();
+      const {data:team, error:teamErr} = await supabase.from("teams").insert({name:teamName}).select().single();
+      if(teamErr){ setError("Team error: " + teamErr.message); setLoading(false); return; }
       teamId = team?.id;
     }
-    await supabase.from("profiles").insert({id:userId,team_id:teamId,role,full_name:name});
+    const {error:profErr} = await supabase.from("profiles").insert({id:userId,team_id:teamId,role,full_name:name});
+    if(profErr){ setError("Profile error: " + profErr.message); setLoading(false); return; }
     const {data:profile} = await supabase.from("profiles").select("*").eq("id",userId).single();
     onAuth(data.user, profile);
     setLoading(false);
