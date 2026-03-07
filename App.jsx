@@ -994,9 +994,14 @@ function LoginScreen({onAuth}) {
   const handleLogin = async () => {
     setError(""); setLoading(true);
     const {data,error} = await supabase.auth.signInWithPassword({email,password:pass});
-    if(error){ setError(error.message); setLoading(false); return; }
-    // load profile to get role
+    if(error){ setError("Login error: " + error.message); setLoading(false); return; }
     const {data:profile} = await supabase.from("profiles").select("*").eq("id",data.user.id).single();
+    if(!profile){
+      setError("Account setup incomplete. Please create a new account.");
+      await supabase.auth.signOut();
+      setLoading(false);
+      return;
+    }
     onAuth(data.user, profile);
     setLoading(false);
   };
