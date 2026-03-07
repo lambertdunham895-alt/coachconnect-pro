@@ -1014,16 +1014,18 @@ function LoginScreen({onAuth}) {
     if(error){ setError("Signup error: " + error.message); setLoading(false); return; }
     const userId = data.user?.id;
     if(!userId){ setError("No user returned. Try again."); setLoading(false); return; }
-    // If no session, email confirmation is still ON in Supabase
-    if(!data.session){ setError("Please go to Supabase → Auth → Settings and turn OFF 'Confirm email', then try again."); setLoading(false); return; }
-    let teamId = null;
+    if(!data.session){ setError("Please turn OFF 'Confirm email' in Supabase → Auth → Sign In / Providers, then try again."); setLoading(false); return; }
     if(role==="coach"){
-      const {data:team, error:teamErr} = await supabase.from("teams").insert({name:teamName}).select().single();
-      if(teamErr){ setError("Team error: " + teamErr.message); setLoading(false); return; }
-      teamId = team?.id;
+      const {error:rpcErr} = await supabase.rpc("create_coach_account", {
+        user_id: userId,
+        user_name: name,
+        team_name: teamName
+      });
+      if(rpcErr){ setError("Setup error: " + rpcErr.message); setLoading(false); return; }
+    } else {
+      const {error:profErr} = await supabase.from("profiles").insert({id:userId,team_id:null,role,full_name:name});
+      if(profErr){ setError("Profile error: " + profErr.message); setLoading(false); return; }
     }
-    const {error:profErr} = await supabase.from("profiles").insert({id:userId,team_id:teamId,role,full_name:name});
-    if(profErr){ setError("Profile error: " + profErr.message); setLoading(false); return; }
     const {data:profile} = await supabase.from("profiles").select("*").eq("id",userId).single();
     onAuth(data.user, profile);
     setLoading(false);
