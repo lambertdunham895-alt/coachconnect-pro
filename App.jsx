@@ -1011,9 +1011,11 @@ function LoginScreen({onAuth}) {
     if(!name.trim()){ setError("Please enter your name."); setLoading(false); return; }
     if(role==="coach"&&!teamName.trim()){ setError("Please enter your team name."); setLoading(false); return; }
     const {data,error} = await supabase.auth.signUp({email,password:pass});
-    if(error){ setError("Auth error: " + error.message); setLoading(false); return; }
+    if(error){ setError("Signup error: " + error.message); setLoading(false); return; }
     const userId = data.user?.id;
-    if(!userId){ setError("No user ID returned — check Supabase email confirmation is OFF"); setLoading(false); return; }
+    if(!userId){ setError("No user returned. Try again."); setLoading(false); return; }
+    // If no session, email confirmation is still ON in Supabase
+    if(!data.session){ setError("Please go to Supabase → Auth → Settings and turn OFF 'Confirm email', then try again."); setLoading(false); return; }
     let teamId = null;
     if(role==="coach"){
       const {data:team, error:teamErr} = await supabase.from("teams").insert({name:teamName}).select().single();
