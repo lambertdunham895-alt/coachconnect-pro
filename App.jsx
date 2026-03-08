@@ -3426,14 +3426,21 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
   const entry = playerVideos[key];
   const inputRef = React.useRef();
 
+  const [loading, setLoading] = useState(false);
+
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPlayerVideos(prev => ({
-      ...prev,
-      [key]: { url, name: file.name, uploadedAt: Date.now(), feedback: prev[key]?.feedback || [] }
-    }));
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPlayerVideos(prev => ({
+        ...prev,
+        [key]: { url: ev.target.result, name: file.name, uploadedAt: Date.now(), feedback: prev[key]?.feedback || [] }
+      }));
+      setLoading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemove = () => {
@@ -3469,8 +3476,8 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
   return (
     <div style={{marginTop:12,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
       <input ref={inputRef} type="file" accept="video/*" style={{display:"none"}} onChange={handleFile}/>
-      <button onClick={()=>inputRef.current.click()} style={{width:"100%",padding:"11px 0",borderRadius:10,background:"transparent",border:`1px dashed ${C.teal}50`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,minHeight:44,transition:"all 0.2s"}}>
-        <span style={{fontSize:16}}>📹</span> Upload Practice Video
+      <button onClick={()=>inputRef.current.click()} disabled={loading} style={{width:"100%",padding:"11px 0",borderRadius:10,background:"transparent",border:`1px dashed ${C.teal}50`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:loading?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,minHeight:44,transition:"all 0.2s",opacity:loading?0.6:1}}>
+        <span style={{fontSize:16}}>📹</span> {loading ? "Processing…" : "Upload Practice Video"}
       </button>
       <div style={{fontSize:11,color:C.textDim,marginTop:5,textAlign:"center"}}>Film {drillName} at home and send it to your coach for feedback</div>
     </div>
