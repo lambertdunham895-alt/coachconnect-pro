@@ -1326,7 +1326,7 @@ function CoachHome({players,assignments,events,goToPlayer,setTab}) {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
-                <Tag label={nextEvent.type==="game"?"⚾ Game":"🏟️ Practice"} color={nextEvent.type==="game"?C.red:C.blue}/>
+                <Tag label={nextEvent.type==="game"?"⚾ Game":"⚾ Practice"} color={nextEvent.type==="game"?C.red:C.blue}/>
                 <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:12,color:C.textMid,letterSpacing:1}}>{new Date(nextEvent.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})} · {nextEvent.time}</span>
               </div>
               {nextEvent.opponent?<div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,color:C.text,letterSpacing:1,marginBottom:4}}>vs. {nextEvent.opponent}</div>:<div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:C.text,letterSpacing:1,marginBottom:4}}>Team Practice</div>}
@@ -1677,7 +1677,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           <div style={{display:"flex",gap:8,marginTop:10}}>
             {["practice","game"].map(t=>(
               <button key={t} onClick={()=>{ff("type",t);setFormTab("info");}} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1px solid ${form.type===t?(t==="game"?C.red:C.blue):C.border}`,background:form.type===t?`${t==="game"?C.red:C.blue}20`:"transparent",color:form.type===t?(t==="game"?C.red:C.blue):C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:44}}>
-                {t==="game"?"⚾ Game":"🏟️ Practice"}
+                {t==="game"?"⚾ Game":"⚾ Practice"}
               </button>
             ))}
           </div>
@@ -1853,7 +1853,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
-                      <Tag label={isG?"⚾ Game":"🏟️ Practice"} color={ec}/>
+                      <Tag label={isG?"⚾ Game":"⚾ Practice"} color={ec}/>
                       {hasGamePlan&&<Tag label="📋 Plan Ready" color={C.gold} small/>}
                       {hasLineup&&<Tag label="👥 Lineup Set" color={C.teal} small/>}
                     </div>
