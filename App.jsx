@@ -901,7 +901,7 @@ export default function App() {
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
-            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}}/>}
+            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgn} setPlayers={setPlayers} skillSnapshots={skillSnapshots} setSkillSnapshots={setSkillSnapshots} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
           </div>
         )
@@ -1106,8 +1106,10 @@ function LoginScreen({onAuth}) {
 }
 
 // ─── MESSAGES TAB (channel list) ─────────────────────────────────────────────
-function MessagesTab({players,messages,unread,onOpen}) {
-  // Build one DM entry per parent across all players
+function MessagesTab({players,messages,unread,onOpen,onBroadcast}) {
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastText, setBroadcastText] = useState("");
+
   const parentChannels = players.flatMap(p =>
     (p.parents||[]).map(par => ({
       id: `dm-${par.id}`,
@@ -1124,9 +1126,49 @@ function MessagesTab({players,messages,unread,onOpen}) {
     ...parentChannels,
   ];
 
+  const sendBroadcast = () => {
+    if(!broadcastText.trim()) return;
+    onBroadcast(broadcastText.trim(), parentChannels.map(c=>c.id));
+    setBroadcastText("");
+    setShowBroadcast(false);
+  };
+
   return (
     <div>
-      <SectionHead accent>Messages</SectionHead>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:18,color:C.text,letterSpacing:1,textTransform:"uppercase"}}>Messages</div>
+        <button onClick={()=>setShowBroadcast(true)}
+          style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:10,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 14px ${C.red}40`,minHeight:38}}>
+          📣 Message All
+        </button>
+      </div>
+
+      {/* Broadcast modal */}
+      {showBroadcast&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",zIndex:200,display:"flex",alignItems:"flex-end"}}>
+          <div style={{width:"100%",background:C.bg,borderRadius:"20px 20px 0 0",padding:"24px 20px 40px",boxShadow:"0 -8px 40px #000a"}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:18,color:C.text,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>📣 Message All Parents</div>
+            <div style={{fontSize:12,color:C.textDim,marginBottom:16}}>This will send your message to all {parentChannels.length} parent DMs at once.</div>
+            <textarea
+              value={broadcastText}
+              onChange={e=>setBroadcastText(e.target.value)}
+              placeholder="e.g. Practice tomorrow is cancelled due to rain. See you Saturday!"
+              style={{width:"100%",background:"#08111e",border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:14,lineHeight:1.6,resize:"none",minHeight:100,outline:"none",boxSizing:"border-box",marginBottom:14}}
+            />
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={sendBroadcast} disabled={!broadcastText.trim()}
+                style={{flex:1,padding:"14px 0",borderRadius:12,background:broadcastText.trim()?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2a2a",border:"none",color:broadcastText.trim()?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:broadcastText.trim()?"pointer":"default",minHeight:50}}>
+                📣 Send to All Parents
+              </button>
+              <button onClick={()=>{setShowBroadcast(false);setBroadcastText("");}}
+                style={{padding:"14px 20px",borderRadius:12,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,cursor:"pointer",minHeight:50}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{display:"flex",flexDirection:"column",gap:1,background:C.card,borderRadius:16,border:`1px solid ${C.border}`,overflow:"hidden"}}>
         {channels.map((ch,i) => {
           const msgs = messages[ch.id]||[];
@@ -1134,7 +1176,6 @@ function MessagesTab({players,messages,unread,onOpen}) {
           const uCount = unread[ch.id]||0;
           return (
             <button key={ch.id} onClick={()=>onOpen(ch.id)} className="card-hover" style={{display:"flex",gap:14,alignItems:"center",padding:"14px 16px",background:"transparent",border:"none",borderBottom:i<channels.length-1?`1px solid ${C.border}40`:"none",textAlign:"left",width:"100%",minHeight:72,cursor:"pointer"}}>
-              {/* Avatar */}
               {ch.isGroup
                 ? <div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,#1a3a7a,#0a1f50)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden",boxShadow:`0 0 12px ${C.blue}30`}}>
                     <img src={LOGO} alt="team" style={{width:36,height:36,objectFit:"contain"}}/>
