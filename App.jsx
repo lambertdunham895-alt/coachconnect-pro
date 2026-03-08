@@ -1852,7 +1852,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   const mine=assignments.filter(a=>a.playerId===player.id);
   const done=mine.filter(a=>a.completed).length;
   const pct=mine.length?Math.round(done/mine.length*100):0;
-  const myVideoKeys = Object.keys(playerVideos).filter(k=>k.startsWith(player.id+"_"));
+  const myVideoKeys = playerVideos ? Object.keys(playerVideos).filter(k=>k.startsWith(player.id+"_")) : [];
   const videoCount  = myVideoKeys.length;
 
   const startEdit = () => {
@@ -1989,6 +1989,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
         ))}
       </div>}
 
+      <ErrorBoundary>
       {!editing && detailTab==="drills"    && <DrillsTab mine={mine} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} player={player} coachMode={true} removeAsgn={id=>setAsgn(prev=>prev.filter(a=>a.id!==id))}/>}
       {!editing && detailTab==="progress"  && <ProgressTab player={player} assignments={assignments} skillSnapshots={skillSnapshots.filter(s=>s.playerId===player.id)} setSkillSnapshots={setSkillSnapshots} canAccess={canAccess} onUpgrade={onUpgrade}/>}
       {!editing && detailTab==="goals"     && <GoalsTab player={player} setPlayers={setPlayers}/>}
@@ -2003,6 +2004,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
           </div>
         </div>
       )}
+      </ErrorBoundary>
     </div>
   );
 }
