@@ -1660,7 +1660,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   };
   const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date));
   const isGame=form.type==="game";
-  const formTabs=isGame?[{id:"info",label:"📋 Info"},{id:"batting",label:"⚾ Batting Order"},{id:"field",label:"🏟 Field Positions"}]:[];
+  const formTabs=isGame?[{id:"info",label:"🔴 Info"},{id:"batting",label:"🔴 Batting Order"},{id:"field",label:"🔴 Field Positions"}]:[];
 
   // ── FORM VIEW ────────────────────────────────────────────────────────────────
   if(view==="form") return (
@@ -3075,9 +3075,7 @@ function BenchRoster({bench, selectedPid, onSelectPlayer, onTapAdd}) {
                   </div>
                   {isSelected
                     ? <div style={{fontSize:14,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1}}>✦ Selected</div>
-                    : <button onClick={e=>{e.stopPropagation();onTapAdd(p.id);}} style={{padding:"7px 14px",borderRadius:9,background:`${C.blue}20`,border:`1px solid ${C.blue}50`,color:C.blue,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:36}}>
-                        + Add
-                      </button>
+                    : <div style={{fontSize:12,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Tap to select</div>
                   }
                 </div>
               );
