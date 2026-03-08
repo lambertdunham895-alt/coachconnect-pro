@@ -952,7 +952,7 @@ function BottomNav({tab,setTab,totalUnread}) {
     {id:"home",     icon:"▦",  label:"Home"},
     {id:"roster",   icon:"👥", label:"Roster"},
     {id:"schedule", icon:"📅", label:"Schedule"},
-    {id:"drills",   icon:"🏋️", label:"Drills"},
+    {id:"drills",   icon:"📋", label:"Drills"},
     {id:"plans",    icon:"📝", label:"Practice"},
     {id:"msgs",     icon:"💬", label:"Chat"},
   ];
