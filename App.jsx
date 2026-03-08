@@ -855,9 +855,15 @@ export default function App() {
     return ()=>subscription.unsubscribe();
   },[]);
 
+  const [teamDisplayName, setTeamDisplayName] = useState("");
+
   const loadProfile = async (userId) => {
     const {data} = await supabase.from("profiles").select("*").eq("id",userId).single();
     setProfile(data);
+    if (data?.team_id) {
+      const {data:teamData} = await supabase.from("teams").select("name").eq("id",data.team_id).single();
+      if (teamData?.name) setTeamDisplayName(teamData.name);
+    }
     setAuthReady(true);
   };
 
@@ -888,6 +894,7 @@ export default function App() {
   const [drillVideos, setDrillVideos] = useState({});
   const [playerVideos, setPlayerVideos] = useState({}); // key: "playerId_drillId"
   const [playerPhotos, setPlayerPhotos] = useState({}); // key: playerId → base64 data URL
+  const [teamLogo, setTeamLogo] = useState(null); // base64 team logo uploaded by coach
   const [lineups, setLineups] = useState({});
   const [customPlans, setCustomPlans] = useState([]);
   const [gamePlans, setGamePlans] = useState({}); // {[eventId]: {pitcher, defense, offense, notes}}
@@ -969,7 +976,7 @@ export default function App() {
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
         {activeChat
-          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players}/>
+          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
           : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos}/>
         }
       </div>
@@ -1023,7 +1030,7 @@ export default function App() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={setTeamLogo} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab}/>}
@@ -1031,7 +1038,7 @@ export default function App() {
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
-            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }}/>}
+            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgn} setPlayers={setPlayers} skillSnapshots={skillSnapshots} setSkillSnapshots={setSkillSnapshots} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
           </div>
         )
@@ -1236,7 +1243,10 @@ function LoginScreen({onAuth}) {
 }
 
 // ─── MESSAGES TAB (channel list) ─────────────────────────────────────────────
-function MessagesTab({players,messages,unread,onOpen,onBroadcast}) {
+function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamName}) {
+  const teamInitials = teamName
+    ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
+    : "TC";
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
 
@@ -1308,7 +1318,10 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast}) {
             <button key={ch.id} onClick={()=>onOpen(ch.id)} className="card-hover" style={{display:"flex",gap:14,alignItems:"center",padding:"14px 16px",background:"transparent",border:"none",borderBottom:i<channels.length-1?`1px solid ${C.border}40`:"none",textAlign:"left",width:"100%",minHeight:72,cursor:"pointer"}}>
               {ch.isGroup
                 ? <div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,#1a3a7a,#0a1f50)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden",boxShadow:`0 0 12px ${C.blue}30`}}>
-                    <img src={LOGO} alt="team" style={{width:36,height:36,objectFit:"contain"}}/>
+                    {teamLogo
+                      ? <img src={teamLogo} alt="team" style={{width:46,height:46,objectFit:"cover"}}/>
+                      : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:1,color:"#fff"}}>{teamInitials}</span>
+                    }
                   </div>
                 : <Avatar name={ch.name} size={46} showRing={uCount>0}/>
               }
@@ -1334,10 +1347,22 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast}) {
 }
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
-function ChatView({channelId,messages,onSend,myId,onOpen,players}) {
+function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName}) {
   const [text,setText] = useState("");
   const bottomRef = useRef(null);
   const isTeam = channelId==="team";
+  const isCoach = myId==="coach";
+  const teamInitials = teamName
+    ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
+    : "TC";
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onTeamLogoChange(ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
   useEffect(()=>{
     onOpen();
@@ -1367,17 +1392,54 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players}) {
     <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 56px - 72px)"}}>
       {/* Channel info bar */}
       {isTeam&&(
-        <div style={{padding:"10px 16px",background:`${C.card}`,borderBottom:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{display:"flex"}}>
-            {players.slice(0,4).map((p,i)=>(
-              <div key={p.id} style={{marginLeft:i>0?-8:0,zIndex:4-i,position:"relative"}}>
-                <Avatar name={p.parents?.[0]?.name||p.name} size={26}/>
+        <div style={{padding:"10px 16px",background:`${C.card}`,borderBottom:`1px solid ${C.border}`,display:"flex",gap:12,alignItems:"center"}}>
+          {/* Team logo — tappable for coach, display-only for others */}
+          <div style={{position:"relative",flexShrink:0}}>
+            {teamLogo
+              ? <img src={teamLogo} alt="Team logo" style={{width:44,height:44,borderRadius:10,objectFit:"cover",border:`2px solid ${C.red}60`,boxShadow:`0 2px 10px ${C.red}30`}}/>
+              : <div style={{width:44,height:44,borderRadius:10,background:`linear-gradient(135deg,#1a3a7a,#0a1f50)`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 10px ${C.blue}20`}}>
+                  <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:1,color:"#fff"}}>{teamInitials}</span>
+                </div>
+            }
+            {isCoach&&(
+              <label style={{position:"absolute",inset:0,cursor:"pointer",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.35)",opacity:0,transition:"opacity 0.2s"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity=1}
+                onMouseLeave={e=>e.currentTarget.style.opacity=0}
+              >
+                <span style={{fontSize:14}}>📷</span>
+                <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
+              </label>
+            )}
+          </div>
+
+          {/* Team info + member avatars */}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:C.text,letterSpacing:0.5,marginBottom:4}}>
+              Team Chat
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{display:"flex"}}>
+                {players.slice(0,5).map((p,i)=>(
+                  <div key={p.id} style={{marginLeft:i>0?-6:0,zIndex:5-i,position:"relative"}}>
+                    <Avatar name={p.parents?.[0]?.name||p.name} size={22}/>
+                  </div>
+                ))}
               </div>
-            ))}
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:11,color:C.textMid,letterSpacing:0.8}}>
+                Coach + {players.length} families
+              </div>
+            </div>
           </div>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:12,color:C.textMid,letterSpacing:1}}>
-            Coach + {players.length} families
-          </div>
+
+          {/* Coach-only: change logo hint */}
+          {isCoach&&(
+            <label style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+              <div style={{padding:"5px 10px",borderRadius:8,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.red,textTransform:"uppercase",whiteSpace:"nowrap"}}>
+                {teamLogo?"Change Logo":"Add Logo"}
+              </div>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
+            </label>
+          )}
         </div>
       )}
 
