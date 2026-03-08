@@ -1095,6 +1095,11 @@ function LoginScreen({onAuth}) {
             <button onClick={()=>{setMode("signup");setError("");}} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,padding:0}}>Create one free →</button>
           </div>
         )}
+
+        <div style={{textAlign:"center",marginTop:24,paddingTop:16,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"center",gap:20}}>
+          <a href="/terms.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Terms of Service</a>
+          <a href="/privacy.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Privacy Policy</a>
+        </div>
       </div>
     </div>
   );
