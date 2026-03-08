@@ -1033,7 +1033,7 @@ export default function App() {
         ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={setTeamLogo} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={setTeamLogo} teamName={teamDisplayName}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayers} goToPlayer={goToPlayer} playerPhotos={playerPhotos}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
@@ -1433,12 +1433,9 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 
           {/* Coach-only: change logo hint */}
           {isCoach&&(
-            <label style={{cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
-              <div style={{padding:"5px 10px",borderRadius:8,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.red,textTransform:"uppercase",whiteSpace:"nowrap"}}>
-                {teamLogo?"Change Logo":"Add Logo"}
-              </div>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
-            </label>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:10,color:C.textDim,letterSpacing:0.8,flexShrink:0,textAlign:"center"}}>
+              Edit on<br/>Home tab
+            </div>
           )}
         </div>
       )}
@@ -1521,15 +1518,57 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 }
 
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,goToPlayer,setTab}) {
+function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
   const today=new Date().toISOString().slice(0,10);
   const nextEvent=events.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const teamInitials = teamName
+    ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
+    : "TC";
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onTeamLogoChange(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div>
       <NewCoachCard setTab={setTab}/>
+
+      {/* ── Team Identity Banner ── */}
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1220 0%,#0f1e38 60%,#140c18 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
+        <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,${C.gold}80,${C.red}80)`}}/>
+        <div style={{display:"flex",alignItems:"center",gap:16,position:"relative"}}>
+          {/* Logo circle — tappable */}
+          <label style={{cursor:"pointer",flexShrink:0,position:"relative"}}>
+            <div style={{width:72,height:72,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"80":C.border}`,boxShadow:teamLogo?`0 4px 20px ${C.red}40`:`0 4px 16px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"transparent":`linear-gradient(135deg,#1a3a7a,#0a1f50)`,transition:"all 0.2s"}}>
+              {teamLogo
+                ? <img src={teamLogo} alt="Team logo" style={{width:72,height:72,objectFit:"cover"}}/>
+                : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff"}}>{teamInitials}</span>
+              }
+            </div>
+            {/* Camera badge */}
+            <div style={{position:"absolute",bottom:-4,right:-4,width:22,height:22,borderRadius:"50%",background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,boxShadow:`0 2px 8px ${C.red}60`,border:`2px solid ${C.bg}`}}>📷</div>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
+          </label>
+
+          {/* Team name + hint */}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:1.5,color:C.text,lineHeight:1.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              {teamName||"Your Team"}
+            </div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:teamLogo?C.textDim:C.red,textTransform:"uppercase",marginTop:4}}>
+              {teamLogo?"Tap logo to change":"Tap to add team logo"}
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38 0%,#0c1628 60%,#150b10 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
