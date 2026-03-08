@@ -705,12 +705,140 @@ function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode}) {
   );
 }
 
+// ─── LAUNCH SCREEN ────────────────────────────────────────────────────────────
+function LaunchScreen({ onDone }) {
+  const [phase, setPhase] = useState("in");   // "in" → "hold" → "out"
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // Animate progress bar over 1.8s
+    const start = Date.now();
+    const dur = 1800;
+    const raf = () => {
+      const p = Math.min((Date.now() - start) / dur, 1);
+      setProgress(p);
+      if (p < 1) requestAnimationFrame(raf);
+    };
+    requestAnimationFrame(raf);
+
+    // Fade out at 2.2s, call onDone at 2.7s
+    const t1 = setTimeout(() => setPhase("out"), 2200);
+    const t2 = setTimeout(() => onDone(), 2700);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  const fadeStyle = {
+    opacity: phase === "out" ? 0 : 1,
+    transition: phase === "out" ? "opacity 0.5s ease" : "opacity 0.4s ease",
+  };
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:9999,
+      background: C.bg,
+      display:"flex", flexDirection:"column",
+      alignItems:"center", justifyContent:"center",
+      ...fadeStyle,
+    }}>
+      <style>{FONTS}</style>
+      {/* diagonal stripe overlay */}
+      <div style={{
+        position:"absolute", inset:0,
+        background: C.stripe,
+        pointerEvents:"none",
+      }}/>
+
+      {/* red top accent bar */}
+      <div style={{
+        position:"absolute", top:0, left:0, right:0, height:3,
+        background:`linear-gradient(90deg, ${C.red}, #ff6b6b, ${C.red})`,
+      }}/>
+
+      {/* logo + text */}
+      <div style={{
+        position:"relative", zIndex:1,
+        display:"flex", flexDirection:"column", alignItems:"center", gap:20,
+        animation: "lsLogoIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both",
+      }}>
+        {/* logo circle */}
+        <div style={{
+          width:110, height:110, borderRadius:"50%",
+          background:"rgba(255,255,255,0.04)",
+          border:`2px solid rgba(232,25,44,0.4)`,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          boxShadow:`0 0 40px rgba(232,25,44,0.2), 0 0 80px rgba(232,25,44,0.08)`,
+        }}>
+          <img src={LOGO} alt="logo" style={{
+            width:90, height:90, borderRadius:"50%", objectFit:"cover",
+          }}/>
+        </div>
+
+        {/* title */}
+        <div style={{ textAlign:"center" }}>
+          <div style={{
+            fontFamily:"Bebas Neue, sans-serif",
+            fontSize:34, letterSpacing:6,
+            color: C.text,
+            lineHeight:1,
+            textShadow:`0 2px 20px rgba(232,25,44,0.3)`,
+          }}>COACHCONNECT</div>
+          <div style={{
+            fontFamily:"Bebas Neue, sans-serif",
+            fontSize:34, letterSpacing:6,
+            color: C.red,
+            lineHeight:1,
+          }}>PRO</div>
+          <div style={{
+            fontFamily:"Bebas Neue, sans-serif",
+            fontSize:12, letterSpacing:4,
+            color: C.textMid,
+            marginTop:8,
+          }}>YOUTH BASEBALL DEVELOPMENT</div>
+        </div>
+
+        {/* progress bar */}
+        <div style={{
+          width:160, height:2,
+          background:"rgba(255,255,255,0.08)",
+          borderRadius:2, overflow:"hidden",
+          marginTop:8,
+        }}>
+          <div style={{
+            height:"100%", borderRadius:2,
+            background:`linear-gradient(90deg, ${C.red}, #ff6b6b)`,
+            width:`${progress * 100}%`,
+            transition:"width 0.05s linear",
+            boxShadow:`0 0 8px rgba(232,25,44,0.6)`,
+          }}/>
+        </div>
+      </div>
+
+      {/* bottom tagline */}
+      <div style={{
+        position:"absolute", bottom:48,
+        fontFamily:"Bebas Neue, sans-serif",
+        fontSize:11, letterSpacing:3,
+        color: C.textDim,
+        animation:"lsLogoIn 0.8s 0.3s both",
+      }}>POWERED BY COACHCONNECT</div>
+
+      <style>{`
+        @keyframes lsLogoIn {
+          from { opacity:0; transform:scale(0.85) translateY(16px); }
+          to   { opacity:1; transform:scale(1) translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [session,  setSession]  = useState(null);   // Supabase session
   const [profile,  setProfile]  = useState(null);   // { role, team_id, full_name }
   const [authReady,setAuthReady]= useState(false);  // hide UI until auth checked
   const [parentUserId, setPUID] = useState(null);
+  const [launching, setLaunching] = useState(true); // show launch screen first
 
   // ── Listen for auth state changes ────────────────────────────────────────
   useEffect(()=>{
@@ -794,6 +922,8 @@ export default function App() {
   };
 
   const markRead = channelId => setUnread(prev => ({...prev, [channelId]:0}));
+
+  if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
   if (!authReady) return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
