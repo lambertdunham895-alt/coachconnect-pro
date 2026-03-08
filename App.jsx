@@ -1470,72 +1470,103 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={}}) {
 // ─── ASSIGN DRILLS ────────────────────────────────────────────────────────────
 function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade}) {
   if(canAccess && !canAccess("drills")) return <PaywallGate feature="Full Drill Library" onUpgrade={onUpgrade}/>;
-  const [pid,setPid]=useState(players[0]?.id||"");
-  const [cat,setCat]=useState("All");
-  const assigned=assignments.filter(a=>a.playerId===pid).map(a=>a.drillId);
-  const filtered=DRILL_LIBRARY.filter(d=>cat==="All"||d.category===cat);
-  const player=players.find(p=>p.id===pid);
-  const toggle=drill=>{
-    if(assigned.includes(drill.id)) setAsgn(prev=>prev.filter(a=>!(a.playerId===pid&&a.drillId===drill.id)));
-    else setAsgn(prev=>[...prev,{id:uid(),playerId:pid,drillId:drill.id,assignedDate:new Date().toISOString().slice(0,10),completed:false,coachRating:null,notes:""}]);
+  const [cat, setCat] = useState("All");
+  const [selectedDrill, setSelectedDrill] = useState(null);
+  const [expanded, setExpanded] = useState(null);
+
+  const filtered = DRILL_LIBRARY.filter(d => cat==="All" || d.category===d.category && (cat==="All" || d.category===cat));
+  const filteredDrills = DRILL_LIBRARY.filter(d => cat==="All" || d.category===cat);
+
+  // For each player, is this drill assigned?
+  const isAssigned = (pid, drillId) => assignments.some(a => a.playerId===pid && a.drillId===drillId);
+
+  const togglePlayer = (pid) => {
+    if(!selectedDrill) return;
+    if(isAssigned(pid, selectedDrill.id)){
+      setAsgn(prev => prev.filter(a => !(a.playerId===pid && a.drillId===selectedDrill.id)));
+    } else {
+      setAsgn(prev => [...prev, {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:""}]);
+    }
   };
+
   return (
     <div>
-      <SectionHead accent tip="Drills are specific exercises players practice at home or before games. Assign a drill to a player and they'll see it in their parent app. You can rate how well they're doing it and leave coaching notes.">Assign Drills</SectionHead>
-      <div style={{marginBottom:16}}>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Player</div>
-        <select value={pid} onChange={e=>setPid(e.target.value)} style={sel}>{players.map(p=><option key={p.id} value={p.id}>{p.name} ({p.position})</option>)}</select>
-      </div>
+      <SectionHead accent tip="Tap a drill to assign it to one or more players. They'll see it instantly in their parent app.">Assign Drills</SectionHead>
+
+      {/* Category filter */}
       <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
         <div style={{display:"flex",gap:8,paddingBottom:4,width:"max-content"}}>
           {["All",...CATEGORIES].map(c=>{
-          const color = c==="All" ? C.red : catColor(c);
-          const active = cat===c;
-          const isMental = c==="Mental Skills";
-          return (
-            <button key={c} onClick={()=>setCat(c)} style={{
-              padding:"8px 16px", borderRadius:20, cursor:"pointer", whiteSpace:"nowrap",
-              minHeight:36, flexShrink:0, transition:"all 0.15s",
-              border:`${isMental&&!active?"2px":"1px"} solid ${active?color:isMental?"#ec489980":C.border}`,
-              background: active?`${color}28`:isMental?"#ec489910":"transparent",
-              color: active?color:isMental?"#ec4899aa":C.textMid,
-              fontFamily:"Barlow Condensed, sans-serif", fontWeight:700, fontSize:11, letterSpacing:1.5, textTransform:"uppercase",
-              boxShadow: active?`0 0 12px ${color}40`:isMental?"0 0 8px #ec489920":"none",
-            }}>
-              {c}
-            </button>
-          );
-        })}
+            const color = c==="All" ? C.red : catColor(c);
+            const active = cat===c;
+            const isMental = c==="Mental Skills";
+            return (
+              <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,cursor:"pointer",whiteSpace:"nowrap",minHeight:36,flexShrink:0,transition:"all 0.15s",border:`${isMental&&!active?"2px":"1px"} solid ${active?color:isMental?"#ec489980":C.border}`,background:active?`${color}28`:isMental?"#ec489910":"transparent",color:active?color:isMental?"#ec4899aa":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",boxShadow:active?`0 0 12px ${color}40`:isMental?"0 0 8px #ec489920":"none"}}>
+                {c}
+              </button>
+            );
+          })}
         </div>
       </div>
-      {player&&<div style={{background:`linear-gradient(90deg,${C.card},${C.cardAlt})`,borderRadius:10,border:`1px solid ${C.border}`,padding:"10px 16px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,color:C.text}}>{player.name}</div>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:C.teal}}>{assigned.length}</div>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,letterSpacing:2,color:C.textDim,textTransform:"uppercase"}}>Assigned</div>
-        </div>
-      </div>}
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        {filtered.map((drill,i)=>{
-          const isOn=assigned.includes(drill.id);
-          const cc=catColor(drill.category);
+
+      {/* Drill list */}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {filteredDrills.map((drill,i) => {
+          const cc = catColor(drill.category);
+          const assignedCount = players.filter(p => isAssigned(p.id, drill.id)).length;
+          const isOpen = expanded===drill.id;
+          const isSelected = selectedDrill?.id===drill.id;
+
           return (
-            <div key={drill.id} className={`fade-up-${Math.min(i%4+1,5)}`} style={{background:isOn?`${C.teal}08`:C.card,border:`1px solid ${isOn?C.teal+"50":C.border}`,borderRadius:14,padding:16,boxShadow:isOn?`0 0 20px ${C.teal}15`:"none",transition:"all 0.2s"}}>
-              <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
-                <div style={{width:10,height:10,borderRadius:"50%",background:cc,boxShadow:`0 0 8px ${cc}80`,flexShrink:0,marginTop:6}}></div>
+            <div key={drill.id} style={{background:isSelected?`${C.teal}10`:C.card, border:`1px solid ${isSelected?C.teal+"60":C.border}`, borderRadius:14, overflow:"hidden", transition:"all 0.2s", boxShadow:isSelected?`0 0 20px ${C.teal}15`:"none"}}>
+
+              {/* Drill header row — tap to select */}
+              <button onClick={()=>{ setSelectedDrill(isSelected?null:drill); setExpanded(isSelected?null:drill.id); }}
+                style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"transparent",border:"none",textAlign:"left",cursor:"pointer",minHeight:56}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:cc,boxShadow:`0 0 8px ${cc}80`,flexShrink:0}}/>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:17,color:C.text,marginBottom:4}}>{drill.name}</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}><Tag label={drill.category} color={cc} small/><Tag label={drill.duration} color={C.textDim} small/></div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{drill.name}</div>
+                  <div style={{display:"flex",gap:6}}><Tag label={drill.category} color={cc} small/><Tag label={drill.duration} color={C.textDim} small/></div>
                 </div>
-              </div>
-              <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
-              {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:12,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
-              <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={true}/>
-              <div style={{marginTop:12}}>
-              <button onClick={()=>toggle(drill)} style={{width:"100%",padding:"12px 0",borderRadius:10,cursor:"pointer",minHeight:46,transition:"all 0.2s",background:isOn?"transparent":`linear-gradient(135deg,${C.red},${C.redDim})`,border:isOn?`1px solid ${C.teal}`:"none",color:isOn?C.teal:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",boxShadow:isOn?`0 0 10px ${C.teal}30`:`0 4px 16px ${C.red}30`}}>
-                {isOn?"✓ Assigned — Remove":"Assign Drill"}
+                {assignedCount>0 && (
+                  <div style={{padding:"3px 9px",borderRadius:8,background:`${C.teal}20`,border:`1px solid ${C.teal}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,whiteSpace:"nowrap"}}>
+                    {assignedCount} player{assignedCount!==1?"s":""}
+                  </div>
+                )}
+                <div style={{fontSize:14,color:isSelected?C.teal:C.textDim,transition:"transform 0.2s",transform:isOpen?"rotate(90deg)":"none"}}>›</div>
               </button>
-              </div>
+
+              {/* Expanded: drill info + player picker */}
+              {isOpen && (
+                <div style={{padding:"0 16px 16px"}}>
+                  <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
+                  {drill.results&&<div style={{fontSize:12,color:`${C.teal}cc`,lineHeight:1.55,marginBottom:12,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
+                  <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={true}/>
+
+                  {/* Player selector */}
+                  <div style={{marginTop:14}}>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>Assign to Players</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {players.map(p => {
+                        const on = isAssigned(p.id, drill.id);
+                        return (
+                          <button key={p.id} onClick={()=>togglePlayer(p.id)}
+                            style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:12,background:on?`${C.teal}15`:"transparent",border:`1px solid ${on?C.teal+"60":C.border}`,cursor:"pointer",transition:"all 0.15s",textAlign:"left",minHeight:50}}>
+                            <Avatar name={p.name} size={34}/>
+                            <div style={{flex:1}}>
+                              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,color:on?C.teal:C.text}}>{p.name}</div>
+                              <div style={{fontSize:11,color:C.textDim}}>{p.position} · #{p.number}</div>
+                            </div>
+                            <div style={{width:24,height:24,borderRadius:"50%",border:`2px solid ${on?C.teal:C.border}`,background:on?C.teal:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
+                              {on&&<div style={{color:"#000",fontSize:12,fontWeight:900}}>✓</div>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
