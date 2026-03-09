@@ -861,8 +861,9 @@ export default function App() {
     const {data} = await supabase.from("profiles").select("*").eq("id",userId).single();
     setProfile(data);
     if (data?.team_id) {
-      const {data:teamData} = await supabase.from("teams").select("name").eq("id",data.team_id).single();
+      const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
       if (teamData?.name) setTeamDisplayName(teamData.name);
+      if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
     }
     setAuthReady(true);
   };
@@ -895,6 +896,26 @@ export default function App() {
   const [playerVideos, setPlayerVideos] = useState({}); // key: "playerId_drillId"
   const [playerPhotos, setPlayerPhotos] = useState({}); // key: playerId → base64 data URL
   const [teamLogo, setTeamLogo] = useState(null); // base64 team logo uploaded by coach
+
+  const handleTeamLogoChange = async (base64DataUrl) => {
+    setTeamLogo(base64DataUrl); // show immediately
+    const teamId = profile?.team_id;
+    if (!teamId) return;
+    try {
+      const res = await fetch(base64DataUrl);
+      const blob = await res.blob();
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+      const path = `team-logos/${teamId}.${ext}`;
+      const { error } = await supabase.storage.from('player-photos').upload(path, blob, { upsert: true });
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('player-photos').getPublicUrl(path);
+        await supabase.from('teams').update({ logo_url: publicUrl }).eq('id', teamId);
+        setTeamLogo(publicUrl);
+      }
+    } catch (err) {
+      console.error('Logo upload error:', err);
+    }
+  };
   const [lineups, setLineups] = useState({});
   const [customPlans, setCustomPlans] = useState([]);
   const [gamePlans, setGamePlans] = useState({}); // {[eventId]: {pitcher, defense, offense, notes}}
@@ -977,7 +998,7 @@ export default function App() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo}/>
         }
       </div>
     );
@@ -1030,10 +1051,10 @@ export default function App() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={setTeamLogo} teamName={teamDisplayName}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={setTeamLogo} teamName={teamDisplayName}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayers} goToPlayer={goToPlayer} playerPhotos={playerPhotos}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
@@ -2659,7 +2680,7 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
 }
 
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{}}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},teamLogo=null}) {
   const [section,setSection]=useState("drills");
   const [selEvId,setSelEvId]=useState(null);
   if(!player)return <div style={{padding:40,color:C.textDim}}>Player not found.</div>;
@@ -2900,7 +2921,10 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             <button key={ch.id} onClick={()=>onOpenChat(ch.id)} className="card-hover" style={{display:"flex",gap:14,alignItems:"center",padding:"16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,textAlign:"left",width:"100%",minHeight:70,cursor:"pointer"}}>
               {ch.isGroup
                 ?<div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,#1a3a7a,#0a1f50)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
-                    <img src={LOGO} alt="team" style={{width:36,height:36,objectFit:"contain"}}/>
+                    {teamLogo
+                      ? <img src={teamLogo} alt="team" style={{width:46,height:46,objectFit:"cover"}}/>
+                      : <img src={LOGO} alt="team" style={{width:36,height:36,objectFit:"contain"}}/>
+                    }
                   </div>
                 :<Avatar name="Coach" size={46}/>}
               <div>
