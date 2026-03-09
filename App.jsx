@@ -998,7 +998,7 @@ export default function App() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo} teamName={teamDisplayName}/>
         }
       </div>
     );
@@ -2680,7 +2680,10 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
 }
 
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},teamLogo=null}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},teamLogo=null,teamName=""}) {
+  const teamInitials = teamName
+    ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
+    : "TC";
   const [section,setSection]=useState("drills");
   const [selEvId,setSelEvId]=useState(null);
   if(!player)return <div style={{padding:40,color:C.textDim}}>Player not found.</div>;
@@ -2923,7 +2926,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 ?<div style={{width:46,height:46,borderRadius:"50%",background:`linear-gradient(135deg,#1a3a7a,#0a1f50)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"}}>
                     {teamLogo
                       ? <img src={teamLogo} alt="team" style={{width:46,height:46,objectFit:"cover"}}/>
-                      : <img src={LOGO} alt="team" style={{width:36,height:36,objectFit:"contain"}}/>
+                      : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:1,color:"#fff"}}>{teamInitials}</span>
                     }
                   </div>
                 :<Avatar name="Coach" size={46}/>}
