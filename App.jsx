@@ -317,12 +317,12 @@ const initPlayers = [
 ];
 
 const initAssignments = [
-  {id:"a1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-28",completed:true, coachRating:4,notes:"Good effort. Work on staying lower."},
-  {id:"a2",playerId:"p1",drillId:"t1",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:""},
-  {id:"a3",playerId:"p2",drillId:"f6",assignedDate:"2026-02-28",completed:true, coachRating:3,notes:"Needs to attack the ball more aggressively."},
-  {id:"a4",playerId:"p3",drillId:"p3",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:""},
-  {id:"a5",playerId:"p3",drillId:"p7",assignedDate:"2026-02-28",completed:true, coachRating:5,notes:"Great spin! Ready to use in games."},
-  {id:"a6",playerId:"p4",drillId:"h1",assignedDate:"2026-03-01",completed:false,coachRating:null,notes:""},
+  {id:"a1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-28",completed:true, coachRating:4,notes:"Good effort. Work on staying lower.",acknowledged:true},
+  {id:"a2",playerId:"p1",drillId:"t1",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
+  {id:"a3",playerId:"p2",drillId:"f6",assignedDate:"2026-02-28",completed:true, coachRating:3,notes:"Needs to attack the ball more aggressively.",acknowledged:true},
+  {id:"a4",playerId:"p3",drillId:"p3",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
+  {id:"a5",playerId:"p3",drillId:"p7",assignedDate:"2026-02-28",completed:true, coachRating:5,notes:"Great spin! Ready to use in games.",acknowledged:true},
+  {id:"a6",playerId:"p4",drillId:"h1",assignedDate:"2026-03-01",completed:false,coachRating:null,notes:"",acknowledged:false},
 ];
 
 const initEvents = [
@@ -424,17 +424,17 @@ const initSkillSnapshots = [
 
 // Extra completed assignments spread across dates for streaks
 const extraAssignments = [
-  {id:"ax1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:""},
-  {id:"ax2",playerId:"p1",drillId:"t4",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:""},
-  {id:"ax3",playerId:"p1",drillId:"f1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:""},
-  {id:"ax4",playerId:"p1",drillId:"t1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:""},
-  {id:"ax5",playerId:"p3",drillId:"p3",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:""},
-  {id:"ax6",playerId:"p3",drillId:"p7",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:""},
-  {id:"ax7",playerId:"p3",drillId:"p3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:""},
-  {id:"ax8",playerId:"p2",drillId:"f6",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:""},
-  {id:"ax9",playerId:"p2",drillId:"cb3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:""},
-  {id:"ax10",playerId:"p4",drillId:"h1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:""},
-  {id:"ax11",playerId:"p4",drillId:"f1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:""},
+  {id:"ax1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax2",playerId:"p1",drillId:"t4",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax3",playerId:"p1",drillId:"f1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax4",playerId:"p1",drillId:"t1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax5",playerId:"p3",drillId:"p3",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax6",playerId:"p3",drillId:"p7",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax7",playerId:"p3",drillId:"p3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax8",playerId:"p2",drillId:"f6",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax9",playerId:"p2",drillId:"cb3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax10",playerId:"p4",drillId:"h1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
+  {id:"ax11",playerId:"p4",drillId:"f1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:"",acknowledged:false},
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -1054,9 +1054,9 @@ export default function App() {
         ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayers} goToPlayer={goToPlayer} playerPhotos={playerPhotos}/>}
-            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
+            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
@@ -1539,7 +1539,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 }
 
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName}) {
+function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={}}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
@@ -1548,6 +1548,14 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
+
+  // Needs Review: completed but not yet acknowledged
+  const needsReview = assignments.filter(a=>a.completed && !a.acknowledged);
+  // Group by player
+  const reviewByPlayer = players.map(p=>({
+    player:p,
+    items: needsReview.filter(a=>a.playerId===p.id)
+  })).filter(x=>x.items.length>0);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -1560,6 +1568,28 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
   return (
     <div>
       <NewCoachCard setTab={setTab}/>
+
+      {/* ── Needs Review Alert ── */}
+      {needsReview.length > 0 && (
+        <div className="fade-up" style={{background:`linear-gradient(135deg,#1a0e00,#1a1400)`,borderRadius:16,border:`1px solid ${C.gold}50`,padding:"16px 18px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 4px 24px ${C.gold}20`}}>
+          <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.gold},${C.gold}40)`}}/>
+          <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+            <div style={{width:44,height:44,borderRadius:12,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.gold,letterSpacing:0.5,marginBottom:2}}>
+                {needsReview.length} Drill{needsReview.length!==1?"s":""} Need{needsReview.length===1?"s":""} Review
+              </div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.4}}>
+                {reviewByPlayer.map(x=>`${x.player.name.split(" ")[0]} (${x.items.length})`).join(" · ")}
+              </div>
+            </div>
+            <button onClick={()=>setTab("drills")} style={{padding:"9px 16px",borderRadius:10,background:`linear-gradient(135deg,${C.gold}30,${C.gold}15)`,border:`1px solid ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:40,flexShrink:0}}>
+              Review →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1220 0%,#0f1e38 60%,#140c18 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
@@ -1766,13 +1796,13 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={}}) {
 }
 
 // ─── ASSIGN DRILLS ────────────────────────────────────────────────────────────
-function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade}) {
+function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade,playerVideos={}}) {
   if(canAccess && !canAccess("drills")) return <PaywallGate feature="Full Drill Library" onUpgrade={onUpgrade}/>;
   const [cat, setCat] = useState("All");
   const [selectedDrill, setSelectedDrill] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [reviewNotes, setReviewNotes] = useState({}); // keyed by assignment id
 
-  const filtered = DRILL_LIBRARY.filter(d => cat==="All" || d.category===d.category && (cat==="All" || d.category===cat));
   const filteredDrills = DRILL_LIBRARY.filter(d => cat==="All" || d.category===cat);
 
   // For each player, is this drill assigned?
@@ -1783,13 +1813,104 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
     if(isAssigned(pid, selectedDrill.id)){
       setAsgn(prev => prev.filter(a => !(a.playerId===pid && a.drillId===selectedDrill.id)));
     } else {
-      setAsgn(prev => [...prev, {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:""}]);
+      setAsgn(prev => [...prev, {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false}]);
     }
+  };
+
+  // Needs Review: completed but not acknowledged
+  const needsReview = assignments.filter(a => a.completed && !a.acknowledged);
+  const reviewByPlayer = players.map(p=>({
+    player:p,
+    items: needsReview.filter(a=>a.playerId===p.id)
+  })).filter(x=>x.items.length>0);
+
+  const acknowledge = (aId) => {
+    const note = reviewNotes[aId] || "";
+    setAsgn(prev => prev.map(a => a.id===aId ? {...a, acknowledged:true, notes: note || a.notes} : a));
+    setReviewNotes(prev => {const n={...prev}; delete n[aId]; return n;});
   };
 
   return (
     <div>
       <SectionHead accent tip="Tap a drill to assign it to one or more players. They'll see it instantly in their parent app.">Assign Drills</SectionHead>
+
+      {/* ── Needs Review Section ── */}
+      {needsReview.length > 0 && (
+        <div style={{marginBottom:24}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.gold,textTransform:"uppercase"}}>📋 Needs Review</div>
+            <div style={{padding:"2px 8px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold}}>{needsReview.length}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {reviewByPlayer.map(({player,items})=>(
+              <div key={player.id} style={{background:C.card,border:`1px solid ${C.gold}30`,borderRadius:14,overflow:"hidden"}}>
+                {/* Player header */}
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:`1px solid ${C.border}40`,background:`${C.gold}08`}}>
+                  <Avatar name={player.name} size={32}/>
+                  <div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text}}>{player.name}</div>
+                    <div style={{fontSize:11,color:C.textDim}}>{items.length} drill{items.length!==1?"s":""} completed</div>
+                  </div>
+                </div>
+                {/* Drill items */}
+                <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                  {items.map((a,i)=>{
+                    const drill = DRILL_LIBRARY.find(d=>d.id===a.drillId);
+                    if(!drill) return null;
+                    const cc = catColor(drill.category);
+                    const pvKey = `${player.id}_${drill.id}`;
+                    const playerVid = playerVideos[pvKey];
+                    const localNote = reviewNotes[a.id] !== undefined ? reviewNotes[a.id] : (a.notes||"");
+                    return (
+                      <div key={a.id} style={{padding:"14px 16px",borderBottom:i<items.length-1?`1px solid ${C.border}30`:"none"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:cc,boxShadow:`0 0 6px ${cc}80`,flexShrink:0}}/>
+                          <div style={{flex:1}}>
+                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text}}>{drill.name}</div>
+                            <div style={{display:"flex",gap:6,marginTop:2}}>
+                              <Tag label={drill.category} color={cc} small/>
+                              <Tag label={drill.duration} color={C.textDim} small/>
+                              {playerVid && <Tag label="📹 Video" color={C.gold} small/>}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Player video if uploaded */}
+                        {playerVid && (
+                          <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1px solid ${C.gold}40`,background:`${C.gold}08`}}>
+                            <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.gold}30`,display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:13}}>📹</span>
+                              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.gold}}>Player Video</div>
+                              <div style={{fontSize:11,color:C.textDim,marginLeft:"auto"}}>{playerVid.uploadedAt ? new Date(playerVid.uploadedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "recently"}</div>
+                            </div>
+                            <video src={playerVid.url} controls style={{width:"100%",display:"block",maxHeight:200,background:"#000"}}/>
+                            {playerVid.note && <div style={{padding:"6px 12px",fontSize:12,color:C.textMid,fontStyle:"italic",borderTop:`1px solid ${C.gold}20`}}>"{playerVid.note}"</div>}
+                          </div>
+                        )}
+                        {/* Coach notes input */}
+                        <div style={{marginBottom:10}}>
+                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Feedback</div>
+                          <textarea
+                            value={localNote}
+                            onChange={e=>setReviewNotes(prev=>({...prev,[a.id]:e.target.value}))}
+                            placeholder="Leave feedback for this player on their performance..."
+                            rows={2}
+                            style={{...inp,width:"100%",resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13}}
+                          />
+                        </div>
+                        {/* Acknowledge button */}
+                        <button onClick={()=>acknowledge(a.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,background:`linear-gradient(135deg,${C.teal},${C.teal}cc)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.teal}40`,minHeight:44}}>
+                          ✓ Acknowledge & Send Feedback
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,margin:"24px 0"}}/>
+        </div>
+      )}
 
       {/* Category filter */}
       <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
@@ -2344,6 +2465,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
   const toggle=id=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:!a.completed}:a));
   const setRating=(id,r)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,coachRating:r}:a));
   const setNote=(id,note)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,notes:note}:a));
+  const acknowledge=(id)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,acknowledged:true}:a));
   return (
     <div>
       <SectionHead accent>Assigned Drills</SectionHead>
@@ -2382,12 +2504,15 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                     <span style={{fontSize:16}}>✅</span>
                     <div style={{flex:1}}>
                       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.teal}}>Player marked this complete</div>
-                      <div style={{fontSize:11,color:C.textDim}}>Leave feedback below, then acknowledge to remove from their list</div>
+                      <div style={{fontSize:11,color:C.textDim}}>{a.acknowledged ? "You've acknowledged this — feedback sent to player" : "Add feedback below, then acknowledge to notify the player"}</div>
                     </div>
-                    {removeAsgn && (
-                      <button onClick={()=>removeAsgn(a.id)} style={{padding:"7px 12px",borderRadius:9,background:`${C.teal}20`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:36}}>
+                    {!a.acknowledged && (
+                      <button onClick={()=>acknowledge(a.id)} style={{padding:"7px 12px",borderRadius:9,background:`${C.teal}20`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:36}}>
                         ✓ Acknowledge
                       </button>
+                    )}
+                    {a.acknowledged && (
+                      <div style={{padding:"5px 10px",borderRadius:8,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>✓ Sent</div>
                     )}
                   </div>
                 )}
@@ -2414,7 +2539,8 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                 <div style={{marginTop:14}}>
                   {coachMode&&<><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Feedback</div>
                   <input value={a.notes||""} onChange={e=>setNote(a.id,e.target.value)} placeholder="Write constructive feedback on the player's performance..." style={inp}/></>}
-                  {!coachMode&&a.notes&&<div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
+                  {!coachMode && a.acknowledged && a.notes && <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
+                  {!coachMode && a.completed && !a.acknowledged && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
                 </div>
               </div>}
             </div>
@@ -2776,7 +2902,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:10,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
                 <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={()=>{}} coachMode={false}/>
-                {a.notes&&<div style={{marginTop:10,padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
+                {a.acknowledged && a.notes && <div style={{marginTop:10,padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
+                {a.completed && !a.acknowledged && <div style={{marginTop:10,padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
                 {/* Parent video upload */}
                 <ParentVideoUpload playerId={parentUserId} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
               </div>
