@@ -2905,7 +2905,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 {a.acknowledged && a.notes && <div style={{marginTop:10,padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
                 {a.completed && !a.acknowledged && <div style={{marginTop:10,padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
                 {/* Parent video upload */}
-                <ParentVideoUpload playerId={parentUserId} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
+                <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
               </div>
             );
           })}
