@@ -3092,7 +3092,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   {isNext&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:isGame?C.red:C.blue,textTransform:"uppercase",marginBottom:3}}>Next up</div>}
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{ev.opponent||"Practice"}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{ev.opponent?`vs. ${ev.opponent}`:"Practice"}</div>
                   <MapLink location={ev.location} isGame={isGame}/>
                   <div style={{fontSize:12,color:C.textMid}}>🕐 {ev.time}</div>
                   {hasLineup&&<div style={{display:"inline-flex",alignItems:"center",gap:4,marginTop:5,padding:"3px 8px",borderRadius:6,background:`${C.teal}15`,border:`1px solid ${C.teal}40`}}><span style={{fontSize:9}}>📢</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>Lineup posted</span></div>}
