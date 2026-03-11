@@ -326,9 +326,9 @@ const initAssignments = [
 ];
 
 const initEvents = [
-  {id:"e1",type:"practice",date:"2026-03-07",time:"10:00 AM",location:"Riverside Park, Field 2 — 400 Riverside Dr, Springfield",notes:"Focus: Fielding fundamentals & base running reads",opponent:""},
-  {id:"e2",type:"game",    date:"2026-03-10",time:"5:30 PM", location:"Memorial Stadium, Field 1 — 88 Stadium Blvd, Springfield",      notes:"First game of the season. Lineup TBD.",opponent:"East Side Eagles"},
-  {id:"e3",type:"practice",date:"2026-03-14",time:"9:00 AM", location:"Riverside Park, Field 2 — 400 Riverside Dr, Springfield",notes:"Pitching & catching focus day",opponent:""},
+  {id:"e1",type:"practice",date:"2026-03-14",time:"10:00 AM",location:"Riverside Park, Field 2 — 400 Riverside Dr, Springfield",notes:"Focus: Fielding fundamentals & base running reads",opponent:""},
+  {id:"e2",type:"game",    date:"2026-03-18",time:"5:30 PM", location:"Memorial Stadium, Field 1 — 88 Stadium Blvd, Springfield",      notes:"First game of the season. Lineup TBD.",opponent:"East Side Eagles"},
+  {id:"e3",type:"practice",date:"2026-03-21",time:"9:00 AM", location:"Riverside Park, Field 2 — 400 Riverside Dr, Springfield",notes:"Pitching & catching focus day",opponent:""},
 ];
 
 // ─── MESSAGING SEED DATA ──────────────────────────────────────────────────────
