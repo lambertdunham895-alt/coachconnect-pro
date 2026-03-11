@@ -2244,8 +2244,6 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   const mine=assignments.filter(a=>a.playerId===player.id);
   const done=mine.filter(a=>a.completed).length;
   const pct=mine.length?Math.round(done/mine.length*100):0;
-  const myVideoKeys = playerVideos ? Object.keys(playerVideos).filter(k=>k.startsWith(player.id+"_")) : [];
-  const videoCount  = myVideoKeys.length;
 
   const startEdit = () => {
     setForm({
@@ -2373,11 +2371,10 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
 
       {/* Tab switcher — hidden while editing */}
       {!editing&&<div style={{display:"flex",gap:0,marginBottom:20,background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`}}>
-      {[{id:"drills",label:"Drills"},{id:"progress",label:"Progress"},{id:"goals",label:"Goals"},{id:"badges",label:"Badges"},{id:"videos",label:"Videos",badge:videoCount}].map(t=>(
+      {[{id:"drills",label:"Drills"},{id:"progress",label:"Progress"},{id:"goals",label:"Goals"},{id:"badges",label:"Badges"}].map(t=>(
           <button key={t.id} onClick={()=>setDetailTab(t.id)} style={{flex:1,padding:"10px 0",borderRadius:9,background:detailTab===t.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:detailTab===t.id?"#fff":C.text,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.2,textTransform:"uppercase",cursor:"pointer",minHeight:42,boxShadow:detailTab===t.id?`0 4px 16px ${C.red}40`:"none",transition:"all 0.2s",position:"relative",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
             <span style={{width:7,height:7,borderRadius:"50%",background:detailTab===t.id?"rgba(255,255,255,0.7)":C.red,display:"block",flexShrink:0}}></span>
             {t.label}
-            {t.badge>0&&<div style={{position:"absolute",top:3,right:3,width:14,height:14,borderRadius:"50%",background:C.teal,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:800,color:"#000"}}>{t.badge}</div>}
           </button>
         ))}
       </div>}
@@ -2387,16 +2384,6 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
       {!editing && detailTab==="progress"  && <ProgressTab player={player} assignments={assignments} skillSnapshots={skillSnapshots.filter(s=>s.playerId===player.id)} setSkillSnapshots={setSkillSnapshots} canAccess={canAccess} onUpgrade={onUpgrade}/>}
       {!editing && detailTab==="goals"     && <GoalsTab player={player} setPlayers={setPlayers}/>}
       {!editing && detailTab==="badges"    && <BadgesPanel player={player} assignments={assignments} skillSnapshots={skillSnapshots} events={[]}/>}
-      {!editing && detailTab==="videos" && (
-        <div>
-          <SectionHead accent>Player Videos</SectionHead>
-          <div style={{textAlign:"center",padding:"48px 20px",color:C.textDim}}>
-            <div style={{fontSize:48,marginBottom:16}}>📹</div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",marginBottom:8,color:C.textMid}}>No Videos Yet</div>
-            <div style={{fontSize:13,lineHeight:1.6,maxWidth:260,margin:"0 auto"}}>{player.name.split(" ")[0]}'s parent can film drill practice at home and upload it from their Drills tab.</div>
-          </div>
-        </div>
-      )}
       </ErrorBoundary>
     </div>
   );
