@@ -2880,6 +2880,52 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
   return (
     <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px"}}>
+
+      {/* ── Team Identity Banner ── */}
+      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
+        <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,#06111f 0%,#0b1a30 40%,#130818 100%)`}}/>
+        <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
+        <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
+        {!teamLogo && (
+          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:120,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
+            {teamInitials}
+          </div>
+        )}
+        {teamLogo && (
+          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:120,height:120,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
+            <img src={teamLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+          </div>
+        )}
+        <div style={{position:"relative",padding:"18px 20px",display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:76,height:76,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
+            {teamLogo
+              ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
+            }
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>⚾ Youth Baseball</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
+              {teamName||"Your Team"}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{height:2,width:28,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+              <div style={{height:2,width:8,background:C.gold,opacity:0.4}}/>
+              <div style={{height:2,width:4,background:C.gold,opacity:0.2}}/>
+            </div>
+          </div>
+          <div style={{flexShrink:0}}>
+            <div style={{padding:"6px 12px",borderRadius:10,background:`linear-gradient(135deg,${C.red}30,${C.red}15)`,border:`1px solid ${C.red}50`,boxShadow:`0 0 16px ${C.red}20`}}>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:C.red,letterSpacing:1,lineHeight:1,textAlign:"center"}}>2026</div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:C.red+"80",textTransform:"uppercase",textAlign:"center"}}>Season</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Hero */}
       <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px 18px",marginBottom:18,backgroundImage:C.stripe,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
