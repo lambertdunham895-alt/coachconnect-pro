@@ -1569,28 +1569,6 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
     <div>
       <NewCoachCard setTab={setTab}/>
 
-      {/* ── Needs Review Alert ── */}
-      {needsReview.length > 0 && (
-        <div className="fade-up" style={{background:`linear-gradient(135deg,#1a0e00,#1a1400)`,borderRadius:16,border:`1px solid ${C.gold}50`,padding:"16px 18px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 4px 24px ${C.gold}20`}}>
-          <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.gold},${C.gold}40)`}}/>
-          <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
-          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
-            <div style={{width:44,height:44,borderRadius:12,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.gold,letterSpacing:0.5,marginBottom:2}}>
-                {needsReview.length} Drill{needsReview.length!==1?"s":""} Need{needsReview.length===1?"s":""} Review
-              </div>
-              <div style={{fontSize:12,color:C.textMid,lineHeight:1.4}}>
-                {reviewByPlayer.map(x=>`${x.player.name.split(" ")[0]} (${x.items.length})`).join(" · ")}
-              </div>
-            </div>
-            <button onClick={()=>setTab("drills")} style={{padding:"9px 16px",borderRadius:10,background:`linear-gradient(135deg,${C.gold}30,${C.gold}15)`,border:`1px solid ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:40,flexShrink:0}}>
-              Review →
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1220 0%,#0f1e38 60%,#140c18 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
@@ -1642,6 +1620,29 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 10px ${C.gold}60`,transition:"width 0.8s ease"}}/>
         </div>
       </div>
+
+      {/* ── Needs Review Alert ── */}
+      {needsReview.length > 0 && (
+        <div className="fade-up" style={{background:`linear-gradient(135deg,#1a0e00,#1a1400)`,borderRadius:16,border:`1px solid ${C.gold}50`,padding:"16px 18px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 4px 24px ${C.gold}20`}}>
+          <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.gold},${C.gold}40)`}}/>
+          <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+            <div style={{width:44,height:44,borderRadius:12,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📋</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.gold,letterSpacing:0.5,marginBottom:2}}>
+                {needsReview.length} Drill{needsReview.length!==1?"s":""} Need{needsReview.length===1?"s":""} Review
+              </div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.4}}>
+                {reviewByPlayer.map(x=>`${x.player.name.split(" ")[0]} (${x.items.length})`).join(" · ")}
+              </div>
+            </div>
+            <button onClick={()=>setTab("drills")} style={{padding:"9px 16px",borderRadius:10,background:`linear-gradient(135deg,${C.gold}30,${C.gold}15)`,border:`1px solid ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:40,flexShrink:0}}>
+              Review →
+            </button>
+          </div>
+        </div>
+      )}
+
       {nextEvent&&(
         <div className="fade-up-1" style={{background:nextEvent.type==="game"?`linear-gradient(135deg,#1a0808 0%,${C.card} 100%)`:`linear-gradient(135deg,#080f1a 0%,${C.card} 100%)`,borderRadius:16,border:`1px solid ${nextEvent.type==="game"?C.red+"50":C.blue+"50"}`,padding:"16px 18px",marginBottom:16,position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
