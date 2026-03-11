@@ -1614,27 +1614,19 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           {/* Team name block */}
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>
-              ⚾ Youth Baseball
+              ⚾ 2026 Season
             </div>
             <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:34,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
               {teamName||"Your Team"}
             </div>
             {/* Decorative divider */}
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{height:2,width:28,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
               <div style={{height:2,width:8,background:C.gold,opacity:0.4}}/>
               <div style={{height:2,width:4,background:C.gold,opacity:0.2}}/>
             </div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:2,color:teamLogo?"#ffffff40":C.red,textTransform:"uppercase"}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:2,color:teamLogo?"#ffffff40":C.red,textTransform:"uppercase",marginTop:6}}>
               {teamLogo?"Tap logo to update":"Tap logo to add"}
-            </div>
-          </div>
-
-          {/* Season badge */}
-          <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-            <div style={{padding:"6px 12px",borderRadius:10,background:`linear-gradient(135deg,${C.red}30,${C.red}15)`,border:`1px solid ${C.red}50`,boxShadow:`0 0 16px ${C.red}20`}}>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:C.red,letterSpacing:1,lineHeight:1,textAlign:"center"}}>2026</div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:C.red+"80",textTransform:"uppercase",textAlign:"center"}}>Season</div>
             </div>
           </div>
         </div>
@@ -2907,7 +2899,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             }
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>⚾ Youth Baseball</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>⚾ 2026 Season</div>
             <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
               {teamName||"Your Team"}
             </div>
@@ -2915,12 +2907,6 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
               <div style={{height:2,width:28,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
               <div style={{height:2,width:8,background:C.gold,opacity:0.4}}/>
               <div style={{height:2,width:4,background:C.gold,opacity:0.2}}/>
-            </div>
-          </div>
-          <div style={{flexShrink:0}}>
-            <div style={{padding:"6px 12px",borderRadius:10,background:`linear-gradient(135deg,${C.red}30,${C.red}15)`,border:`1px solid ${C.red}50`,boxShadow:`0 0 16px ${C.red}20`}}>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:C.red,letterSpacing:1,lineHeight:1,textAlign:"center"}}>2026</div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:C.red+"80",textTransform:"uppercase",textAlign:"center"}}>Season</div>
             </div>
           </div>
         </div>
