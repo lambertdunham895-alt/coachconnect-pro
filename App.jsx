@@ -1666,11 +1666,11 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
                 {needsReview.length} Drill{needsReview.length!==1?"s":""} Need{needsReview.length===1?"s":""} Review
               </div>
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.4}}>
-                {reviewByPlayer.map(x=>`${x.player.name.split(" ")[0]} (${x.items.length})`).join(" · ")}
+                Tap a player's profile to review — {reviewByPlayer.map(x=>`${x.player.name.split(" ")[0]} (${x.items.length})`).join(" · ")}
               </div>
             </div>
-            <button onClick={()=>setTab("drills")} style={{padding:"9px 16px",borderRadius:10,background:`linear-gradient(135deg,${C.gold}30,${C.gold}15)`,border:`1px solid ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:40,flexShrink:0}}>
-              Review →
+            <button onClick={()=>setTab("roster")} style={{padding:"9px 16px",borderRadius:10,background:`linear-gradient(135deg,${C.gold}30,${C.gold}15)`,border:`1px solid ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:40,flexShrink:0}}>
+              Roster →
             </button>
           </div>
         </div>
@@ -1835,7 +1835,6 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
   const [cat, setCat] = useState("All");
   const [selectedDrill, setSelectedDrill] = useState(null);
   const [expanded, setExpanded] = useState(null);
-  const [reviewNotes, setReviewNotes] = useState({}); // keyed by assignment id
 
   const filteredDrills = DRILL_LIBRARY.filter(d => cat==="All" || d.category===cat);
 
@@ -1851,100 +1850,9 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
     }
   };
 
-  // Needs Review: completed but not acknowledged
-  const needsReview = assignments.filter(a => a.completed && !a.acknowledged);
-  const reviewByPlayer = players.map(p=>({
-    player:p,
-    items: needsReview.filter(a=>a.playerId===p.id)
-  })).filter(x=>x.items.length>0);
-
-  const acknowledge = (aId) => {
-    const note = reviewNotes[aId] || "";
-    setAsgn(prev => prev.map(a => a.id===aId ? {...a, acknowledged:true, notes: note || a.notes} : a));
-    setReviewNotes(prev => {const n={...prev}; delete n[aId]; return n;});
-  };
-
   return (
     <div>
       <SectionHead accent tip="Tap a drill to assign it to one or more players. They'll see it instantly in their parent app.">Assign Drills</SectionHead>
-
-      {/* ── Needs Review Section ── */}
-      {needsReview.length > 0 && (
-        <div style={{marginBottom:24}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.gold,textTransform:"uppercase"}}>📋 Needs Review</div>
-            <div style={{padding:"2px 8px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold}}>{needsReview.length}</div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {reviewByPlayer.map(({player,items})=>(
-              <div key={player.id} style={{background:C.card,border:`1px solid ${C.gold}30`,borderRadius:14,overflow:"hidden"}}>
-                {/* Player header */}
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:`1px solid ${C.border}40`,background:`${C.gold}08`}}>
-                  <Avatar name={player.name} size={32}/>
-                  <div>
-                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text}}>{player.name}</div>
-                    <div style={{fontSize:11,color:C.textDim}}>{items.length} drill{items.length!==1?"s":""} completed</div>
-                  </div>
-                </div>
-                {/* Drill items */}
-                <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                  {items.map((a,i)=>{
-                    const drill = DRILL_LIBRARY.find(d=>d.id===a.drillId);
-                    if(!drill) return null;
-                    const cc = catColor(drill.category);
-                    const pvKey = `${player.id}_${drill.id}`;
-                    const playerVid = playerVideos[pvKey];
-                    const localNote = reviewNotes[a.id] !== undefined ? reviewNotes[a.id] : (a.notes||"");
-                    return (
-                      <div key={a.id} style={{padding:"14px 16px",borderBottom:i<items.length-1?`1px solid ${C.border}30`:"none"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                          <div style={{width:8,height:8,borderRadius:"50%",background:cc,boxShadow:`0 0 6px ${cc}80`,flexShrink:0}}/>
-                          <div style={{flex:1}}>
-                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text}}>{drill.name}</div>
-                            <div style={{display:"flex",gap:6,marginTop:2}}>
-                              <Tag label={drill.category} color={cc} small/>
-                              <Tag label={drill.duration} color={C.textDim} small/>
-                              {playerVid && <Tag label="📹 Video" color={C.gold} small/>}
-                            </div>
-                          </div>
-                        </div>
-                        {/* Player video if uploaded */}
-                        {playerVid && (
-                          <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1px solid ${C.gold}40`,background:`${C.gold}08`}}>
-                            <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.gold}30`,display:"flex",alignItems:"center",gap:8}}>
-                              <span style={{fontSize:13}}>📹</span>
-                              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.gold}}>Player Video</div>
-                              <div style={{fontSize:11,color:C.textDim,marginLeft:"auto"}}>{playerVid.uploadedAt ? new Date(playerVid.uploadedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "recently"}</div>
-                            </div>
-                            <video src={playerVid.url} controls style={{width:"100%",display:"block",maxHeight:200,background:"#000"}}/>
-                            {playerVid.note && <div style={{padding:"6px 12px",fontSize:12,color:C.textMid,fontStyle:"italic",borderTop:`1px solid ${C.gold}20`}}>"{playerVid.note}"</div>}
-                          </div>
-                        )}
-                        {/* Coach notes input */}
-                        <div style={{marginBottom:10}}>
-                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Feedback</div>
-                          <textarea
-                            value={localNote}
-                            onChange={e=>setReviewNotes(prev=>({...prev,[a.id]:e.target.value}))}
-                            placeholder="Leave feedback for this player on their performance..."
-                            rows={2}
-                            style={{...inp,width:"100%",resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13}}
-                          />
-                        </div>
-                        {/* Acknowledge button */}
-                        <button onClick={()=>acknowledge(a.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,background:`linear-gradient(135deg,${C.teal},${C.teal}cc)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.teal}40`,minHeight:44}}>
-                          ✓ Acknowledge & Send Feedback
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,margin:"24px 0"}}/>
-        </div>
-      )}
 
       {/* Category filter */}
       <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
@@ -2496,12 +2404,85 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
 
 function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},player=null,coachMode=false,removeAsgn=null}) {
   const [openDrill,setOpenDrill]=useState(null);
+  const [reviewNotes, setReviewNotes]=useState({});
   const toggle=id=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:!a.completed}:a));
   const setRating=(id,r)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,coachRating:r}:a));
   const setNote=(id,note)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,notes:note}:a));
-  const acknowledge=(id)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,acknowledged:true}:a));
+  const acknowledge=(id)=>{
+    const note = reviewNotes[id] || "";
+    setAsgn(prev=>prev.map(a=>a.id===id?{...a,acknowledged:true, notes: note||a.notes}:a));
+    setReviewNotes(prev=>{const n={...prev};delete n[id];return n;});
+  };
+
+  // Needs Review: this player's completed but unacknowledged drills
+  const needsReview = coachMode ? mine.filter(a=>a.completed && !a.acknowledged) : [];
+
   return (
     <div>
+      {/* ── Needs Review Section (coach only) ── */}
+      {coachMode && needsReview.length > 0 && (
+        <div style={{marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.gold,textTransform:"uppercase"}}>📋 Needs Review</div>
+            <div style={{padding:"2px 8px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold}}>{needsReview.length}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {needsReview.map((a,i)=>{
+              const drill=DRILL_LIBRARY.find(d=>d.id===a.drillId);
+              if(!drill) return null;
+              const cc=catColor(drill.category);
+              const pvKey=player?`${player.id}_${drill.id}`:null;
+              const playerVid=pvKey?playerVideos[pvKey]:null;
+              const localNote=reviewNotes[a.id]!==undefined?reviewNotes[a.id]:(a.notes||"");
+              return (
+                <div key={a.id} style={{background:C.card,border:`1px solid ${C.gold}40`,borderRadius:14,overflow:"hidden"}}>
+                  {/* Drill header */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:`1px solid ${C.border}30`,background:`${C.gold}08`}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:cc,boxShadow:`0 0 6px ${cc}80`,flexShrink:0}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text}}>{drill.name}</div>
+                      <div style={{display:"flex",gap:6,marginTop:2}}>
+                        <Tag label={drill.category} color={cc} small/>
+                        <Tag label={drill.duration} color={C.textDim} small/>
+                        {playerVid&&<Tag label="📹 Video" color={C.gold} small/>}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{padding:"14px 16px"}}>
+                    {/* Player video */}
+                    {playerVid&&(
+                      <div style={{marginBottom:12,borderRadius:10,overflow:"hidden",border:`1px solid ${C.gold}40`,background:`${C.gold}08`}}>
+                        <div style={{padding:"8px 12px",borderBottom:`1px solid ${C.gold}30`,display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:13}}>📹</span>
+                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.gold}}>Player Video</div>
+                          <div style={{fontSize:11,color:C.textDim,marginLeft:"auto"}}>{playerVid.uploadedAt?new Date(playerVid.uploadedAt).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"recently"}</div>
+                        </div>
+                        <video src={playerVid.url} controls style={{width:"100%",display:"block",maxHeight:200,background:"#000"}}/>
+                        {playerVid.note&&<div style={{padding:"6px 12px",fontSize:12,color:C.textMid,fontStyle:"italic",borderTop:`1px solid ${C.gold}20`}}>"{playerVid.note}"</div>}
+                      </div>
+                    )}
+                    {/* Coach feedback */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Feedback</div>
+                      <textarea
+                        value={localNote}
+                        onChange={e=>setReviewNotes(prev=>({...prev,[a.id]:e.target.value}))}
+                        placeholder="Leave feedback for this player..."
+                        rows={2}
+                        style={{...inp,width:"100%",resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13}}
+                      />
+                    </div>
+                    <button onClick={()=>acknowledge(a.id)} style={{width:"100%",padding:"11px 0",borderRadius:10,background:`linear-gradient(135deg,${C.teal},${C.teal}cc)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.teal}40`,minHeight:44}}>
+                      ✓ Acknowledge & Send Feedback
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,margin:"20px 0"}}/>
+        </div>
+      )}
       <SectionHead accent>Assigned Drills</SectionHead>
       {mine.length===0&&<EmptyState icon="🏋️" title="No drills assigned yet" body="Assign drills from the library and this player will see them in their parent app. Track their progress as they practice."/>}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
