@@ -317,11 +317,11 @@ const initPlayers = [
 ];
 
 const initAssignments = [
-  {id:"a1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-28",completed:true, coachRating:4,notes:"Good effort. Work on staying lower.",acknowledged:true},
+  {id:"a1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
   {id:"a2",playerId:"p1",drillId:"t1",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
-  {id:"a3",playerId:"p2",drillId:"f6",assignedDate:"2026-02-28",completed:true, coachRating:3,notes:"Needs to attack the ball more aggressively.",acknowledged:true},
+  {id:"a3",playerId:"p2",drillId:"f6",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
   {id:"a4",playerId:"p3",drillId:"p3",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
-  {id:"a5",playerId:"p3",drillId:"p7",assignedDate:"2026-02-28",completed:true, coachRating:5,notes:"Great spin! Ready to use in games.",acknowledged:true},
+  {id:"a5",playerId:"p3",drillId:"p7",assignedDate:"2026-02-28",completed:false,coachRating:null,notes:"",acknowledged:false},
   {id:"a6",playerId:"p4",drillId:"h1",assignedDate:"2026-03-01",completed:false,coachRating:null,notes:"",acknowledged:false},
 ];
 
@@ -2968,8 +2968,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:10,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
 
-                {/* Parent video upload — always available */}
-                <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
+                {/* Parent video upload — only before acknowledged */}
+                {!a.acknowledged && <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>}
 
                 {/* State messaging */}
                 {(()=>{
@@ -2986,13 +2986,12 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                       </button>
                     </div>
                   );
-                  // Waiting (no acknowledgment yet)
-                  if(!a.acknowledged) return (
+                  // Not yet acknowledged — waiting
+                  return (
                     <div style={{marginTop:10,padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>
                       {hadVideo ? "📹 Video sent — waiting for coach to review" : "✅ Marked complete — waiting for coach acknowledgment"}
                     </div>
                   );
-                  return null;
                 })()}
               </div>
             );
