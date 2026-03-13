@@ -2526,7 +2526,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                   </div>
                   <Tag label={drill.duration} color={C.textDim} small/>
                 </button>
-                <button onClick={()=>toggle(a.id)} style={{padding:"9px 14px",borderRadius:9,cursor:"pointer",minHeight:44,flexShrink:0,background:a.completed?"transparent":`linear-gradient(135deg,${C.red},${C.redDim})`,border:a.completed?`1px solid ${C.teal}`:"none",color:a.completed?C.teal:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",boxShadow:a.completed?"none":`0 4px 12px ${C.red}40`}}>{a.completed?"✓ Done":"Mark Done"}</button>
+                {!coachMode && <button onClick={()=>toggle(a.id)} style={{padding:"9px 14px",borderRadius:9,cursor:"pointer",minHeight:44,flexShrink:0,background:a.completed?"transparent":`linear-gradient(135deg,${C.red},${C.redDim})`,border:a.completed?`1px solid ${C.teal}`:"none",color:a.completed?C.teal:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",boxShadow:a.completed?"none":`0 4px 12px ${C.red}40`}}>{a.completed?"✓ Done":"Mark Done"}</button>}
               </div>
               {open&&<div style={{padding:"0 16px 16px",borderTop:`1px solid ${C.border}40`}}>
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.65,marginBottom:8,paddingTop:12}}>{drill.desc}</div>
