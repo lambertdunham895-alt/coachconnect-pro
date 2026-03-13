@@ -447,9 +447,25 @@ const computeChartRatings = (rubric={}) => {
   return r;
 };
 
-// Legacy chart constants (kept for backward compat)
-const SKILLS = CHART_SKILLS;
-const SKILL_COLORS = CHART_COLORS;
+// Maps each chart skill to the rubric group prefixes that feed it
+const SKILL_PREFIXES = {
+  Hitting:  ["hi_hi"],
+  Fielding: ["fd_in","fd_out"],
+  Throwing: ["tc_th"],
+  Pitching: ["pc_pi"],
+  Catching: ["tc_ca","pc_ca"],
+};
+
+// Distinct colors for subcriteria lines
+const SUBCRITERION_COLORS = [
+  "#00d4aa","#f5c518","#e8192c","#1e7bd4","#f97316","#8b5cf6","#ec4899","#06b6d4"
+];
+
+// Get all criteria keys for a given chart skill that exist in a rubric
+const getCriteriaKeys = (skill, rubric={}) => {
+  const prefixes = SKILL_PREFIXES[skill] || [];
+  return Object.keys(rubric).filter(k => prefixes.some(p => k.startsWith(p+"_")));
+};
 
 const initSkillSnapshots = [
   // Marcus Rivera — SS, improving steadily
@@ -2732,17 +2748,42 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
 
   // ── Chart data ────────────────────────────────────────────────────────────
   const sorted = [...skillSnapshots].sort((a,b)=>a.date.localeCompare(b.date));
-  const chartData = sorted.map(s=>({
-    date: new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
-    ...computeChartRatings(s.rubric||{}),
-  }));
   const latest = sorted[sorted.length-1];
   const latestChart = latest ? computeChartRatings(latest.rubric||{}) : {};
   const prevChart = sorted.length>1 ? computeChartRatings(sorted[sorted.length-2].rubric||{}) : {};
   const availableSkills = CHART_SKILLS.filter(s=>latestChart[s]!=null);
-  const skillsToShow = activeSkill==="all" ? availableSkills : [activeSkill];
+
+  // All-skills aggregate chart
+  const chartDataAll = sorted.map(s=>({
+    date: new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
+    ...computeChartRatings(s.rubric||{}),
+  }));
+
+  // Drill-down: get all criteria keys for the selected skill across all snapshots
+  const drillKeys = activeSkill!=="all" && latest
+    ? getCriteriaKeys(activeSkill, latest.rubric||{})
+    : [];
+
+  // Build pretty label from key e.g. "fd_in_Mechanics" → "Infield Mechanics"
+  const labelFromKey = key => {
+    const parts = key.split("_");
+    // last segment is the criterion name
+    return parts[parts.length-1];
+  };
+
+  const chartDataDrill = sorted.map(s=>({
+    date: new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
+    ...Object.fromEntries(drillKeys.map(k=>[labelFromKey(k), s.rubric?.[k]||null])),
+  }));
+
+  const chartData    = activeSkill==="all" ? chartDataAll : chartDataDrill;
+  const drillLabels  = drillKeys.map(labelFromKey);
+
+  // Deduplicate labels (e.g. both fd_in_Overall and fd_out_Overall → just "Overall")
+  const uniqueDrillLabels = [...new Set(drillLabels)];
 
   const posRubric = rubricForPosition(player.position||"Utility");
+  const skillsToShow = activeSkill==="all" ? availableSkills : [];
 
   const saveSnapshot = () => {
     setSkillSnapshots(prev=>[...prev,{id:uid(),playerId:player.id,date:todayStr,rubric:{...formRubric},notes:formNotes}]);
@@ -2845,8 +2886,15 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
             })}
           </div>
 
+          {/* Drill-down label when a skill is selected */}
+          {activeSkill!=="all" && (
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:CHART_COLORS[activeSkill],textTransform:"uppercase",marginBottom:10}}>
+              {activeSkill} — Subcriteria Breakdown
+            </div>
+          )}
+
           {/* Line chart */}
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"18px 8px 8px",marginBottom:20}}>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"18px 8px 8px",marginBottom:8}}>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData} margin={{top:4,right:16,left:-20,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1a2f5240" vertical={false}/>
@@ -2856,14 +2904,35 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
                 <Tooltip
                   contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,fontFamily:"Barlow Condensed, sans-serif",fontSize:12}}
                   labelStyle={{color:C.textMid,letterSpacing:1,fontSize:10}}
-                  formatter={(val,name)=>[`${val} — ${RUBRIC_LABELS[Math.round(val)]||""}`,name]}
+                  formatter={(val,name)=>[`${RUBRIC_LABELS[Math.round(val)]||val}`,name]}
                 />
-                {skillsToShow.map(skill=>(
-                  <Line key={skill} type="monotone" dataKey={skill} stroke={CHART_COLORS[skill]} strokeWidth={2.5} dot={{fill:CHART_COLORS[skill],r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:CHART_COLORS[skill]}}/>
-                ))}
+                {activeSkill==="all"
+                  ? skillsToShow.map(skill=>(
+                      <Line key={skill} type="monotone" dataKey={skill} stroke={CHART_COLORS[skill]} strokeWidth={2.5} dot={{fill:CHART_COLORS[skill],r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:CHART_COLORS[skill]}}/>
+                    ))
+                  : uniqueDrillLabels.map((label,i)=>{
+                      const color = SUBCRITERION_COLORS[i % SUBCRITERION_COLORS.length];
+                      return <Line key={label} type="monotone" dataKey={label} stroke={color} strokeWidth={2.5} dot={{fill:color,r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:color}} connectNulls/>;
+                    })
+                }
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Legend for drill-down view */}
+          {activeSkill!=="all" && uniqueDrillLabels.length>0 && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,paddingLeft:8}}>
+              {uniqueDrillLabels.map((label,i)=>{
+                const color = SUBCRITERION_COLORS[i % SUBCRITERION_COLORS.length];
+                return (
+                  <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
+                    <div style={{width:16,height:3,borderRadius:2,background:color,flexShrink:0}}/>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.textMid,letterSpacing:1}}>{label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Latest snapshot rubric breakdown */}
           {latest && (
