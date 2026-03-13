@@ -2532,22 +2532,15 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.65,marginBottom:8,paddingTop:12}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:14,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
 
-                {/* Completed banner — coach acknowledge & remove */}
+                {/* Completed status — read only, action happens in Needs Review queue above */}
                 {coachMode && a.completed && (
                   <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,background:`${C.teal}12`,border:`1px solid ${C.teal}40`,marginBottom:14}}>
                     <span style={{fontSize:16}}>✅</span>
                     <div style={{flex:1}}>
                       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.teal}}>Player marked this complete</div>
-                      <div style={{fontSize:11,color:C.textDim}}>{a.acknowledged ? "You've acknowledged this — feedback sent to player" : "Add feedback below, then acknowledge to notify the player"}</div>
+                      <div style={{fontSize:11,color:C.textDim}}>{a.acknowledged ? "Acknowledged — feedback sent to player" : "Waiting for your review in the queue above"}</div>
                     </div>
-                    {!a.acknowledged && (
-                      <button onClick={()=>acknowledge(a.id)} style={{padding:"7px 12px",borderRadius:9,background:`${C.teal}20`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",minHeight:36}}>
-                        ✓ Acknowledge
-                      </button>
-                    )}
-                    {a.acknowledged && (
-                      <div style={{padding:"5px 10px",borderRadius:8,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>✓ Sent</div>
-                    )}
+                    {a.acknowledged && <div style={{padding:"5px 10px",borderRadius:8,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>✓ Sent</div>}
                   </div>
                 )}
 
@@ -2571,8 +2564,6 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                 {!coachMode&&demoVid&&<DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={()=>{}} coachMode={false}/>}
 
                 <div style={{marginTop:14}}>
-                  {coachMode&&<><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Feedback</div>
-                  <input value={a.notes||""} onChange={e=>setNote(a.id,e.target.value)} placeholder="Write constructive feedback on the player's performance..." style={inp}/></>}
                   {!coachMode && a.acknowledged && a.notes && <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
                   {!coachMode && a.completed && !a.acknowledged && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
                 </div>
