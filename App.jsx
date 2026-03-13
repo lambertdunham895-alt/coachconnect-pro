@@ -2977,8 +2977,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:10,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
 
-                {/* Parent video upload — only show if not yet acknowledged */}
-                {!a.acknowledged && <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>}
+                {/* Parent video upload — always available */}
+                <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
 
                 {/* State messaging */}
                 {(()=>{
