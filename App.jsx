@@ -385,41 +385,139 @@ const initMessages = {
 };
 
 // ─── SKILL TRACKING ──────────────────────────────────────────────────────────
-const SKILLS = ["Hitting","Fielding","Throwing","Pitching","Speed"];
-const SKILL_COLORS = {
-  Hitting:  "#e8192c",
-  Fielding: "#1e7bd4",
-  Throwing: "#00d4aa",
-  Pitching: "#f97316",
-  Speed:    "#8b5cf6",
+// ─── RUBRIC SYSTEM ───────────────────────────────────────────────────────────
+const RUBRIC_LABELS = {1:"Needs Work",2:"Developing",3:"Proficient",4:"Excellent"};
+const RUBRIC_VAL_COLORS = {1:"#e8192c",2:"#f97316",3:"#f5c518",4:"#00d4aa"};
+
+const RUBRIC = [
+  {
+    id:"fd", label:"Fielding", color:"#1e7bd4",
+    groups:[
+      {id:"fd_in",  label:"Infield",  criteria:["Mechanics","Range","Overall"],
+       positions:["1B","2B","3B","SS","Catcher","Utility"]},
+      {id:"fd_out", label:"Outfield", criteria:["Range","Overall"],
+       positions:["LF","CF","RF","Pitcher","Utility"]},
+    ]
+  },
+  {
+    id:"tc", label:"Throw & Catch", color:"#00d4aa",
+    groups:[
+      {id:"tc_th", label:"Throwing", criteria:["Mechanics","Strength","Accuracy","Overall"], positions:null},
+      {id:"tc_ca", label:"Catching", criteria:["Overall"], positions:null},
+    ]
+  },
+  {
+    id:"hi", label:"Hitting", color:"#e8192c",
+    groups:[
+      {id:"hi_hi", label:"Hitting", criteria:["Mechanics","Power","Contact","Overall"], positions:null},
+    ]
+  },
+  {
+    id:"pc", label:"Pitch & Catcher", color:"#f97316",
+    groups:[
+      {id:"pc_pi", label:"Pitcher", criteria:["Mechanics","Speed","Accuracy"],
+       positions:["Pitcher","Utility"]},
+      {id:"pc_ca", label:"Catcher", criteria:["Mechanics","Arm"],
+       positions:["Catcher","Utility"]},
+    ]
+  },
+];
+
+const rubricForPosition = (position) =>
+  RUBRIC.map(s=>({...s, groups:s.groups.filter(g=>!g.positions||g.positions.includes(position))}))
+        .filter(s=>s.groups.length>0);
+
+// Chart categories derived from rubric averages (1–4 scale)
+const CHART_SKILLS = ["Hitting","Fielding","Throwing","Pitching","Catching"];
+const CHART_COLORS = {Hitting:"#e8192c",Fielding:"#1e7bd4",Throwing:"#00d4aa",Pitching:"#f97316",Catching:"#8b5cf6"};
+
+const computeChartRatings = (rubric={}) => {
+  const avg = keys => {
+    const vals = keys.map(k=>rubric[k]).filter(v=>v!=null&&v>0);
+    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10 : null;
+  };
+  const allKeys = Object.keys(rubric);
+  const r={};
+  const h=avg(allKeys.filter(k=>k.startsWith("hi_"))); if(h) r.Hitting=h;
+  const f=avg(allKeys.filter(k=>k.startsWith("fd_"))); if(f) r.Fielding=f;
+  const t=avg(allKeys.filter(k=>k.startsWith("tc_th"))); if(t) r.Throwing=t;
+  const caKeys=[...allKeys.filter(k=>k.startsWith("tc_ca")||k.startsWith("pc_ca"))];
+  const ca=avg(caKeys); if(ca) r.Catching=ca;
+  const p=avg(allKeys.filter(k=>k.startsWith("pc_pi"))); if(p) r.Pitching=p;
+  return r;
 };
 
+// Legacy chart constants (kept for backward compat)
+const SKILLS = CHART_SKILLS;
+const SKILL_COLORS = CHART_COLORS;
+
 const initSkillSnapshots = [
-  // Marcus Rivera — SS improving steadily
-  {id:"sk1", playerId:"p1", date:"2026-01-05", ratings:{Hitting:5,Fielding:6,Throwing:5,Pitching:3,Speed:6}, notes:"Season baseline"},
-  {id:"sk2", playerId:"p1", date:"2026-01-19", ratings:{Hitting:5,Fielding:7,Throwing:6,Pitching:3,Speed:6}, notes:"Range improving a lot"},
-  {id:"sk3", playerId:"p1", date:"2026-02-02", ratings:{Hitting:6,Fielding:7,Throwing:7,Pitching:3,Speed:7}, notes:"Backhand is reliable now"},
-  {id:"sk4", playerId:"p1", date:"2026-02-16", ratings:{Hitting:7,Fielding:8,Throwing:8,Pitching:3,Speed:8}, notes:"Jump throw really clicking"},
-  {id:"sk5", playerId:"p1", date:"2026-03-01", ratings:{Hitting:7,Fielding:9,Throwing:8,Pitching:3,Speed:8}, notes:"Best outing yet. Ready for games."},
+  // Marcus Rivera — SS, improving steadily
+  {id:"sk1",playerId:"p1",date:"2026-01-05",notes:"Season baseline — range needs work",rubric:{
+    fd_in_Mechanics:2,fd_in_Range:2,fd_in_Overall:2,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2}},
+  {id:"sk2",playerId:"p1",date:"2026-01-19",notes:"Range improving a lot",rubric:{
+    fd_in_Mechanics:2,fd_in_Range:3,fd_in_Overall:2,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:2}},
+  {id:"sk3",playerId:"p1",date:"2026-02-16",notes:"Backhand is reliable now",rubric:{
+    fd_in_Mechanics:3,fd_in_Range:3,fd_in_Overall:3,
+    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
+    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:3}},
+  {id:"sk4",playerId:"p1",date:"2026-03-01",notes:"Jump throw clicking — best outing yet",rubric:{
+    fd_in_Mechanics:4,fd_in_Range:4,fd_in_Overall:4,
+    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:4,tc_th_Overall:4,tc_ca_Overall:3,
+    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
 
   // Tyler Owens — CF, outfield focus
-  {id:"sk6", playerId:"p2", date:"2026-01-05", ratings:{Hitting:5,Fielding:5,Throwing:5,Pitching:2,Speed:7}, notes:"Baseline — reads need work"},
-  {id:"sk7", playerId:"p2", date:"2026-01-26", ratings:{Hitting:6,Fielding:6,Throwing:5,Pitching:2,Speed:8}, notes:"Bat speed improving"},
-  {id:"sk8", playerId:"p2", date:"2026-02-16", ratings:{Hitting:6,Fielding:7,Throwing:6,Pitching:2,Speed:8}, notes:"Drop step much more consistent"},
-  {id:"sk9", playerId:"p2", date:"2026-03-01", ratings:{Hitting:7,Fielding:8,Throwing:6,Pitching:2,Speed:9}, notes:"Speed is a real weapon now"},
+  {id:"sk5",playerId:"p2",date:"2026-01-05",notes:"Baseline — reads need work",rubric:{
+    fd_out_Range:2,fd_out_Overall:2,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2}},
+  {id:"sk6",playerId:"p2",date:"2026-01-26",notes:"Bat speed improving",rubric:{
+    fd_out_Range:3,fd_out_Overall:2,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:2}},
+  {id:"sk7",playerId:"p2",date:"2026-02-16",notes:"Drop step much more consistent",rubric:{
+    fd_out_Range:3,fd_out_Overall:3,
+    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
+    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
+  {id:"sk8",playerId:"p2",date:"2026-03-01",notes:"Speed is a real weapon now",rubric:{
+    fd_out_Range:4,fd_out_Overall:4,
+    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:3,
+    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:4,hi_hi_Overall:3}},
 
   // Caleb Simmons — Pitcher
-  {id:"sk10",playerId:"p3", date:"2026-01-05", ratings:{Hitting:4,Fielding:5,Throwing:7,Pitching:6,Speed:5}, notes:"Mechanics inconsistent baseline"},
-  {id:"sk11",playerId:"p3", date:"2026-01-19", ratings:{Hitting:4,Fielding:5,Throwing:8,Pitching:7,Speed:5}, notes:"Arm action cleaned up"},
-  {id:"sk12",playerId:"p3", date:"2026-02-09", ratings:{Hitting:4,Fielding:5,Throwing:8,Pitching:8,Speed:6}, notes:"Change-up grip getting consistent"},
-  {id:"sk13",playerId:"p3", date:"2026-02-23", ratings:{Hitting:5,Fielding:6,Throwing:9,Pitching:8,Speed:6}, notes:"Spin on breaking ball is legit"},
-  {id:"sk14",playerId:"p3", date:"2026-03-01", ratings:{Hitting:5,Fielding:6,Throwing:9,Pitching:9,Speed:6}, notes:"Best pitching session of the year"},
+  {id:"sk9",playerId:"p3",date:"2026-01-05",notes:"Mechanics inconsistent baseline",rubric:{
+    fd_out_Range:2,fd_out_Overall:2,
+    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:1,hi_hi_Contact:2,hi_hi_Overall:2,
+    pc_pi_Mechanics:2,pc_pi_Speed:2,pc_pi_Accuracy:2}},
+  {id:"sk10",playerId:"p3",date:"2026-02-02",notes:"Arm action cleaned up, change-up grip improving",rubric:{
+    fd_out_Range:2,fd_out_Overall:2,
+    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:1,hi_hi_Contact:2,hi_hi_Overall:2,
+    pc_pi_Mechanics:3,pc_pi_Speed:2,pc_pi_Accuracy:3}},
+  {id:"sk11",playerId:"p3",date:"2026-03-01",notes:"Best pitching session of the year — spin is legit",rubric:{
+    fd_out_Range:3,fd_out_Overall:2,
+    tc_th_Mechanics:4,tc_th_Strength:3,tc_th_Accuracy:4,tc_th_Overall:4,tc_ca_Overall:2,
+    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2,
+    pc_pi_Mechanics:4,pc_pi_Speed:3,pc_pi_Accuracy:4}},
 
   // Jaylen Brooks — 1B
-  {id:"sk15",playerId:"p4", date:"2026-01-05", ratings:{Hitting:6,Fielding:5,Throwing:4,Pitching:2,Speed:5}, notes:"Footwork is the big focus"},
-  {id:"sk16",playerId:"p4", date:"2026-01-26", ratings:{Hitting:6,Fielding:6,Throwing:5,Pitching:2,Speed:5}, notes:"First step improving"},
-  {id:"sk17",playerId:"p4", date:"2026-02-16", ratings:{Hitting:7,Fielding:7,Throwing:5,Pitching:2,Speed:6}, notes:"Hitting to all fields now"},
-  {id:"sk18",playerId:"p4", date:"2026-03-01", ratings:{Hitting:8,Fielding:7,Throwing:6,Pitching:2,Speed:6}, notes:"Scoops in the dirt are automatic"},
+  {id:"sk12",playerId:"p4",date:"2026-01-05",notes:"Footwork is the big focus",rubric:{
+    fd_in_Mechanics:2,fd_in_Range:2,fd_in_Overall:2,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:3}},
+  {id:"sk13",playerId:"p4",date:"2026-02-02",notes:"First step improving, hitting to all fields",rubric:{
+    fd_in_Mechanics:3,fd_in_Range:2,fd_in_Overall:3,
+    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
+    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
+  {id:"sk14",playerId:"p4",date:"2026-03-01",notes:"Scoops in the dirt are automatic now",rubric:{
+    fd_in_Mechanics:4,fd_in_Range:3,fd_in_Overall:4,
+    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
+    hi_hi_Mechanics:4,hi_hi_Power:3,hi_hi_Contact:4,hi_hi_Overall:4}},
 ];
 
 // Extra completed assignments spread across dates for streaks
@@ -2604,7 +2702,7 @@ function GoalsTab({player,setPlayers}) {
 function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, canAccess, onUpgrade}) {
   if(canAccess && !canAccess("progress")) return <PaywallGate feature="Progress Tracking & Charts" onUpgrade={onUpgrade}/>;
   const [showForm, setShowForm] = useState(false);
-  const [formRatings, setFormRatings] = useState({Hitting:5,Fielding:5,Throwing:5,Pitching:5,Speed:5});
+  const [formRubric, setFormRubric] = useState({});
   const [formNotes, setFormNotes] = useState("");
   const [activeSkill, setActiveSkill] = useState("all");
 
@@ -2615,23 +2713,18 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
     completedByDate[d] = (completedByDate[d]||0) + 1;
   });
   const sortedDates = Object.keys(completedByDate).sort();
-  let currentStreak=0, bestStreak=0, streak=0;
+  let streak=0, bestStreak=0;
   const todayStr = new Date().toISOString().slice(0,10);
   for(let i=0;i<sortedDates.length;i++){
-    if(i===0){ streak=1; }
-    else {
-      const prev = new Date(sortedDates[i-1]);
-      const curr = new Date(sortedDates[i]);
-      const diff = (curr-prev)/(1000*60*60*24);
-      streak = diff<=2 ? streak+1 : 1; // allow 1-day gap (rest day)
+    if(i===0){ streak=1; } else {
+      const diff=(new Date(sortedDates[i])-new Date(sortedDates[i-1]))/(1000*60*60*24);
+      streak = diff<=2 ? streak+1 : 1;
     }
     bestStreak = Math.max(bestStreak, streak);
   }
-  // current streak: is the last active date recent?
+  let currentStreak=0;
   if(sortedDates.length>0){
-    const lastDate = new Date(sortedDates[sortedDates.length-1]);
-    const today = new Date(todayStr);
-    const gap = (today-lastDate)/(1000*60*60*24);
+    const gap=(new Date(todayStr)-new Date(sortedDates[sortedDates.length-1]))/(1000*60*60*24);
     currentStreak = gap<=2 ? streak : 0;
   }
   const totalCompleted = assignments.filter(a=>a.completed).length;
@@ -2641,109 +2734,91 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
   const sorted = [...skillSnapshots].sort((a,b)=>a.date.localeCompare(b.date));
   const chartData = sorted.map(s=>({
     date: new Date(s.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}),
-    ...s.ratings,
+    ...computeChartRatings(s.rubric||{}),
   }));
-
-  // Latest snapshot for radar
   const latest = sorted[sorted.length-1];
-  const radarData = latest ? SKILLS.map(s=>({skill:s, value:latest.ratings[s]||0, fullMark:10})) : [];
+  const latestChart = latest ? computeChartRatings(latest.rubric||{}) : {};
+  const prevChart = sorted.length>1 ? computeChartRatings(sorted[sorted.length-2].rubric||{}) : {};
+  const availableSkills = CHART_SKILLS.filter(s=>latestChart[s]!=null);
+  const skillsToShow = activeSkill==="all" ? availableSkills : [activeSkill];
 
-  // Consistency heatmap — last 28 days
-  const heatDays = [];
-  for(let i=27;i>=0;i--){
-    const d = new Date(); d.setDate(d.getDate()-i);
-    const ds = d.toISOString().slice(0,10);
-    heatDays.push({date:ds, count:completedByDate[ds]||0});
-  }
-  const heatMax = Math.max(...heatDays.map(d=>d.count), 1);
+  const posRubric = rubricForPosition(player.position||"Utility");
 
   const saveSnapshot = () => {
-    setSkillSnapshots(prev=>[...prev,{id:uid(),playerId:player.id,date:todayStr,ratings:{...formRatings},notes:formNotes}]);
-    setFormNotes(""); setShowForm(false);
+    setSkillSnapshots(prev=>[...prev,{id:uid(),playerId:player.id,date:todayStr,rubric:{...formRubric},notes:formNotes}]);
+    setFormRubric({}); setFormNotes(""); setShowForm(false);
   };
 
-  const skillsToShow = activeSkill==="all" ? SKILLS : [activeSkill];
+  const setRv = (key,val) => setFormRubric(prev=>({...prev,[key]:val}));
 
   return (
     <div>
       {/* ── Streak & stats row ── */}
-      <SectionHead accent tip="Shows how often this player has been completing their assigned drills. Each colored square = one day. Green means they did their work that day. The more green, the better their practice habit.">Consistency</SectionHead>
+      <SectionHead accent>Consistency</SectionHead>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:20}}>
         {[
-          {label:"Current\nStreak", val:currentStreak, unit:"days", color:currentStreak>0?C.teal:C.textDim, glow:C.teal},
-          {label:"Best\nStreak",   val:bestStreak,    unit:"days", color:C.gold,    glow:C.gold},
-          {label:"Drills\nDone",   val:totalCompleted,unit:`of ${totalAssigned}`, color:C.blue, glow:C.blue},
+          {label:"Current\nStreak", val:currentStreak, unit:"days", color:currentStreak>0?C.teal:C.textDim},
+          {label:"Best\nStreak",    val:bestStreak,    unit:"days", color:C.gold},
+          {label:"Drills\nDone",    val:totalCompleted, unit:`of ${totalAssigned}`, color:C.blue},
         ].map(s=>(
-          <div key={s.label} style={{background:C.card,border:`1px solid ${s.color}40`,borderRadius:14,padding:"14px 10px",textAlign:"center",boxShadow:`0 0 16px ${s.glow}12`}}>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:34,color:s.color,lineHeight:1,textShadow:`0 0 16px ${s.glow}60`}}>{s.val}</div>
+          <div key={s.label} style={{background:C.card,border:`1px solid ${s.color}40`,borderRadius:14,padding:"14px 10px",textAlign:"center",boxShadow:`0 0 16px ${s.color}12`}}>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:34,color:s.color,lineHeight:1,textShadow:`0 0 16px ${s.color}60`}}>{s.val}</div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:s.color+"99",textTransform:"uppercase",marginTop:2}}>{s.unit}</div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase",whiteSpace:"pre",marginTop:4}}>{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* ── 28-day heatmap ── */}
-      <div style={{marginBottom:22}}>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:4}}>Last 28 Days</div>
-        <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,color:C.textDim,marginBottom:10}}>Drill activity — brighter squares mean more drills completed that day</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
-          {["S","M","T","W","T","F","S"].map((d,i)=>(
-            <div key={i} style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,color:C.textDim,textAlign:"center",letterSpacing:1}}>{d}</div>
-          ))}
-          {/* pad start */}
-          {Array(new Date(heatDays[0].date).getDay()).fill(null).map((_,i)=><div key={"pad"+i}/>)}
-          {heatDays.map(d=>{
-            const intensity = d.count/heatMax;
-            const bg = d.count===0 ? "#0d1628" : `rgba(0,212,170,${0.2+intensity*0.8})`;
-            const isToday = d.date===todayStr;
-            return (
-              <div key={d.date} title={`${d.date}: ${d.count} drill${d.count!==1?"s":""}`} style={{aspectRatio:"1",borderRadius:4,background:bg,border:isToday?`1px solid ${C.teal}`:`1px solid ${d.count>0?C.teal+"30":"#1a2f5240"}`,boxShadow:d.count>0?`0 0 6px ${C.teal}${Math.round(intensity*40).toString(16).padStart(2,"0")}`:"none",cursor:"default"}}/>
-            );
-          })}
-        </div>
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:8,alignItems:"center"}}>
-          <span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,color:C.textDim,letterSpacing:1}}>Less</span>
-          <div style={{display:"flex",gap:3}}>
-            {[0.1,0.3,0.5,0.7,1].map(v=><div key={v} style={{width:10,height:10,borderRadius:2,background:`rgba(0,212,170,${0.2+v*0.8})`}}/>)}
-          </div>
-          <span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,color:C.textDim,letterSpacing:1}}>More</span>
-        </div>
-      </div>
-
-      {/* ── Skill progression chart ── */}
+      {/* ── Skill Progression header ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <SectionHead accent tip="A snapshot is a quick rating you give the player on each skill — like a report card. Do it after a practice when you've seen them work. Over time it shows a chart of their improvement so you can see what's working.">Skill Progression</SectionHead>
-        <PrimaryBtn onClick={()=>setShowForm(!showForm)}>+ Rate Now</PrimaryBtn>
+        <SectionHead accent>Skill Progression</SectionHead>
+        <PrimaryBtn onClick={()=>{setShowForm(!showForm);setFormRubric({});setFormNotes("");}}>+ Rate Now</PrimaryBtn>
       </div>
 
+      {/* ── Rubric rating form ── */}
       {showForm && (
-        <div className="fade-up" style={{background:`linear-gradient(135deg,#100c1a,${C.card})`,borderRadius:16,border:`1px solid ${C.red}40`,padding:20,marginBottom:20}}>
-          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:3,color:C.red,marginBottom:14}}>NEW SKILL SNAPSHOT</div>
-          <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}>
-            {SKILLS.map(skill=>{
-              const color = SKILL_COLORS[skill];
-              const val = formRatings[skill];
-              return (
-                <div key={skill}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,color,textTransform:"uppercase"}}>{skill}</div>
-                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color,lineHeight:1}}>{val}<span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:10,color:C.textDim}}>/10</span></div>
-                  </div>
-                  <div style={{position:"relative",height:6,background:"#1a2f52",borderRadius:3,cursor:"pointer"}}
-                    onClick={e=>{
-                      const rect=e.currentTarget.getBoundingClientRect();
-                      const pct=(e.clientX-rect.left)/rect.width;
-                      setFormRatings(prev=>({...prev,[skill]:Math.max(1,Math.min(10,Math.round(pct*10)))}));
-                    }}>
-                    <div style={{height:"100%",width:`${val*10}%`,background:`linear-gradient(90deg,${color}88,${color})`,borderRadius:3,boxShadow:`0 0 8px ${color}60`,transition:"width 0.1s"}}/>
-                    <div style={{position:"absolute",top:"50%",left:`${val*10}%`,transform:"translate(-50%,-50%)",width:14,height:14,borderRadius:"50%",background:color,boxShadow:`0 0 8px ${color}`,border:`2px solid ${C.bg}`}}/>
-                  </div>
+        <div className="fade-up" style={{background:`linear-gradient(135deg,#100c1a,${C.card})`,borderRadius:16,border:`1px solid ${C.red}40`,padding:"18px 16px",marginBottom:20}}>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:3,color:C.red,marginBottom:4}}>NEW SKILL SNAPSHOT</div>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:11,color:C.textDim,marginBottom:18}}>{player.name} · {player.position}</div>
+
+          {posRubric.map(section=>(
+            <div key={section.id} style={{marginBottom:20}}>
+              {/* Section header */}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${section.color}30`}}>
+                <div style={{width:3,height:18,borderRadius:2,background:section.color,flexShrink:0}}/>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:section.color,textTransform:"uppercase"}}>{section.label}</div>
+              </div>
+              {section.groups.map(group=>(
+                <div key={group.id} style={{marginBottom:14}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",marginBottom:8}}>{group.label}</div>
+                  {group.criteria.map(criterion=>{
+                    const key=`${group.id}_${criterion}`;
+                    const val=formRubric[key]||0;
+                    return (
+                      <div key={criterion} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:12,color:C.textMid,minWidth:80,flexShrink:0}}>{criterion}</div>
+                        <div style={{display:"flex",gap:4,flex:1}}>
+                          {[1,2,3,4].map(n=>{
+                            const active=val===n;
+                            const col=RUBRIC_VAL_COLORS[n];
+                            return (
+                              <button key={n} onClick={()=>setRv(key,n)} style={{flex:1,padding:"7px 4px",borderRadius:8,border:`1px solid ${active?col:C.border}`,background:active?`${col}25`:"transparent",color:active?col:C.textDim,fontFamily:"Bebas Neue, sans-serif",fontSize:16,cursor:"pointer",minHeight:38,transition:"all 0.15s",boxShadow:active?`0 0 8px ${col}40`:"none"}}>
+                                {n}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {val>0&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:RUBRIC_VAL_COLORS[val],minWidth:72,textAlign:"right",letterSpacing:0.5}}>{RUBRIC_LABELS[val]}</div>}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Notes</div>
-          <input value={formNotes} onChange={e=>setFormNotes(e.target.value)} placeholder="Observations from today's session..." style={{...inp,marginBottom:14}}/>
+              ))}
+            </div>
+          ))}
+
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach Notes</div>
+          <input value={formNotes} onChange={e=>setFormNotes(e.target.value)} placeholder="Observations from today's session..." style={{...inp,marginBottom:16}}/>
           <div style={{display:"flex",gap:10}}>
             <PrimaryBtn onClick={saveSnapshot}>Save Snapshot</PrimaryBtn>
             <GhostBtn onClick={()=>setShowForm(false)}>Cancel</GhostBtn>
@@ -2751,7 +2826,7 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
         </div>
       )}
 
-      {sorted.length === 0 && !showForm && (
+      {sorted.length===0 && !showForm && (
         <div className="fade-up"><EmptyState icon="📈" title="No ratings yet" body="Tap 'Rate Now' after a practice to log your first skill snapshot. Over time you'll see a chart of their improvement."/></div>
       )}
 
@@ -2759,8 +2834,8 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
         <>
           {/* Skill filter pills */}
           <div className="pill-scroll" style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,marginBottom:16}}>
-            {["all",...SKILLS].map(s=>{
-              const color = s==="all" ? C.textMid : SKILL_COLORS[s];
+            {["all",...availableSkills].map(s=>{
+              const color = s==="all" ? C.textMid : CHART_COLORS[s];
               const active = activeSkill===s;
               return (
                 <button key={s} onClick={()=>setActiveSkill(s)} style={{padding:"7px 14px",borderRadius:20,border:`1px solid ${active?color:C.border}`,cursor:"pointer",whiteSpace:"nowrap",minHeight:34,flexShrink:0,background:active?`${color}25`:"transparent",color:active?color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s"}}>
@@ -2776,49 +2851,87 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
               <LineChart data={chartData} margin={{top:4,right:16,left:-20,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1a2f5240" vertical={false}/>
                 <XAxis dataKey="date" tick={{fill:C.textDim,fontSize:9,fontFamily:"Barlow Condensed, sans-serif"}} tickLine={false} axisLine={false}/>
-                <YAxis domain={[0,10]} tick={{fill:C.textDim,fontSize:9,fontFamily:"Barlow Condensed, sans-serif"}} tickLine={false} axisLine={false} ticks={[0,2,4,6,8,10]}/>
+                <YAxis domain={[0,4]} ticks={[1,2,3,4]} tick={{fill:C.textDim,fontSize:9,fontFamily:"Barlow Condensed, sans-serif"}} tickLine={false} axisLine={false}
+                  tickFormatter={v=>({1:"NW",2:"Dev",3:"Prof",4:"Exc"}[v]||"")}/>
                 <Tooltip
                   contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,fontFamily:"Barlow Condensed, sans-serif",fontSize:12}}
                   labelStyle={{color:C.textMid,letterSpacing:1,fontSize:10}}
-                  itemStyle={{color:C.text}}
+                  formatter={(val,name)=>[`${val} — ${RUBRIC_LABELS[Math.round(val)]||""}`,name]}
                 />
                 {skillsToShow.map(skill=>(
-                  <Line key={skill} type="monotone" dataKey={skill} stroke={SKILL_COLORS[skill]} strokeWidth={2.5} dot={{fill:SKILL_COLORS[skill],r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:SKILL_COLORS[skill]}}/>
+                  <Line key={skill} type="monotone" dataKey={skill} stroke={CHART_COLORS[skill]} strokeWidth={2.5} dot={{fill:CHART_COLORS[skill],r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:CHART_COLORS[skill]}}/>
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Latest snapshot summary */}
+          {/* Latest snapshot rubric breakdown */}
           {latest && (
             <>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:12}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:14}}>
                 Latest Snapshot — {new Date(latest.date+"T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}
               </div>
+
+              {/* Category progress bars */}
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
-                {SKILLS.map(skill=>{
-                  const val = latest.ratings[skill]||0;
-                  const color = SKILL_COLORS[skill];
-                  const prev = sorted.length>1 ? sorted[sorted.length-2].ratings[skill]||0 : val;
-                  const delta = val - prev;
+                {availableSkills.map(skill=>{
+                  const val=latestChart[skill]||0;
+                  const prev=prevChart[skill];
+                  const delta=prev!=null?Math.round((val-prev)*10)/10:null;
+                  const color=CHART_COLORS[skill];
                   return (
                     <div key={skill} style={{display:"flex",alignItems:"center",gap:12}}>
                       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color,letterSpacing:1,textTransform:"uppercase",width:76,flexShrink:0}}>{skill}</div>
                       <div style={{flex:1,height:8,background:"#0d1628",borderRadius:4,overflow:"hidden"}}>
-                        <div style={{height:"100%",width:`${val*10}%`,background:`linear-gradient(90deg,${color}70,${color})`,borderRadius:4,boxShadow:`0 0 6px ${color}50`,transition:"width 0.8s ease"}}/>
+                        <div style={{height:"100%",width:`${(val/4)*100}%`,background:`linear-gradient(90deg,${color}70,${color})`,borderRadius:4,boxShadow:`0 0 6px ${color}50`,transition:"width 0.8s ease"}}/>
                       </div>
-                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color,lineHeight:1,minWidth:22,textAlign:"right"}}>{val}</div>
-                      {delta!==0 && (
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:delta>0?C.teal:C.red,minWidth:28}}>
-                          {delta>0?`+${delta}`:delta}
-                        </div>
-                      )}
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color,minWidth:56,textAlign:"right"}}>{RUBRIC_LABELS[Math.round(val)]||val}</div>
+                      {delta!=null&&delta!==0&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:delta>0?C.teal:C.red,minWidth:28}}>{delta>0?`+${delta}`:delta}</div>}
                     </div>
                   );
                 })}
               </div>
+
+              {/* Rubric breakdown by section */}
+              {posRubric.map(section=>{
+                const sectionKeys = Object.entries(latest.rubric||{}).filter(([k])=>
+                  section.groups.some(g=>k.startsWith(g.id+"_")));
+                if(sectionKeys.length===0) return null;
+                return (
+                  <div key={section.id} style={{background:C.card,border:`1px solid ${section.color}25`,borderRadius:14,padding:"14px 16px",marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                      <div style={{width:3,height:16,borderRadius:2,background:section.color,flexShrink:0}}/>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:2,color:section.color,textTransform:"uppercase"}}>{section.label}</div>
+                    </div>
+                    {section.groups.map(group=>{
+                      const groupKeys=Object.entries(latest.rubric||{}).filter(([k])=>k.startsWith(group.id+"_"));
+                      if(groupKeys.length===0) return null;
+                      return (
+                        <div key={group.id} style={{marginBottom:10}}>
+                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",marginBottom:6}}>{group.label}</div>
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                            {group.criteria.map(criterion=>{
+                              const key=`${group.id}_${criterion}`;
+                              const val=latest.rubric?.[key];
+                              if(!val) return null;
+                              const col=RUBRIC_VAL_COLORS[val];
+                              return (
+                                <div key={criterion} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:`${col}15`,border:`1px solid ${col}40`}}>
+                                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textMid}}>{criterion}</div>
+                                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,color:col}}>{RUBRIC_LABELS[val]}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+
               {latest.notes && (
-                <div style={{padding:"12px 16px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 10px 10px 0",fontSize:13,color:C.textMid,fontStyle:"italic"}}>
+                <div style={{padding:"12px 16px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 10px 10px 0",fontSize:13,color:C.textMid,fontStyle:"italic",marginBottom:16}}>
                   📋 {latest.notes}
                 </div>
               )}
@@ -5084,12 +5197,12 @@ const BADGES = [
     check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=10 },
   { id:"drills25",      icon:"🏋️", name:"Grinder",           desc:"Completed 25 total drills",           color:"#1e7bd4",
     check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=25 },
-  { id:"allstar_rating",icon:"⭐", name:"All-Star",          desc:"Any skill rated 9 or 10 by coach",    color:"#f5c518",
-    check:(p,asgn,snaps)=>snaps.filter(s=>s.playerId===p.id).some(s=>Object.values(s.ratings||{}).some(r=>r>=9)) },
+  { id:"allstar_rating",icon:"⭐", name:"All-Star",          desc:"Any skill rated Excellent by coach",   color:"#f5c518",
+    check:(p,asgn,snaps)=>snaps.filter(s=>s.playerId===p.id).some(s=>Object.values(s.rubric||{}).some(r=>r>=4)) },
   { id:"five_star",     icon:"🌟", name:"5-Star Drill",      desc:"Received a 5-star coach rating",      color:"#f5c518",
     check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.coachRating===5).length>=1 },
   { id:"skill_up",      icon:"📈", name:"Level Up",          desc:"Improved any skill since first snapshot", color:"#00d4aa",
-    check:(p,asgn,snaps)=>{const ps=snaps.filter(s=>s.playerId===p.id).sort((a,b)=>a.date.localeCompare(b.date));if(ps.length<2)return false;const first=ps[0].ratings||{},last=ps[ps.length-1].ratings||{};return Object.keys(last).some(k=>last[k]>first[k]);} },
+    check:(p,asgn,snaps)=>{const ps=snaps.filter(s=>s.playerId===p.id).sort((a,b)=>a.date.localeCompare(b.date));if(ps.length<2)return false;const first=computeChartRatings(ps[0].rubric||{}),last=computeChartRatings(ps[ps.length-1].rubric||{});return Object.keys(last).some(k=>last[k]>first[k]);} },
   { id:"multi_cat",     icon:"🎯", name:"All-Around",        desc:"Completed drills in 4+ categories",   color:"#8b5cf6",
     check:(p,asgn)=>{const cats=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed).map(a=>{const d=DRILL_LIBRARY.find(d=>d.id===a.drillId);return d?.category;}));return cats.size>=4;} },
   { id:"team_player",   icon:"🤝", name:"Team Player",       desc:"Part of a scheduled game",            color:"#06b6d4",
@@ -5330,25 +5443,29 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
       {latestSnap&&(
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px",marginBottom:16}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:12}}>📈 Current Skill Ratings</div>
-          {Object.entries(latestSnap.ratings||{}).map(([skill,rating])=>{
-            const prev=prevSnap?.ratings?.[skill];
-            const delta=prev!=null?rating-prev:null;
-            const sc=SKILL_COLORS_REPORT[skill]||C.teal;
-            return (
-              <div key={skill} style={{marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.textMid}}>{skill}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    {delta!==null&&delta!==0&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:delta>0?C.teal:C.red}}>{delta>0?`+${delta}`:delta}</div>}
-                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:sc}}>{rating}/10</div>
+          {(()=>{
+            const chartRatings = computeChartRatings(latestSnap.rubric||{});
+            const prevRatings  = prevSnap ? computeChartRatings(prevSnap.rubric||{}) : {};
+            return Object.entries(chartRatings).map(([skill,rating])=>{
+              const prev=prevRatings[skill];
+              const delta=prev!=null?Math.round((rating-prev)*10)/10:null;
+              const sc=CHART_COLORS[skill]||C.teal;
+              return (
+                <div key={skill} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.textMid}}>{skill}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      {delta!=null&&delta!==0&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:delta>0?C.teal:C.red}}>{delta>0?`+${delta}`:delta}</div>}
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:sc}}>{RUBRIC_LABELS[Math.round(rating)]||rating}</div>
+                    </div>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:`${sc}20`,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${(rating/4)*100}%`,background:`linear-gradient(90deg,${sc},${sc}cc)`,borderRadius:3,boxShadow:`0 0 6px ${sc}60`,transition:"width 0.6s ease"}}/>
                   </div>
                 </div>
-                <div style={{height:6,borderRadius:3,background:`${sc}20`,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${rating*10}%`,background:`linear-gradient(90deg,${sc},${sc}cc)`,borderRadius:3,boxShadow:`0 0 6px ${sc}60`,transition:"width 0.6s ease"}}/>
-                </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 
