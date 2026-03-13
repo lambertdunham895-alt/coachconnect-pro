@@ -2418,7 +2418,18 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
   const setNote=(id,note)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,notes:note}:a));
   const acknowledge=(id)=>{
     const note = reviewNotes[id] || "";
-    setAsgn(prev=>prev.map(a=>a.id===id?{...a,acknowledged:true, notes: note||a.notes}:a));
+    setAsgn(prev=>{
+      const asgn = prev.find(a=>a.id===id);
+      if(!asgn) return prev;
+      const videoKey = player ? `${player.id}_${asgn.drillId}` : null;
+      const hasVideo = videoKey && playerVideos[videoKey]?.url;
+      if(!hasVideo) {
+        // No video — remove the drill entirely (coach acknowledged, nothing for player to see)
+        return prev.filter(a=>a.id!==id);
+      }
+      // Has video — mark acknowledged so player sees feedback and can dismiss
+      return prev.map(a=>a.id===id?{...a,acknowledged:true,notes:note||a.notes}:a);
+    });
     setReviewNotes(prev=>{const n={...prev};delete n[id];return n;});
   };
 
@@ -2966,17 +2977,33 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:10,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
                 <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={()=>{}} coachMode={false}/>
-                {a.acknowledged && a.notes && (
-                  <div style={{marginTop:10}}>
-                    <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic",marginBottom:10}}>🗣 Coach: {a.notes}</div>
-                    <button onClick={()=>removeAsgn(a.id)} style={{width:"100%",padding:"10px 0",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:40}}>
-                      ✓ Got it — Remove Drill
-                    </button>
-                  </div>
-                )}
-                {a.completed && !a.acknowledged && <div style={{marginTop:10,padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
-                {/* Parent video upload */}
-                <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>
+
+                {/* Parent video upload — only show if not yet acknowledged */}
+                {!a.acknowledged && <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>}
+
+                {/* State messaging */}
+                {(()=>{
+                  const pvKey = `${player.id}_${drill.id}`;
+                  const hadVideo = playerVideos[pvKey]?.url;
+                  if(!a.completed) return null;
+                  // Acknowledged + had video → show coach notes + player dismiss button
+                  if(a.acknowledged && hadVideo) return (
+                    <div style={{marginTop:10}}>
+                      {a.notes && <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic",marginBottom:10}}>🗣 Coach: {a.notes}</div>}
+                      {!a.notes && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,marginBottom:10}}>✅ Coach reviewed your video!</div>}
+                      <button onClick={()=>removeAsgn(a.id)} style={{width:"100%",padding:"10px 0",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:40}}>
+                        ✓ Got it — Remove Drill
+                      </button>
+                    </div>
+                  );
+                  // Waiting (no acknowledgment yet)
+                  if(!a.acknowledged) return (
+                    <div style={{marginTop:10,padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>
+                      {hadVideo ? "📹 Video sent — waiting for coach to review" : "✅ Marked complete — waiting for coach acknowledgment"}
+                    </div>
+                  );
+                  return null;
+                })()}
               </div>
             );
           })}
