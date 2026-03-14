@@ -1077,8 +1077,13 @@ function AppInner() {
       if (teamData?.name) setTeamDisplayName(teamData.name);
       if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
       await loadTeamData(data.team_id);
+      // For parents linked via parent_players, auto-set their userId as the parentUserId
+      if(data.role === 'parent') {
+        const {data:links} = await supabase.from("parent_players").select("player_id").eq("parent_id",userId);
+        if(links && links.length > 0) setPUID(userId);
+      }
     } else {
-      setDataLoaded(true); // new coach — no team yet, show empty app
+      setDataLoaded(true);
     }
     setAuthReady(true);
   };
@@ -1096,8 +1101,27 @@ function AppInner() {
     setDataLoaded(false);
   };
 
-  // derive player and parent object from parentUserId (still used for parent view)
+  // derive player and parent object from parentUserId
+  // For real accounts: parentUserId IS the Supabase auth user ID, linked via parent_players
+  // For legacy: look up by matching par.id in players array
+  const [parentPlayerLink, setParentPlayerLink] = useState(null);
+  useEffect(()=>{
+    if(!parentUserId || !profile?.role==='parent') return;
+    supabase.from("parent_players").select("*").eq("parent_id",parentUserId).then(({data})=>{
+      if(data && data.length>0) setParentPlayerLink(data[0]);
+    });
+  },[parentUserId]);
+
   const getParentContext = (uid) => {
+    // First try DB linkage (real accounts)
+    if(parentPlayerLink) {
+      const linkedPlayer = players.find(p=>p.id===parentPlayerLink.player_id);
+      if(linkedPlayer) return {
+        player: linkedPlayer,
+        parent: {id:uid, name:profile?.full_name||'Parent', phone:'', email:''}
+      };
+    }
+    // Fallback: look up by matching par.id in players array (legacy)
     for (const pl of players) {
       const par = (pl.parents||[]).find(p=>p.id===uid);
       if (par) return {player:pl, parent:par};
@@ -1590,8 +1614,26 @@ function LoginScreen({onAuth}) {
       });
       if(rpcErr){ setError("Setup error: " + rpcErr.message); setLoading(false); return; }
     } else {
+      // Parent signup — create profile, then check for pending invites
       const {error:profErr} = await supabase.from("profiles").insert({id:userId,team_id:null,role,full_name:name});
       if(profErr){ setError("Profile error: " + profErr.message); setLoading(false); return; }
+      // Check for invite by this email and auto-link to team + player
+      const {data:invites} = await supabase.from("parent_invites").select("*").eq("email",email.toLowerCase().trim());
+      if(invites && invites.length > 0) {
+        const inv = invites[0];
+        // Link profile to team
+        await supabase.from("profiles").update({team_id: inv.team_id}).eq("id", userId);
+        // Link parent to player
+        await supabase.from("parent_players").insert({
+          parent_id: userId, player_id: inv.player_id, label: inv.label || "Parent"
+        });
+        // Handle multiple invites (e.g. parent has two kids on team)
+        for(let i=1; i<invites.length; i++) {
+          await supabase.from("parent_players").insert({
+            parent_id: userId, player_id: invites[i].player_id, label: invites[i].label || "Parent"
+          });
+        }
+      }
     }
     const {data:profile} = await supabase.from("profiles").select("*").eq("id",userId).single();
     onAuth(data.user, profile);
@@ -2665,6 +2707,32 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
 
 
 // ─── PLAYER DETAIL ────────────────────────────────────────────────────────────
+function InviteButton({playerId, teamId, email, name}) {
+  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+  const send = async () => {
+    setStatus("sending");
+    const {error} = await supabase.from('parent_invites').upsert(
+      {player_id:playerId, team_id:teamId, email:email.toLowerCase().trim(), label:name||'Parent'},
+      {onConflict:'player_id,email'}
+    );
+    if(error){ setStatus("error"); return; }
+    setStatus("sent");
+  };
+  if(status==="sent") return (
+    <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.teal,background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px"}}>
+      ✓ Invite ready
+    </div>
+  );
+  if(status==="error") return (
+    <div style={{fontSize:11,color:C.red,fontStyle:"italic"}}>Failed — try again</div>
+  );
+  return (
+    <button onClick={send} disabled={status==="sending"} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.gold,background:`${C.gold}15`,border:`1px solid ${C.gold}30`,borderRadius:7,padding:"4px 10px",cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>
+      {status==="sending" ? "..." : "📨 Invite"}
+    </button>
+  );
+}
+
 function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setSkillSnapshots,drillVideos={},setDrillVideos=()=>{},playerVideos={},setPlayerVideos=()=>{},playerPhotos={},canAccess,onUpgrade,teamId}) {
   const [detailTab, setDetailTab] = useState("drills");
   const [editing, setEditing] = useState(false);
@@ -2781,9 +2849,10 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
                     {player.parents.map(par=>(
                       <div key={par.id} style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:10,padding:"10px 12px"}}>
                         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
-                        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                           {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
                           {par.email&&<a href={`mailto:${par.email}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px"}}>✉️ {par.email}</a>}
+                          {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
                           {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
                         </div>
                       </div>
