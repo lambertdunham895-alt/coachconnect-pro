@@ -998,10 +998,17 @@ function AppInner() {
       if(session) loadProfile(session.user.id);
       else setAuthReady(true);
     });
-    const {data:{subscription}} = supabase.auth.onAuthStateChange((_event,session)=>{
-      setSession(session);
-      if(session) loadProfile(session.user.id);
-      else { setProfile(null); setAuthReady(true); }
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((event,session)=>{
+      // Only reload data on actual sign-in, not token refresh
+      if(event === 'SIGNED_OUT') {
+        setSession(null); setProfile(null); setAuthReady(true);
+      } else if(event === 'SIGNED_IN') {
+        setSession(session);
+        if(session) loadProfile(session.user.id);
+      } else if(event === 'TOKEN_REFRESHED') {
+        // Just update session, don't reload data
+        setSession(session);
+      }
     });
     return ()=>subscription.unsubscribe();
   },[]);
@@ -2139,24 +2146,28 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
   const [showForm,setShowForm]=useState(false);
   const [form,setForm]=useState({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
   const f=(k,v)=>setForm(p=>({...p,[k]:v}));
-  const save=()=>{
+  const save= async ()=>{
     if(!form.name.trim())return;
     const parents=[];
     const pid=uid();
     if(form.parent1.trim()) parents.push({id:pid+"a",name:form.parent1.trim(),phone:form.parent1phone.trim(),email:form.parent1email.trim()});
     if(form.parent2.trim()) parents.push({id:pid+"b",name:form.parent2.trim(),phone:form.parent2phone.trim(),email:form.parent2email.trim()});
     const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:form.goals.split("\n").filter(Boolean)};
-    setPlayers(prev=>[...prev,newPlayer]);
-    // Direct Supabase insert — no closure, no refs, just a direct call
+    // Save to DB first, then update UI
     if(teamId) {
-      supabase.from('players').insert({
+      const {error} = await supabase.from('players').insert({
         id:pid, team_id:teamId,
         name:form.name, age:String(parseInt(form.age)||0),
         age_group:form.ageGroup, position:form.position,
         number:form.number, bats:form.bats, throws:form.throws,
         goals:[], parents_info:parents,
-      }).then(({error})=>{ if(error) console.error('Roster save failed:',error.message); });
+      });
+      if(error) {
+        alert('Failed to save player: ' + error.message);
+        return;
+      }
     }
+    setPlayers(prev=>[...prev,newPlayer]);
     setForm({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
     setShowForm(false);
   };
