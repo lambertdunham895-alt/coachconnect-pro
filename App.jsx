@@ -1008,6 +1008,57 @@ function AppInner() {
 
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
+  const loadTeamData = async (teamId) => {
+    const [
+      {data:pData}, {data:aData}, {data:eData},
+      {data:mData}, {data:sData}, {data:lData}, {data:gData},
+    ] = await Promise.all([
+      supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('events').select('*').eq('team_id',teamId).order('date'),
+      supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
+      supabase.from('lineups').select('*').eq('team_id',teamId),
+      supabase.from('game_plans').select('*').eq('team_id',teamId),
+    ]);
+
+    setPlayers((pData||[]).map(p=>({
+      id:p.id, name:p.name, age:p.age, ageGroup:p.age_group||'',
+      position:p.position||'', number:p.number||'',
+      bats:p.bats||'R', throws:p.throws||'R',
+      goals:p.goals||[], parents:p.parents_info||[],
+    })));
+    setAsgn((aData||[]).map(a=>({
+      id:a.id, playerId:a.player_id, drillId:a.drill_id,
+      assignedDate:a.assigned_date, completed:a.completed||false,
+      coachRating:a.coach_rating||null, notes:a.notes||'',
+      acknowledged:a.acknowledged||false,
+    })));
+    setEvents((eData||[]).map(e=>({
+      id:e.id, type:e.type, date:e.date, time:e.time||'',
+      location:[e.field_name,e.address].filter(Boolean).join(' — '),
+      fieldName:e.field_name||'', address:e.address||'',
+      notes:e.notes||'', opponent:e.opponent||'',
+    })));
+    const msgMap = {};
+    (mData||[]).forEach(m=>{
+      if(!msgMap[m.channel]) msgMap[m.channel]=[];
+      msgMap[m.channel].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
+    });
+    setMessages(msgMap);
+    setSkillSnapshots((sData||[]).map(s=>({
+      id:s.id, playerId:s.player_id, date:s.date,
+      rubric:s.rubric||{}, notes:s.notes||'',
+    })));
+    const luMap = {};
+    (lData||[]).forEach(l=>{ luMap[l.event_id]={batting:l.batting||[],positions:l.positions||{},shared:l.shared}; });
+    setLineups(luMap);
+    const gpMap = {};
+    (gData||[]).forEach(g=>{ gpMap[g.event_id]={pitcher:g.pitcher||'',defense:g.defense||'',offense:g.offense||'',notes:g.notes||'',shared:g.shared||false}; });
+    setGamePlans(gpMap);
+    setDataLoaded(true);
+  };
+
   const loadProfile = async (userId) => {
     const {data} = await supabase.from("profiles").select("*").eq("id",userId).single();
     setProfile(data);
@@ -1200,63 +1251,6 @@ function AppInner() {
       });
       return next;
     });
-  };
-  const loadTeamData = async (teamId) => {
-    const [
-      {data:pData}, {data:aData}, {data:eData},
-      {data:mData}, {data:sData}, {data:lData}, {data:gData},
-    ] = await Promise.all([
-      supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('events').select('*').eq('team_id',teamId).order('date'),
-      supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
-      supabase.from('lineups').select('*').eq('team_id',teamId),
-      supabase.from('game_plans').select('*').eq('team_id',teamId),
-    ]);
-
-    setPlayers((pData||[]).map(p=>({
-      id:p.id, name:p.name, age:p.age, ageGroup:p.age_group||'',
-      position:p.position||'', number:p.number||'',
-      bats:p.bats||'R', throws:p.throws||'R',
-      goals:p.goals||[], parents:p.parents_info||[],
-    })));
-
-    setAsgn((aData||[]).map(a=>({
-      id:a.id, playerId:a.player_id, drillId:a.drill_id,
-      assignedDate:a.assigned_date, completed:a.completed||false,
-      coachRating:a.coach_rating||null, notes:a.notes||'',
-      acknowledged:a.acknowledged||false,
-    })));
-
-    setEvents((eData||[]).map(e=>({
-      id:e.id, type:e.type, date:e.date, time:e.time||'',
-      location:[e.field_name,e.address].filter(Boolean).join(' — '),
-      fieldName:e.field_name||'', address:e.address||'',
-      notes:e.notes||'', opponent:e.opponent||'',
-    })));
-
-    const msgMap = {};
-    (mData||[]).forEach(m=>{
-      if(!msgMap[m.channel]) msgMap[m.channel]=[];
-      msgMap[m.channel].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
-    });
-    setMessages(msgMap);
-
-    setSkillSnapshots((sData||[]).map(s=>({
-      id:s.id, playerId:s.player_id, date:s.date,
-      rubric:s.rubric||{}, notes:s.notes||'',
-    })));
-
-    const luMap = {};
-    (lData||[]).forEach(l=>{ luMap[l.event_id]={batting:l.batting||[],positions:l.positions||{},shared:l.shared}; });
-    setLineups(luMap);
-
-    const gpMap = {};
-    (gData||[]).forEach(g=>{ gpMap[g.event_id]={pitcher:g.pitcher||'',defense:g.defense||'',offense:g.offense||'',notes:g.notes||'',shared:g.shared||false}; });
-    setGamePlans(gpMap);
-
-    setDataLoaded(true);
   };
 
   // ── Realtime messages ────────────────────────────────────────────────────
