@@ -1114,6 +1114,14 @@ function AppInner() {
   const profileRef = useRef(null);
   useEffect(()=>{ profileRef.current = profile; }, [profile]);
 
+  // Keep refs to previous state for diffing in sync effects
+  const prevPlayersRef   = useRef([]);
+  const prevAsgnRef      = useRef([]);
+  const prevEventsRef    = useRef([]);
+  const prevSnapshotsRef = useRef([]);
+  const prevLineupsRef   = useRef({});
+  const prevGamePlansRef = useRef({});
+
   // ── DB shape converters ──────────────────────────────────────────────────
   const toDbPlayer = (p, tid) => ({
     id: p.id, team_id: tid,
@@ -1137,121 +1145,94 @@ function AppInner() {
     notes: e.notes||'', opponent: e.opponent||'',
   });
 
-  // ── DB-aware state setters ───────────────────────────────────────────────
-  const setPlayersDb = (updater) => {
-    setPlayers(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      const prevMap = Object.fromEntries(prev.map(p=>[p.id,p]));
-      const nextMap = Object.fromEntries(next.map(p=>[p.id,p]));
-      // Inserts
-      next.filter(p=>!prevMap[p.id]).forEach(p=>
-        supabase.from('players').insert(toDbPlayer(p,tid))
-          .then(({error})=>{ if(error) console.error('Player insert error:',error.message,error); }));
-      // Updates
-      next.filter(p=>prevMap[p.id] && JSON.stringify(prevMap[p.id])!==JSON.stringify(p)).forEach(p=>
-        supabase.from('players').update(toDbPlayer(p,tid)).eq('id',p.id)
-          .then(({error})=>{ if(error) console.error('Player update error:',error.message,error); }));
-      // Deletes
-      prev.filter(p=>!nextMap[p.id]).forEach(p=>
-        supabase.from('players').delete().eq('id',p.id)
-          .then(({error})=>{ if(error) console.error('Player delete error:',error.message,error); }));
-      return next;
-    });
-  };
+  // ── useEffect sync — runs AFTER render, guaranteed to have latest state ──
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevPlayersRef.current = players; return; }
+    const prev = prevPlayersRef.current;
+    const prevMap = Object.fromEntries(prev.map(p=>[p.id,p]));
+    const nextMap = Object.fromEntries(players.map(p=>[p.id,p]));
+    players.filter(p=>!prevMap[p.id]).forEach(p=>
+      supabase.from('players').insert(toDbPlayer(p,tid)).then(({error})=>{ if(error) console.error('Player insert:',error.message); }));
+    players.filter(p=>prevMap[p.id]&&JSON.stringify(prevMap[p.id])!==JSON.stringify(p)).forEach(p=>
+      supabase.from('players').update(toDbPlayer(p,tid)).eq('id',p.id).then(({error})=>{ if(error) console.error('Player update:',error.message); }));
+    prev.filter(p=>!nextMap[p.id]).forEach(p=>
+      supabase.from('players').delete().eq('id',p.id).then(({error})=>{ if(error) console.error('Player delete:',error.message); }));
+    prevPlayersRef.current = players;
+  },[players]);
 
-  const setAsgnDb = (updater) => {
-    setAsgn(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      const prevMap = Object.fromEntries(prev.map(a=>[a.id,a]));
-      const nextMap = Object.fromEntries(next.map(a=>[a.id,a]));
-      next.filter(a=>!prevMap[a.id]).forEach(a=>
-        supabase.from('assignments').insert(toDbAsgn(a,tid))
-          .then(({error})=>{ if(error) console.error('Asgn insert error:',error.message,error); }));
-      next.filter(a=>prevMap[a.id] && JSON.stringify(prevMap[a.id])!==JSON.stringify(a)).forEach(a=>
-        supabase.from('assignments').update(toDbAsgn(a,tid)).eq('id',a.id)
-          .then(({error})=>{ if(error) console.error('Asgn update error:',error.message,error); }));
-      prev.filter(a=>!nextMap[a.id]).forEach(a=>
-        supabase.from('assignments').delete().eq('id',a.id)
-          .then(({error})=>{ if(error) console.error('Asgn delete error:',error.message,error); }));
-      return next;
-    });
-  };
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevAsgnRef.current = assignments; return; }
+    const prev = prevAsgnRef.current;
+    const prevMap = Object.fromEntries(prev.map(a=>[a.id,a]));
+    const nextMap = Object.fromEntries(assignments.map(a=>[a.id,a]));
+    assignments.filter(a=>!prevMap[a.id]).forEach(a=>
+      supabase.from('assignments').insert(toDbAsgn(a,tid)).then(({error})=>{ if(error) console.error('Asgn insert:',error.message); }));
+    assignments.filter(a=>prevMap[a.id]&&JSON.stringify(prevMap[a.id])!==JSON.stringify(a)).forEach(a=>
+      supabase.from('assignments').update(toDbAsgn(a,tid)).eq('id',a.id).then(({error})=>{ if(error) console.error('Asgn update:',error.message); }));
+    prev.filter(a=>!nextMap[a.id]).forEach(a=>
+      supabase.from('assignments').delete().eq('id',a.id).then(({error})=>{ if(error) console.error('Asgn delete:',error.message); }));
+    prevAsgnRef.current = assignments;
+  },[assignments]);
 
-  const setEventsDb = (updater) => {
-    setEvents(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      const prevMap = Object.fromEntries(prev.map(e=>[e.id,e]));
-      const nextMap = Object.fromEntries(next.map(e=>[e.id,e]));
-      next.filter(e=>!prevMap[e.id]).forEach(e=>
-        supabase.from('events').insert(toDbEvent(e,tid))
-          .then(({error})=>{ if(error) console.error('Event insert error:',error.message,error); }));
-      next.filter(e=>prevMap[e.id] && JSON.stringify(prevMap[e.id])!==JSON.stringify(e)).forEach(e=>
-        supabase.from('events').update(toDbEvent(e,tid)).eq('id',e.id)
-          .then(({error})=>{ if(error) console.error('Event update error:',error.message,error); }));
-      prev.filter(e=>!nextMap[e.id]).forEach(e=>
-        supabase.from('events').delete().eq('id',e.id)
-          .then(({error})=>{ if(error) console.error('Event delete error:',error.message,error); }));
-      return next;
-    });
-  };
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevEventsRef.current = events; return; }
+    const prev = prevEventsRef.current;
+    const prevMap = Object.fromEntries(prev.map(e=>[e.id,e]));
+    const nextMap = Object.fromEntries(events.map(e=>[e.id,e]));
+    events.filter(e=>!prevMap[e.id]).forEach(e=>
+      supabase.from('events').insert(toDbEvent(e,tid)).then(({error})=>{ if(error) console.error('Event insert:',error.message); }));
+    events.filter(e=>prevMap[e.id]&&JSON.stringify(prevMap[e.id])!==JSON.stringify(e)).forEach(e=>
+      supabase.from('events').update(toDbEvent(e,tid)).eq('id',e.id).then(({error})=>{ if(error) console.error('Event update:',error.message); }));
+    prev.filter(e=>!nextMap[e.id]).forEach(e=>
+      supabase.from('events').delete().eq('id',e.id).then(({error})=>{ if(error) console.error('Event delete:',error.message); }));
+    prevEventsRef.current = events;
+  },[events]);
 
-  const setSnapshotsDb = (updater) => {
-    setSkillSnapshots(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      const prevIds = new Set(prev.map(s=>s.id));
-      next.filter(s=>!prevIds.has(s.id)).forEach(s=>
-        supabase.from('skill_snapshots').insert({
-          id:s.id, team_id:tid, player_id:s.playerId,
-          date:s.date, rubric:s.rubric||{}, notes:s.notes||'',
-        }).then(({error})=>{ if(error) console.error('Snapshot insert error:',error.message,error); }));
-      return next;
-    });
-  };
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevSnapshotsRef.current = skillSnapshots; return; }
+    const prev = prevSnapshotsRef.current;
+    const prevIds = new Set(prev.map(s=>s.id));
+    skillSnapshots.filter(s=>!prevIds.has(s.id)).forEach(s=>
+      supabase.from('skill_snapshots').insert({id:s.id,team_id:tid,player_id:s.playerId,date:s.date,rubric:s.rubric||{},notes:s.notes||''})
+        .then(({error})=>{ if(error) console.error('Snapshot insert:',error.message); }));
+    prevSnapshotsRef.current = skillSnapshots;
+  },[skillSnapshots]);
 
-  const setLineupsDb = (updater) => {
-    setLineups(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      Object.entries(next).forEach(([eventId,lu])=>{
-        if (JSON.stringify(prev[eventId])!==JSON.stringify(lu))
-          supabase.from('lineups').upsert({
-            event_id:eventId, team_id:tid,
-            batting:lu.batting||[], positions:lu.positions||{}, shared:lu.shared!==false,
-            updated_at:new Date().toISOString(),
-          },{onConflict:'event_id'})
-          .then(({error})=>{ if(error) console.error('Lineup upsert error:',error.message,error); });
-      });
-      return next;
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevLineupsRef.current = lineups; return; }
+    const prev = prevLineupsRef.current;
+    Object.entries(lineups).forEach(([eventId,lu])=>{
+      if(JSON.stringify(prev[eventId])!==JSON.stringify(lu))
+        supabase.from('lineups').upsert({event_id:eventId,team_id:tid,batting:lu.batting||[],positions:lu.positions||{},shared:lu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
+          .then(({error})=>{ if(error) console.error('Lineup upsert:',error.message); });
     });
-  };
+    prevLineupsRef.current = lineups;
+  },[lineups]);
 
-  const setGamePlansDb = (updater) => {
-    setGamePlans(prev => {
-      const next = typeof updater==='function' ? updater(prev) : updater;
-      const tid = profileRef.current?.team_id;
-      if (!tid) return next;
-      Object.entries(next).forEach(([eventId,gp])=>{
-        if (JSON.stringify(prev[eventId])!==JSON.stringify(gp))
-          supabase.from('game_plans').upsert({
-            event_id:eventId, team_id:tid,
-            pitcher:gp.pitcher||'', defense:gp.defense||'',
-            offense:gp.offense||'', notes:gp.notes||'', shared:gp.shared||false,
-            updated_at:new Date().toISOString(),
-          },{onConflict:'event_id'})
-          .then(({error})=>{ if(error) console.error('GamePlan upsert error:',error.message,error); });
-      });
-      return next;
+  useEffect(()=>{
+    const tid = profileRef.current?.team_id;
+    if (!tid || !dataLoaded) { prevGamePlansRef.current = gamePlans; return; }
+    const prev = prevGamePlansRef.current;
+    Object.entries(gamePlans).forEach(([eventId,gp])=>{
+      if(JSON.stringify(prev[eventId])!==JSON.stringify(gp))
+        supabase.from('game_plans').upsert({event_id:eventId,team_id:tid,pitcher:gp.pitcher||'',defense:gp.defense||'',offense:gp.offense||'',notes:gp.notes||'',shared:gp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
+          .then(({error})=>{ if(error) console.error('GamePlan upsert:',error.message); });
     });
-  };
+    prevGamePlansRef.current = gamePlans;
+  },[gamePlans]);
+
+  // ── DB setters — now just plain state setters, sync handled by effects above
+  const setPlayersDb   = setPlayers;
+  const setAsgnDb      = setAsgn;
+  const setEventsDb    = setEvents;
+  const setSnapshotsDb = setSkillSnapshots;
+  const setLineupsDb   = setLineups;
+  const setGamePlansDb = setGamePlans;
 
   // ── Realtime messages ────────────────────────────────────────────────────
   useEffect(()=>{
