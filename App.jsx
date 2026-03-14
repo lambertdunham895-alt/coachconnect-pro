@@ -2624,6 +2624,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                     <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:a.completed?C.teal:C.text,marginBottom:3}}>{a.completed&&"✓ "}{drill.name}</div>
                     {playerVid&&<div style={{padding:"2px 7px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.gold,letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap"}}>📹 Video</div>}
                     {coachMode&&a.completed&&<div style={{padding:"2px 7px",borderRadius:6,background:`${C.teal}20`,border:`1px solid ${C.teal}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.teal,letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap"}}>✅ Done</div>}
+                    {coachMode&&!a.completed&&<div style={{padding:"2px 7px",borderRadius:6,background:`${C.textDim}15`,border:`1px solid ${C.textDim}30`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap"}}>Not Completed</div>}
                   </div>
                   <Tag label={drill.duration} color={C.textDim} small/>
                 </button>
