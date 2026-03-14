@@ -2900,9 +2900,7 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
                     ))
                   : uniqueDrillLabels.map((label,i)=>{
                       const color = SUBCRITERION_COLORS[i % SUBCRITERION_COLORS.length];
-                      const dashPatterns = ["0","6 3","3 3","8 3 2 3","4 2"];
-                      const dash = dashPatterns[i % dashPatterns.length];
-                      return <Line key={label} type="monotone" dataKey={label} stroke={color} strokeWidth={2.5} strokeDasharray={dash} dot={{fill:color,r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:color}} connectNulls/>;
+                      return <Line key={label} type="monotone" dataKey={label} stroke={color} strokeWidth={2.5} dot={{fill:color,r:4,strokeWidth:0}} activeDot={{r:6,strokeWidth:0,fill:color}} connectNulls/>;
                     })
                 }
               </LineChart>
@@ -2914,11 +2912,9 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
             <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16,paddingLeft:8}}>
               {uniqueDrillLabels.map((label,i)=>{
                 const color = SUBCRITERION_COLORS[i % SUBCRITERION_COLORS.length];
-                const dashPatterns = ["solid","dashed","dotted","dashed","solid"];
-                const borderStyle = dashPatterns[i % dashPatterns.length];
                 return (
                   <div key={label} style={{display:"flex",alignItems:"center",gap:5}}>
-                    <div style={{width:18,height:0,borderTop:`2.5px ${borderStyle} ${color}`,flexShrink:0}}/>
+                    <div style={{width:16,height:3,borderRadius:2,background:color,flexShrink:0}}/>
                     <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.textMid,letterSpacing:1}}>{label}</div>
                   </div>
                 );
