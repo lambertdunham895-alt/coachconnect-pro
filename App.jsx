@@ -3045,7 +3045,13 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   ];
 
   return (
-    <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px"}}>
+    <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:80}}>
+
+      {/* ── Floating Chat Button ── */}
+      <button onClick={()=>{setSection("chat");setSelEvId(null);}} style={{position:"fixed",bottom:24,right:20,zIndex:150,width:56,height:56,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue},#1560b0)`,border:"none",boxShadow:`0 4px 20px ${C.blue}80`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"transform 0.15s"}}>
+        <span style={{fontSize:24}}>💬</span>
+        {unread>0&&<div style={{position:"absolute",top:0,right:0,width:18,height:18,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,color:"#fff"}}>{unread}</div>}
+      </button>
 
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
