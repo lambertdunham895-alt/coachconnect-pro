@@ -1015,6 +1015,9 @@ function AppInner() {
       const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
       if (teamData?.name) setTeamDisplayName(teamData.name);
       if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
+      await loadTeamData(data.team_id);
+    } else {
+      setDataLoaded(true); // new coach — no team yet, show empty app
     }
     setAuthReady(true);
   };
@@ -1027,6 +1030,9 @@ function AppInner() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSession(null); setProfile(null); setPUID(null);
+    setPlayers([]); setAsgn([]); setEvents([]); setMessages({}); setUnread({});
+    setSkillSnapshots([]); setLineups({}); setGamePlans({});
+    setDataLoaded(false);
   };
 
   // derive player and parent object from parentUserId (still used for parent view)
@@ -1037,70 +1043,263 @@ function AppInner() {
     }
     return {player:null, parent:null};
   };
-  const [players, setPlayers]   = useState(initPlayers);
-  const [assignments, setAsgn]  = useState([...initAssignments, ...extraAssignments]);
-  const [events, setEvents]     = useState(initEvents);
-  const [messages, setMessages] = useState(initMessages);
-  const [unread, setUnread]     = useState({"team":2,"dm-p1a":1,"dm-p4a":1,"dm-p3b":1});
-  const [skillSnapshots, setSkillSnapshots] = useState(initSkillSnapshots);
+  // ── App state — starts empty, loaded from DB after auth ──────────────────
+  const [players, setPlayers]         = useState([]);
+  const [assignments, setAsgn]        = useState([]);
+  const [events, setEvents]           = useState([]);
+  const [messages, setMessages]       = useState({});
+  const [unread, setUnread]           = useState({});
+  const [skillSnapshots, setSkillSnapshots] = useState([]);
   const [drillVideos, setDrillVideos] = useState({});
-  const [playerVideos, setPlayerVideos] = useState({}); // key: "playerId_drillId"
-  const [playerPhotos, setPlayerPhotos] = useState({}); // key: playerId → base64 data URL
-  const [teamLogo, setTeamLogo] = useState(null); // base64 team logo uploaded by coach
+  const [playerVideos, setPlayerVideos] = useState({});
+  const [playerPhotos, setPlayerPhotos] = useState({});
+  const [teamLogo, setTeamLogo]       = useState(null);
+  const [lineups, setLineups]         = useState({});
+  const [customPlans, setCustomPlans] = useState([]);
+  const [gamePlans, setGamePlans]     = useState({});
+  const [dataLoaded, setDataLoaded]   = useState(false);
 
+  // ── DB shape converters ──────────────────────────────────────────────────
+  const toDbPlayer = p => ({
+    id: p.id, team_id: profile?.team_id,
+    name: p.name, age: String(p.age||''), age_group: p.ageGroup||'',
+    position: p.position||'', number: p.number||'',
+    bats: p.bats||'R', throws: p.throws||'R',
+    goals: p.goals||[], parents_info: p.parents||[],
+  });
+  const toDbAsgn = a => ({
+    id: a.id, team_id: profile?.team_id,
+    player_id: a.playerId, drill_id: a.drillId,
+    assigned_date: a.assignedDate, completed: a.completed||false,
+    notes: a.notes||'', acknowledged: a.acknowledged||false,
+    coach_rating: a.coachRating||null,
+  });
+  const toDbEvent = e => ({
+    id: e.id, team_id: profile?.team_id,
+    type: e.type, date: e.date, time: e.time||'',
+    field_name: e.fieldName||(e.location?e.location.split(' — ')[0]:''),
+    address: e.address||(e.location?e.location.split(' — ')[1]:''),
+    notes: e.notes||'', opponent: e.opponent||'',
+  });
+
+  // ── Load all team data from Supabase ─────────────────────────────────────
+  const loadTeamData = async (teamId) => {
+    const [
+      {data:pData}, {data:aData}, {data:eData},
+      {data:mData}, {data:sData}, {data:lData}, {data:gData},
+    ] = await Promise.all([
+      supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('events').select('*').eq('team_id',teamId).order('date'),
+      supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
+      supabase.from('lineups').select('*').eq('team_id',teamId),
+      supabase.from('game_plans').select('*').eq('team_id',teamId),
+    ]);
+
+    setPlayers((pData||[]).map(p=>({
+      id:p.id, name:p.name, age:p.age, ageGroup:p.age_group||'',
+      position:p.position||'', number:p.number||'',
+      bats:p.bats||'R', throws:p.throws||'R',
+      goals:p.goals||[], parents:p.parents_info||[],
+    })));
+
+    setAsgn((aData||[]).map(a=>({
+      id:a.id, playerId:a.player_id, drillId:a.drill_id,
+      assignedDate:a.assigned_date, completed:a.completed||false,
+      coachRating:a.coach_rating||null, notes:a.notes||'',
+      acknowledged:a.acknowledged||false,
+    })));
+
+    setEvents((eData||[]).map(e=>({
+      id:e.id, type:e.type, date:e.date, time:e.time||'',
+      location:[e.field_name,e.address].filter(Boolean).join(' — '),
+      fieldName:e.field_name||'', address:e.address||'',
+      notes:e.notes||'', opponent:e.opponent||'',
+    })));
+
+    const msgMap = {};
+    (mData||[]).forEach(m=>{
+      if(!msgMap[m.channel]) msgMap[m.channel]=[];
+      msgMap[m.channel].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
+    });
+    setMessages(msgMap);
+
+    setSkillSnapshots((sData||[]).map(s=>({
+      id:s.id, playerId:s.player_id, date:s.date,
+      rubric:s.rubric||{}, notes:s.notes||'',
+    })));
+
+    const luMap = {};
+    (lData||[]).forEach(l=>{ luMap[l.event_id]={batting:l.batting||[],positions:l.positions||{},shared:l.shared}; });
+    setLineups(luMap);
+
+    const gpMap = {};
+    (gData||[]).forEach(g=>{ gpMap[g.event_id]={pitcher:g.pitcher||'',defense:g.defense||'',offense:g.offense||'',notes:g.notes||'',shared:g.shared||false}; });
+    setGamePlans(gpMap);
+
+    setDataLoaded(true);
+  };
+
+  // ── DB-aware state setters (write-through) ───────────────────────────────
+  const setPlayersDb = updater => {
+    setPlayers(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      const pm = Object.fromEntries(prev.map(p=>[p.id,p]));
+      const nm = Object.fromEntries(next.map(p=>[p.id,p]));
+      next.filter(p=>!pm[p.id]).forEach(p=>
+        supabase.from('players').insert(toDbPlayer(p)).then(({error})=>error&&console.error('Player insert',error)));
+      next.filter(p=>pm[p.id]&&JSON.stringify(pm[p.id])!==JSON.stringify(p)).forEach(p=>
+        supabase.from('players').update(toDbPlayer(p)).eq('id',p.id).then(({error})=>error&&console.error('Player update',error)));
+      prev.filter(p=>!nm[p.id]).forEach(p=>
+        supabase.from('players').delete().eq('id',p.id).then(({error})=>error&&console.error('Player delete',error)));
+      return next;
+    });
+  };
+
+  const setAsgnDb = updater => {
+    setAsgn(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      const pm = Object.fromEntries(prev.map(a=>[a.id,a]));
+      const nm = Object.fromEntries(next.map(a=>[a.id,a]));
+      next.filter(a=>!pm[a.id]).forEach(a=>
+        supabase.from('assignments').insert(toDbAsgn(a)).then(({error})=>error&&console.error('Asgn insert',error)));
+      next.filter(a=>pm[a.id]&&JSON.stringify(pm[a.id])!==JSON.stringify(a)).forEach(a=>
+        supabase.from('assignments').update(toDbAsgn(a)).eq('id',a.id).then(({error})=>error&&console.error('Asgn update',error)));
+      prev.filter(a=>!nm[a.id]).forEach(a=>
+        supabase.from('assignments').delete().eq('id',a.id).then(({error})=>error&&console.error('Asgn delete',error)));
+      return next;
+    });
+  };
+
+  const setEventsDb = updater => {
+    setEvents(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      const pm = Object.fromEntries(prev.map(e=>[e.id,e]));
+      const nm = Object.fromEntries(next.map(e=>[e.id,e]));
+      next.filter(e=>!pm[e.id]).forEach(e=>
+        supabase.from('events').insert(toDbEvent(e)).then(({error})=>error&&console.error('Event insert',error)));
+      next.filter(e=>pm[e.id]&&JSON.stringify(pm[e.id])!==JSON.stringify(e)).forEach(e=>
+        supabase.from('events').update(toDbEvent(e)).eq('id',e.id).then(({error})=>error&&console.error('Event update',error)));
+      prev.filter(e=>!nm[e.id]).forEach(e=>
+        supabase.from('events').delete().eq('id',e.id).then(({error})=>error&&console.error('Event delete',error)));
+      return next;
+    });
+  };
+
+  const setSnapshotsDb = updater => {
+    setSkillSnapshots(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      const prevIds = new Set(prev.map(s=>s.id));
+      next.filter(s=>!prevIds.has(s.id)).forEach(s=>
+        supabase.from('skill_snapshots').insert({
+          id:s.id, team_id:tid, player_id:s.playerId,
+          date:s.date, rubric:s.rubric||{}, notes:s.notes||'',
+        }).then(({error})=>error&&console.error('Snapshot insert',error)));
+      return next;
+    });
+  };
+
+  const setLineupsDb = updater => {
+    setLineups(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      Object.entries(next).forEach(([eventId,lu])=>{
+        if(JSON.stringify(prev[eventId])!==JSON.stringify(lu))
+          supabase.from('lineups').upsert({
+            event_id:eventId, team_id:tid,
+            batting:lu.batting||[], positions:lu.positions||{}, shared:lu.shared!==false,
+            updated_at:new Date().toISOString(),
+          },{onConflict:'event_id'}).then(({error})=>error&&console.error('Lineup upsert',error));
+      });
+      return next;
+    });
+  };
+
+  const setGamePlansDb = updater => {
+    setGamePlans(prev => {
+      const next = typeof updater==='function'?updater(prev):updater;
+      const tid = profile?.team_id; if(!tid) return next;
+      Object.entries(next).forEach(([eventId,gp])=>{
+        if(JSON.stringify(prev[eventId])!==JSON.stringify(gp))
+          supabase.from('game_plans').upsert({
+            event_id:eventId, team_id:tid,
+            pitcher:gp.pitcher||'', defense:gp.defense||'',
+            offense:gp.offense||'', notes:gp.notes||'', shared:gp.shared||false,
+            updated_at:new Date().toISOString(),
+          },{onConflict:'event_id'}).then(({error})=>error&&console.error('GamePlan upsert',error));
+      });
+      return next;
+    });
+  };
+
+  // ── Realtime messages ────────────────────────────────────────────────────
+  useEffect(()=>{
+    if(!profile?.team_id) return;
+    const ch = supabase.channel('msgs-'+profile.team_id)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`team_id=eq.${profile.team_id}`},(payload)=>{
+        const m = payload.new;
+        const msg = {id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()};
+        setMessages(prev=>{
+          const ch = prev[m.channel]||[];
+          if(ch.find(e=>e.id===m.id)) return prev;
+          return {...prev,[m.channel]:[...ch,msg]};
+        });
+      }).subscribe();
+    return ()=>{ supabase.removeChannel(ch); };
+  },[profile?.team_id]);
+
+  // ── Team logo upload ─────────────────────────────────────────────────────
   const handleTeamLogoChange = async (base64DataUrl) => {
-    setTeamLogo(base64DataUrl); // show immediately
+    setTeamLogo(base64DataUrl);
     const teamId = profile?.team_id;
     if (!teamId) return;
     try {
       const res = await fetch(base64DataUrl);
       const blob = await res.blob();
-      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+      const ext = (blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
       const path = `team-logos/${teamId}.${ext}`;
-      const { error } = await supabase.storage.from('player-photos').upload(path, blob, { upsert: true });
+      const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
       if (!error) {
-        const { data: { publicUrl } } = supabase.storage.from('player-photos').getPublicUrl(path);
-        await supabase.from('teams').update({ logo_url: publicUrl }).eq('id', teamId);
+        const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
+        await supabase.from('teams').update({logo_url:publicUrl}).eq('id',teamId);
         setTeamLogo(publicUrl);
       }
-    } catch (err) {
-      console.error('Logo upload error:', err);
-    }
+    } catch(err) { console.error('Logo upload error:',err); }
   };
-  const [lineups, setLineups] = useState({});
-  const [customPlans, setCustomPlans] = useState([]);
-  const [gamePlans, setGamePlans] = useState({}); // {[eventId]: {pitcher, defense, offense, notes}}
 
   // ── Subscription ─────────────────────────────────────────────────────────
   const TRIAL_DAYS = 14;
-  const [subscription, setSubscription] = useState({
-    status: "trial",       // "trial" | "active" | "expired"
-    trialStart: Date.now(),// set when coach first logs in
-    plan: null,
-  });
-  const msLeft = (subscription.trialStart + TRIAL_DAYS * 86400000) - Date.now();
-  const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
-  const isActive  = subscription.status === "active";
-  const isExpired = subscription.status === "expired" || (subscription.status === "trial" && daysLeft === 0);
-  const isTrial   = subscription.status === "trial" && daysLeft > 0;
-  const canAccess = (feature) => {
-    if (isActive) return true;
-    if (isExpired) return false; // all paywalled features blocked
-    return true; // trial: full access
-  };
+  const [subscription, setSubscription] = useState({status:"trial",trialStart:Date.now(),plan:null});
+  const msLeft = (subscription.trialStart + TRIAL_DAYS*86400000) - Date.now();
+  const daysLeft = Math.max(0,Math.ceil(msLeft/86400000));
+  const isActive  = subscription.status==="active";
+  const isExpired = subscription.status==="expired"||(subscription.status==="trial"&&daysLeft===0);
+  const isTrial   = subscription.status==="trial"&&daysLeft>0;
+  const canAccess = () => { if(isActive) return true; if(isExpired) return false; return true; };
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [tab, setTab]           = useState("home");
   const [selectedPlayer, setSP] = useState(null);
-  const [activeChat, setActiveChat] = useState(null); // channel id currently open
+  const [activeChat, setActiveChat] = useState(null);
 
   const totalUnread = Object.values(unread).reduce((a,b)=>a+(b||0),0);
 
   const sendMsg = (channelId, text, senderInfo) => {
     const msg = {id:uid(), senderId:senderInfo.id, senderName:senderInfo.name, text, ts:Date.now()};
-    setMessages(prev => ({...prev, [channelId]: [...(prev[channelId]||[]), msg]}));
+    setMessages(prev=>({...prev,[channelId]:[...(prev[channelId]||[]),msg]}));
+    if(profile?.team_id)
+      supabase.from('messages').insert({
+        id:msg.id, team_id:profile.team_id,
+        sender_id:session?.user?.id||null, sender_name:senderInfo.name,
+        channel:channelId, text,
+      }).then(({error})=>error&&console.error('Message insert',error));
   };
 
-  const markRead = channelId => setUnread(prev => ({...prev, [channelId]:0}));
+  const markRead = channelId => setUnread(prev=>({...prev,[channelId]:0}));
 
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
@@ -1109,6 +1308,16 @@ function AppInner() {
       <style>{FONTS}</style>
       <div style={{textAlign:"center"}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.textDim}}>Loading…</div>
+      </div>
+    </div>
+  );
+
+  if (authReady && session && profile && !dataLoaded) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <style>{FONTS}</style>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.teal,marginBottom:8}}>Loading Team Data…</div>
+        <div style={{fontSize:13,color:C.textDim}}>Getting your roster, drills, and schedule</div>
       </div>
     </div>
   );
@@ -1149,7 +1358,7 @@ function AppInner() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgn} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo} teamName={teamDisplayName}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo} teamName={teamDisplayName}/>
         }
       </div>
     );
@@ -1206,12 +1415,12 @@ function AppInner() {
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
-            {tab==="roster"   && <Roster players={players} setPlayers={setPlayers} goToPlayer={goToPlayer} playerPhotos={playerPhotos}/>}
-            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos}/>}
-            {tab==="schedule" && <Schedule events={events} setEvents={setEvents} gamePlans={gamePlans} setGamePlans={setGamePlans} players={players} lineups={lineups} setLineups={setLineups}/>}
+            {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos}/>}
+            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos}/>}
+            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
-            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgn} setPlayers={setPlayers} skillSnapshots={skillSnapshots} setSkillSnapshots={setSkillSnapshots} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
+            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
           </div>
         )
       }
