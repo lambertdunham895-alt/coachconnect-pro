@@ -696,42 +696,79 @@ function Tip({text, inline}) {
 }
 
 // ── New Coach Welcome Card ────────────────────────────────────────────────────
-const NEW_COACH_TIPS = [
-  {icon:"📝", tab:"plans",    title:"Start here — Practice Plans",   desc:"Ready-made 90-minute practices. Just show up and follow along. No baseball knowledge needed."},
-  {icon:"👥", tab:"roster",   title:"Add your players",               desc:"Add each kid on your team. You can set goals for them and track how they're improving."},
-  {icon:"🏋️", tab:"drills",   title:"Assign drills for home practice", desc:"Pick drills from the library and assign them. Parents get notified and can track their kid's work."},
-  {icon:"📅", tab:"schedule", title:"Set up your schedule",           desc:"Add practices and games. Parents will see upcoming events automatically."},
-  {icon:"💬", tab:"msgs",     title:"Message parents",                desc:"Chat with the whole team or message individual parents privately."},
-];
+const COACH_PAGE_TIPS = {
+  home: {
+    icon:"🏠", title:"Welcome to your Coach Dashboard",
+    tips:[
+      "Your team's drill progress and upcoming events live here at a glance.",
+      "The gold alert card appears when a player completes a drill and needs your review.",
+      "Tap any player's name in Team Progress to jump straight to their profile.",
+    ]
+  },
+  roster: {
+    icon:"👥", title:"Managing Your Roster",
+    tips:[
+      "Tap '+ Add Player' to add a new player — include their parents' contact info so they can be invited.",
+      "Tap a player's card to open their full profile: drills, progress, goals and badges.",
+      "You can edit player details, position, jersey number and batting/throwing hand anytime.",
+    ]
+  },
+  drills: {
+    icon:"🏋️", title:"Assigning Drills",
+    tips:[
+      "Browse the drill library by category, then tap a player's name to assign it to them.",
+      "Parents see assigned drills instantly and can mark them complete from their view.",
+      "When a player uploads a practice video it shows up in your Needs Review queue — watch it and send feedback.",
+    ]
+  },
+  schedule: {
+    icon:"📅", title:"Schedule & Events",
+    tips:[
+      "Add practices and games with '+ Add Event' — parents see upcoming events automatically.",
+      "Tap any game to open the Game Plan and set your lineup and field positions.",
+      "Once you mark a lineup as shared, parents and players can see their batting slot and position.",
+    ]
+  },
+  msgs: {
+    icon:"💬", title:"Messaging Parents",
+    tips:[
+      "Team Chat goes to every parent at once — great for announcements and cancellations.",
+      "Each parent also has a private DM channel for one-on-one conversations.",
+      "Use 'Message All Parents' to broadcast the same message to every parent DM simultaneously.",
+    ]
+  },
+  plans: {
+    icon:"📝", title:"Practice Plans",
+    tips:[
+      "Choose from pre-built 90-minute plans or create your own from scratch.",
+      "Each plan has a built-in timer — tap 'Start Timer' to run your practice block by block.",
+      "Custom plans save automatically so you can reuse your favorites each week.",
+    ]
+  },
+};
 
-function NewCoachCard({setTab}) {
+function NewCoachCard({page="home", setTab}) {
   const [dismissed, setDismissed] = useState(false);
   const [expanded,  setExpanded]  = useState(false);
+  const tip = COACH_PAGE_TIPS[page] || COACH_PAGE_TIPS.home;
   if(dismissed) return null;
   return (
     <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1f12,${C.card})`,border:`1px solid ${C.teal}40`,borderRadius:16,marginBottom:16,overflow:"hidden",boxShadow:`0 4px 24px ${C.teal}15`}}>
       <button onClick={()=>setExpanded(e=>!e)} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{fontSize:22,flexShrink:0}}>👋</div>
+        <div style={{fontSize:22,flexShrink:0}}>{tip.icon}</div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.teal,letterSpacing:0.5}}>New to coaching? Start here.</div>
-          <div style={{fontSize:12,color:C.textDim,marginTop:1}}>A quick guide to everything in this app</div>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.teal,letterSpacing:0.5}}>{tip.title}</div>
+          <div style={{fontSize:12,color:C.textDim,marginTop:1}}>Tap to see quick tips for this page</div>
         </div>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:C.textDim,transition:"transform 0.2s",transform:expanded?"rotate(90deg)":"none"}}>›</div>
       </button>
       {expanded&&(
         <div style={{borderTop:`1px solid ${C.teal}25`}}>
-          {NEW_COACH_TIPS.map((tip,i)=>(
-            <button key={i} onClick={()=>setTab(tip.tab)}
-              style={{width:"100%",display:"flex",gap:12,alignItems:"flex-start",padding:"12px 16px",background:"transparent",border:"none",borderBottom:i<NEW_COACH_TIPS.length-1?`1px solid ${C.border}30`:"none",cursor:"pointer",textAlign:"left",transition:"background 0.15s"}}
-              onMouseEnter={e=>e.currentTarget.style.background=`${C.teal}08`}
-              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-              <div style={{fontSize:18,flexShrink:0,marginTop:1}}>{tip.icon}</div>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.text,marginBottom:3}}>{tip.title}</div>
-                <div style={{fontSize:12,color:C.textDim,lineHeight:1.5}}>{tip.desc}</div>
-              </div>
-              <div style={{color:C.teal,fontSize:16,flexShrink:0,marginTop:2}}>›</div>
-            </button>
+          {tip.tips.map((t,i)=>(
+            <div key={i} style={{display:"flex",gap:10,padding:"10px 16px",borderBottom:i<tip.tips.length-1?`1px solid ${C.border}30`:"none"}}>
+              <div style={{color:C.teal,fontFamily:"Bebas Neue, sans-serif",fontSize:14,flexShrink:0,marginTop:1}}>{i+1}</div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.55}}>{t}</div>
+            </div>
           ))}
           <div style={{padding:"10px 16px",borderTop:`1px solid ${C.border}30`}}>
             <button onClick={()=>setDismissed(true)} style={{background:"none",border:"none",color:C.textDim,fontSize:12,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:1,cursor:"pointer",padding:0}}>Got it — dismiss this</button>
@@ -1418,6 +1455,7 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
 
   return (
     <div>
+      <NewCoachCard page="msgs"/>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:18,color:C.text,letterSpacing:1,textTransform:"uppercase"}}>Messages</div>
         <button onClick={()=>setShowBroadcast(true)}
@@ -1689,7 +1727,7 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
   return (
     <div>
-      <NewCoachCard setTab={setTab}/>
+      <NewCoachCard page="home" setTab={setTab}/>
 
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:140}}>
@@ -1873,6 +1911,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={}}) {
   };
   return (
     <div>
+      <NewCoachCard page="roster"/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
         <SectionHead accent>Roster</SectionHead>
         <PrimaryBtn onClick={()=>setShowForm(!showForm)}>+ Player</PrimaryBtn>
@@ -1974,6 +2013,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 
   return (
     <div>
+      <NewCoachCard page="drills"/>
       <SectionHead accent tip="Tap a drill to assign it to one or more players. They'll see it instantly in their parent app.">Assign Drills</SectionHead>
 
       {/* Category filter */}
@@ -2311,6 +2351,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   // ── LIST VIEW ────────────────────────────────────────────────────────────────
   return (
     <div>
+      <NewCoachCard page="schedule"/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
         <SectionHead accent>Schedule</SectionHead>
         <PrimaryBtn onClick={openNew}>+ Event</PrimaryBtn>
@@ -4674,6 +4715,7 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
   // ── LIST VIEW ──
   return (
     <div>
+      <NewCoachCard page="plans"/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
         <SectionHead accent>Practice Plans</SectionHead>
         <PrimaryBtn onClick={startNew}>+ New Plan</PrimaryBtn>
