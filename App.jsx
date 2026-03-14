@@ -1376,19 +1376,6 @@ function LoginScreen({onAuth}) {
           </div>
         )}
 
-        {/* ── Demo Bypass ── */}
-        <div style={{marginTop:24,padding:"16px",borderRadius:14,background:`${C.gold}08`,border:`1px dashed ${C.gold}30`}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.gold,textTransform:"uppercase",textAlign:"center",marginBottom:10}}>🎮 Try Demo Mode</div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>onAuth({id:"demo-coach"},{role:"coach",full_name:"Demo Coach",team_id:"demo-team"})} style={{flex:1,padding:"11px 0",borderRadius:10,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,color:C.blue,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:42}}>
-              🎯 Coach View
-            </button>
-            <button onClick={()=>onAuth({id:"demo-parent"},{role:"parent",full_name:"Demo Parent",team_id:"demo-team"})} style={{flex:1,padding:"11px 0",borderRadius:10,background:`${C.gold}20`,border:`1px solid ${C.gold}40`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:42}}>
-              👨‍👦 Parent View
-            </button>
-          </div>
-        </div>
-
         <div style={{textAlign:"center",marginTop:20,paddingTop:16,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"center",gap:20}}>
           <a href="/terms.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Terms of Service</a>
           <a href="/privacy.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Privacy Policy</a>
