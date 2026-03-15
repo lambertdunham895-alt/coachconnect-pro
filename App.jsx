@@ -1091,10 +1091,17 @@ function AppInner() {
     setAuthReady(true);
   };
 
-  const handleAuth = (user, prof) => {
-    setSession({user});
-    setProfile(prof);
-  };
+  // For parents: whenever profile is set, fetch their player link
+  useEffect(()=>{
+    if(!profile || profile.role !== 'parent') return;
+    supabase.from("parent_players").select("*").eq("parent_id", profile.id)
+      .then(({data:links})=>{
+        if(links && links.length > 0) {
+          setParentPlayerLink(links[0]);
+          setPUID(profile.id);
+        }
+      });
+  },[profile?.id]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -1106,7 +1113,6 @@ function AppInner() {
 
   // derive player and parent object from parentUserId
   const getParentContext = (uid) => {
-    // First try DB linkage (real accounts)
     if(parentPlayerLink) {
       const linkedPlayer = players.find(p=>p.id===parentPlayerLink.player_id);
       if(linkedPlayer) return {
@@ -1114,7 +1120,6 @@ function AppInner() {
         parent: {id:uid, name:profile?.full_name||'Parent', phone:'', email:''}
       };
     }
-    // Fallback: look up by matching par.id in players array (legacy)
     for (const pl of players) {
       const par = (pl.parents||[]).find(p=>p.id===uid);
       if (par) return {player:pl, parent:par};
@@ -1385,21 +1390,21 @@ function AppInner() {
   const role = profile.role;
 
   if (role==="parent") {
+    // If we have a link, auto-set parentUserId without waiting for players to load
+    if(parentPlayerLink && !parentUserId) {
+      setPUID(profile.id);
+    }
     const {player, parent} = getParentContext(parentUserId);
     // If no parentUserId yet, show player picker
     if(!parentUserId) {
-      // Build list from DB-linked players (via parentPlayerLink) or legacy parents_info
-      const linkedPlayers = parentPlayerLink
-        ? players.filter(p=>p.id===parentPlayerLink.player_id).map(p=>({player:p, parentId:session?.user?.id, parentName:profile?.full_name||'Parent'}))
-        : players.flatMap(p=>(p.parents||[]).map(par=>({player:p, parentId:par.id, parentName:par.name})));
-
+      const linkedPlayers = players.flatMap(p=>(p.parents||[]).map(par=>({player:p, parentId:par.id, parentName:par.name})));
       return (
         <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
           <style>{FONTS}</style>
           <div style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:360}}>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textDim,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>SELECT YOUR PLAYER</div>
             {linkedPlayers.length > 0
-              ? linkedPlayers.map(({player:p, parentId, parentName})=>(
+              ? linkedPlayers.map(({player:p, parentId})=>(
                 <button key={p.id} onClick={()=>setPUID(parentId)}
                   style={{display:"block",width:"100%",padding:"14px 18px",marginBottom:10,background:"transparent",border:`2px solid ${C.gold}60`,borderRadius:12,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:1,cursor:"pointer",textAlign:"left"}}>
                   ⚾ {p.name} <span style={{color:C.textDim,fontSize:12}}>({p.position})</span>
