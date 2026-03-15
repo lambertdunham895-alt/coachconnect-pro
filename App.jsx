@@ -788,18 +788,28 @@ const getYouTubeId = url => {
   return m ? m[1] : null;
 };
 
-function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode}) {
+function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode, teamId}) {
   const [editing, setEditing] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [labelInput, setLabelInput] = useState("");
   const video = drillVideos[drillId];
 
-  const save = () => {
+  const save = async () => {
     if (!urlInput.trim()) return;
-    setDrillVideos(prev => ({...prev, [drillId]: {url: urlInput.trim(), label: labelInput.trim() || "Watch Video"}}));
+    const v = {url: urlInput.trim(), label: labelInput.trim() || "Watch Video"};
+    setDrillVideos(prev => ({...prev, [drillId]: v}));
+    if(teamId) {
+      await supabase.from('drill_videos').upsert(
+        {team_id: teamId, drill_id: drillId, url: v.url},
+        {onConflict: 'team_id,drill_id'}
+      );
+    }
     setEditing(false);
   };
-  const remove = () => { setDrillVideos(prev => { const n={...prev}; delete n[drillId]; return n; }); };
+  const remove = async () => {
+    setDrillVideos(prev => { const n={...prev}; delete n[drillId]; return n; });
+    if(teamId) await supabase.from('drill_videos').delete().eq('team_id',teamId).eq('drill_id',drillId);
+  };
 
   const ytId = video ? getYouTubeId(video.url) : null;
 
@@ -1022,7 +1032,7 @@ function AppInner() {
   const loadTeamData = async (teamId) => {
     const [
       {data:pData}, {data:aData}, {data:eData},
-      {data:mData}, {data:sData}, {data:lData}, {data:gData},
+      {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
     ] = await Promise.all([
       supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
       supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1031,6 +1041,7 @@ function AppInner() {
       supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
       supabase.from('lineups').select('*').eq('team_id',teamId),
       supabase.from('game_plans').select('*').eq('team_id',teamId),
+      supabase.from('drill_videos').select('*').eq('team_id',teamId),
     ]);
 
     setPlayers((pData||[]).map(p=>({
@@ -1067,6 +1078,10 @@ function AppInner() {
     const gpMap = {};
     (gData||[]).forEach(g=>{ gpMap[g.event_id]={pitcher:g.pitcher||'',defense:g.defense||'',offense:g.offense||'',notes:g.notes||'',shared:g.shared||false}; });
     setGamePlans(gpMap);
+
+    const dvMap = {};
+    (dvData||[]).forEach(d=>{ dvMap[d.drill_id]={url:d.url||'',label:d.label||'Watch Video'}; });
+    setDrillVideos(dvMap);
     // setDataLoaded is called in loadProfile after parent link is also set
   };
 
@@ -2393,7 +2408,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
                 <div style={{padding:"0 16px 16px"}}>
                   <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                   {drill.results&&<div style={{fontSize:12,color:`${C.teal}cc`,lineHeight:1.55,marginBottom:12,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
-                  <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={true}/>
+                  <DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={true} teamId={teamId}/>
 
                   {/* Player selector */}
                   <div style={{marginTop:14}}>
@@ -2924,7 +2939,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
       </div>}
 
       <ErrorBoundary>
-      {!editing && detailTab==="drills"    && <DrillsTab mine={mine} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} player={player} coachMode={true} removeAsgn={id=>setAsgn(prev=>prev.filter(a=>a.id!==id))}/>}
+      {!editing && detailTab==="drills"    && <DrillsTab mine={mine} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} player={player} coachMode={true} removeAsgn={id=>setAsgn(prev=>prev.filter(a=>a.id!==id))} teamId={teamId}/>}
       {!editing && detailTab==="progress"  && <ProgressTab player={player} assignments={assignments} skillSnapshots={skillSnapshots.filter(s=>s.playerId===player.id)} setSkillSnapshots={setSkillSnapshots} canAccess={canAccess} onUpgrade={onUpgrade}/>}
       {!editing && detailTab==="goals"     && <GoalsTab player={player} setPlayers={setPlayers}/>}
       {!editing && detailTab==="badges"    && <BadgesPanel player={player} assignments={assignments} skillSnapshots={skillSnapshots} events={[]}/>}
@@ -2933,7 +2948,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   );
 }
 
-function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},player=null,coachMode=false,removeAsgn=null}) {
+function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},player=null,coachMode=false,removeAsgn=null,teamId}) {
   const [openDrill,setOpenDrill]=useState(null);
   const [reviewNotes, setReviewNotes]=useState({});
   const toggle=id=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:!a.completed}:a));
@@ -3087,7 +3102,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                 )}
 
                 {/* Coach demo video */}
-                {coachMode&&<DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={coachMode}/>}
+                {coachMode&&<DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={setDrillVideos} coachMode={coachMode} teamId={teamId}/>}
                 {!coachMode&&demoVid&&<DrillVideoBlock drillId={drill.id} drillVideos={drillVideos} setDrillVideos={()=>{}} coachMode={false}/>}
 
                 <div style={{marginTop:14}}>
