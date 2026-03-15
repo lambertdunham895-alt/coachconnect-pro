@@ -2510,12 +2510,29 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||''};
     if(editId){
       setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
-      if(teamId) supabase.from('events').update(row).eq('id',editId)
-        .then(({error})=>{ if(error) console.error('Event update failed:',error.message); });
+      if(teamId) {
+        const {error}=await supabase.from('events').update(row).eq('id',editId);
+        if(error) console.error('Event update failed:',error.message);
+      }
     } else {
       setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
-      if(teamId) supabase.from('events').insert(row)
-        .then(({error})=>{ if(error) console.error('Event insert failed:',error.message); });
+      if(teamId) {
+        const {error}=await supabase.from('events').insert(row);
+        if(error) console.error('Event insert failed:',error.message);
+      }
+    }
+    // Now that the event exists in DB, explicitly save lineup & game plan
+    if(teamId){
+      const curLu=lineups[formEvId];
+      if(curLu && ((curLu.batting||[]).some(Boolean)||Object.keys(curLu.positions||{}).length>0)){
+        const {error}=await supabase.from('lineups').upsert({event_id:formEvId,team_id:teamId,batting:curLu.batting||[],positions:curLu.positions||{},shared:curLu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
+        if(error) console.error('Lineup save failed:',error.message);
+      }
+      const curGp=gamePlans[formEvId];
+      if(curGp && Object.keys(curGp).length>0){
+        const {error}=await supabase.from('game_plans').upsert({event_id:formEvId,team_id:teamId,pitcher:curGp.pitcher||'',defense:curGp.defense||'',offense:curGp.offense||'',notes:curGp.notes||'',shared:curGp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
+        if(error) console.error('GamePlan save failed:',error.message);
+      }
     }
     setView("list");
   };
