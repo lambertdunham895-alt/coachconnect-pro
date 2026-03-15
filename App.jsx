@@ -4407,7 +4407,8 @@ class ErrorBoundary extends React.Component {
       <div style={{padding:24,textAlign:"center",background:"#060a12",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",marginBottom:8,color:"#e8192c"}}>Something went wrong</div>
-        <div style={{fontSize:12,color:"#3d5070",maxWidth:300,marginBottom:16}}>{this.state.error?.message||"An unexpected error occurred."}</div>
+        <div style={{fontSize:13,color:"#ff6b6b",maxWidth:340,marginBottom:8,wordBreak:"break-word",background:"#1a0808",padding:"12px 16px",borderRadius:10,border:"1px solid #e8192c40",textAlign:"left"}}>{this.state.error?.message||"An unexpected error occurred."}</div>
+        <div style={{fontSize:11,color:"#3d5070",maxWidth:340,marginBottom:16,wordBreak:"break-word",textAlign:"left"}}>{this.state.error?.stack?.slice(0,200)}</div>
         <button onClick={()=>window.location.reload()} style={{padding:"10px 24px",borderRadius:10,background:"#e8192c",border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>Reload App</button>
       </div>
     );
