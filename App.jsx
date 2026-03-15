@@ -3590,6 +3590,19 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                 <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:8}}>{drill.desc}</div>
                 {drill.results&&<div style={{fontSize:12,color:C.teal+"cc",lineHeight:1.55,marginBottom:10,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>{drill.results}</div>}
 
+                {/* Coach demo video */}
+                {drillVideos[drill.id]&&(
+                  <a href={drillVideos[drill.id].url} target="_blank" rel="noopener noreferrer"
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,borderRadius:10,textDecoration:"none",marginBottom:10}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:`${C.blue}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🎬</div>
+                    <div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.blue}}>Watch Demo Video</div>
+                      <div style={{fontSize:11,color:C.textDim,marginTop:1}}>Tap to see how this drill is done</div>
+                    </div>
+                    <div style={{marginLeft:"auto",color:C.blue,fontSize:18}}>↗</div>
+                  </a>
+                )}
+
                 {/* Parent video upload — only before acknowledged */}
                 {!a.acknowledged && <ParentVideoUpload playerId={player.id} drillId={drill.id} drillName={drill.name} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos}/>}
 
