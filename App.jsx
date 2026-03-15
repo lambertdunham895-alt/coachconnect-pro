@@ -17,28 +17,74 @@ body { margin: 0; padding: 0; background: #060a12; }
 input, select, textarea { font-size: 16px !important; }
 
 @keyframes fadeUp {
-  from { opacity:0; transform:translateY(14px); }
-  to   { opacity:1; transform:translateY(0); }
+  from { opacity:0; transform:translateY(18px) scale(0.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
 }
 @keyframes popIn {
-  0%   { opacity:0; transform:scale(0.85) translateY(6px); }
+  0%   { opacity:0; transform:scale(0.82) translateY(8px); }
+  70%  { opacity:1; transform:scale(1.02) translateY(-1px); }
   100% { opacity:1; transform:scale(1) translateY(0); }
 }
 @keyframes slideUp {
   from { opacity:0; transform:translateY(100%); }
   to   { opacity:1; transform:translateY(0); }
 }
+@keyframes slideInRight {
+  from { opacity:0; transform:translateX(24px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+@keyframes pulseBadge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,25,44,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(232,25,44,0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px currentColor); }
+  50%      { filter: drop-shadow(0 0 10px currentColor); }
+}
+@keyframes scoreFlash {
+  0%   { background-color: rgba(245,197,24,0.15); }
+  100% { background-color: transparent; }
+}
 
-.fade-up   { animation: fadeUp 0.32s ease both; }
-.fade-up-1 { animation: fadeUp 0.32s 0.04s ease both; }
-.fade-up-2 { animation: fadeUp 0.32s 0.08s ease both; }
-.fade-up-3 { animation: fadeUp 0.32s 0.12s ease both; }
-.fade-up-4 { animation: fadeUp 0.32s 0.16s ease both; }
-.fade-up-5 { animation: fadeUp 0.32s 0.20s ease both; }
-.pop-in    { animation: popIn  0.22s ease both; }
+.fade-up   { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-up-1 { animation: fadeUp 0.35s 0.05s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-up-2 { animation: fadeUp 0.35s 0.10s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-up-3 { animation: fadeUp 0.35s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-up-4 { animation: fadeUp 0.35s 0.20s cubic-bezier(0.22,1,0.36,1) both; }
+.fade-up-5 { animation: fadeUp 0.35s 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+.pop-in    { animation: popIn  0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+.slide-in  { animation: slideInRight 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 
-.card-hover { transition:transform 0.15s ease,box-shadow 0.15s ease; cursor:pointer; }
-.card-hover:active { transform:scale(0.97); }
+.card-hover { transition:transform 0.18s cubic-bezier(0.22,1,0.36,1),box-shadow 0.18s ease; cursor:pointer; }
+.card-hover:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+.card-hover:active { transform:scale(0.97) translateY(0); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+
+.btn-press { transition:transform 0.1s cubic-bezier(0.22,1,0.36,1),box-shadow 0.1s ease; }
+.btn-press:active { transform:scale(0.95); }
+
+.badge-pulse { animation: pulseBadge 2s ease-in-out infinite; }
+
+.shimmer-text {
+  background: linear-gradient(90deg, #f0ebe2 30%, #f5c518 50%, #f0ebe2 70%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+.glow-active { animation: glowPulse 2s ease-in-out infinite; }
+
+.score-flash { animation: scoreFlash 0.8s ease both; }
+
+.nav-item { transition: color 0.15s ease, transform 0.15s ease; }
+.nav-item:active { transform: scale(0.9); }
+
+.tag-hover { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.tag-hover:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
 
 ::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -625,7 +671,7 @@ const Ring = ({pct,size=56,color=C.red,label,sub}) => {
     <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
       <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1a2f52" strokeWidth={4}/>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{filter:`drop-shadow(0 0 4px ${color}88)`,transition:"stroke-dasharray 0.6s ease"}}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{filter:`drop-shadow(0 0 6px ${color}aa)`,transition:"stroke-dasharray 0.8s cubic-bezier(0.22,1,0.36,1)"}}/>
       </svg>
       <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:size*0.28,color:C.text,lineHeight:1}}>{label}</div>
@@ -663,11 +709,11 @@ const SelF = ({label,value,onChange,options}) => (
 );
 
 const PrimaryBtn = ({onClick,children,disabled,full}) => (
-  <button onClick={onClick} disabled={disabled} style={{padding:"13px 22px",borderRadius:10,border:"none",cursor:disabled?"default":"pointer",background:disabled?"#1a2f52":`linear-gradient(135deg,${C.red},${C.redDim})`,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",width:full?"100%":"auto",minHeight:48,opacity:disabled?0.5:1,boxShadow:disabled?"none":`0 4px 20px ${C.red}40`,transition:"all 0.2s"}}>{children}</button>
+  <button className="btn-press" onClick={onClick} disabled={disabled} style={{padding:"13px 22px",borderRadius:10,border:"none",cursor:disabled?"default":"pointer",background:disabled?"#1a2f52":`linear-gradient(135deg,${C.red},${C.redDim})`,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",width:full?"100%":"auto",minHeight:48,opacity:disabled?0.5:1,boxShadow:disabled?"none":`0 4px 20px ${C.red}40`,transition:"all 0.15s cubic-bezier(0.22,1,0.36,1)"}}>{children}</button>
 );
 
 const GhostBtn = ({onClick,children,danger}) => (
-  <button onClick={onClick} style={{padding:"11px 18px",borderRadius:10,cursor:"pointer",minHeight:46,background:"transparent",border:`1px solid ${danger?C.red+"60":C.border}`,color:danger?C.red:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:14,letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s"}}>{children}</button>
+  <button className="btn-press" onClick={onClick} style={{padding:"11px 18px",borderRadius:10,cursor:"pointer",minHeight:46,background:"transparent",border:`1px solid ${danger?C.red+"60":C.border}`,color:danger?C.red:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:14,letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s cubic-bezier(0.22,1,0.36,1)"}}>{children}</button>
 );
 
 const SectionHead = ({children,accent,tip}) => (
@@ -1713,11 +1759,12 @@ function BottomNav({tab,setTab,totalUnread}) {
         const badge  = item.id==="msgs" && totalUnread>0;
         return (
           <button key={item.id} onClick={()=>setTab(item.id)}
-            style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.2s"}}>
+            className="nav-item"
+            style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.15s,transform 0.15s"}}>
             {active&&<div style={{position:"absolute",top:0,left:"10%",right:"10%",height:2,background:`linear-gradient(90deg,transparent,${C.red},transparent)`,borderRadius:"0 0 4px 4px"}}/>}
             <div style={{position:"relative"}}>
-              <span style={{fontSize:16,filter:active?`drop-shadow(0 0 6px ${C.red}99)`:"none",transition:"filter 0.2s"}}>{item.icon}</span>
-              {badge&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{totalUnread>9?"9+":totalUnread}</div>}
+              <span style={{fontSize:16,filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-block"}}>{item.icon}</span>
+              {badge&&<div className="badge-pulse" style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{totalUnread>9?"9+":totalUnread}</div>}
             </div>
             <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,textTransform:"uppercase"}}>{item.label}</span>
           </button>
@@ -3721,11 +3768,12 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           const active=section===s.id;
           return (
             <button key={s.id} onClick={()=>{setSection(s.id);setSelEvId(null);}}
-              style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.2s"}}>
+              className="nav-item"
+              style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.15s,transform 0.15s"}}>
               {active&&<div style={{position:"absolute",top:0,left:"10%",right:"10%",height:2,background:`linear-gradient(90deg,transparent,${C.red},transparent)`,borderRadius:"0 0 4px 4px"}}/>}
               <div style={{position:"relative"}}>
-                <span style={{fontSize:16,filter:active?`drop-shadow(0 0 6px ${C.red}99)`:"none",transition:"filter 0.2s"}}>{s.icon}</span>
-                {s.badge>0&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{s.badge>9?"9+":s.badge}</div>}
+                <span style={{fontSize:16,filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-block"}}>{s.icon}</span>
+                {s.badge>0&&<div className="badge-pulse" style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{s.badge>9?"9+":s.badge}</div>}
               </div>
               <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,textTransform:"uppercase"}}>{s.label}</span>
             </button>
@@ -3742,14 +3790,14 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             if(!drill)return null;
             const cc=catColor(drill.category);
             return (
-              <div key={a.id} style={{background:a.completed?`${C.teal}06`:C.card,border:`1px solid ${a.completed?C.teal+"40":C.border}`,borderRadius:14,padding:16,transition:"all 0.2s"}}>
+              <div key={a.id} className="card-hover" style={{background:a.completed?`${C.teal}06`:C.card,border:`1px solid ${a.completed?C.teal+"40":C.border}`,borderRadius:14,padding:16,transition:"all 0.2s cubic-bezier(0.22,1,0.36,1)"}}>
                 <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:10}}>
                   <div style={{width:10,height:10,borderRadius:"50%",background:cc,boxShadow:`0 0 8px ${cc}80`,flexShrink:0,marginTop:6}}></div>
                   <div style={{flex:1}}>
                     <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:a.completed?C.teal:C.text,marginBottom:3}}>{a.completed&&"✓ "}{drill.name}</div>
                     <div style={{display:"flex",gap:6}}><Tag label={drill.category} color={cc} small/><Tag label={drill.duration} color={C.textDim} small/></div>
                   </div>
-                  <button onClick={()=>toggle(a.id)} style={{padding:"9px 14px",borderRadius:9,cursor:"pointer",minHeight:44,flexShrink:0,background:a.completed?"transparent":`linear-gradient(135deg,${C.red},${C.redDim})`,border:a.completed?`1px solid ${C.teal}`:"none",color:a.completed?C.teal:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1,textTransform:"uppercase"}}>
+                  <button className="btn-press" onClick={()=>toggle(a.id)} style={{padding:"9px 14px",borderRadius:9,cursor:"pointer",minHeight:44,flexShrink:0,background:a.completed?"transparent":`linear-gradient(135deg,${C.red},${C.redDim})`,border:a.completed?`1px solid ${C.teal}`:"none",color:a.completed?C.teal:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1,textTransform:"uppercase",transition:"all 0.15s cubic-bezier(0.22,1,0.36,1)"}}>
                     {a.completed?"✓":"Done?"}
                   </button>
                 </div>
