@@ -1495,8 +1495,8 @@ function AppInner() {
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
-            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos}/>}
-            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb}/>}
+            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id}/>}
+            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")}/>}
@@ -2311,7 +2311,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
 }
 
 // ─── ASSIGN DRILLS ────────────────────────────────────────────────────────────
-function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade,playerVideos={}}) {
+function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade,playerVideos={},teamId}) {
   if(canAccess && !canAccess("drills")) return <PaywallGate feature="Full Drill Library" onUpgrade={onUpgrade}/>;
   const [cat, setCat] = useState("All");
   const [selectedDrill, setSelectedDrill] = useState(null);
@@ -2319,15 +2319,22 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 
   const filteredDrills = DRILL_LIBRARY.filter(d => cat==="All" || d.category===cat);
 
-  // For each player, is this drill assigned?
   const isAssigned = (pid, drillId) => assignments.some(a => a.playerId===pid && a.drillId===drillId);
 
   const togglePlayer = (pid) => {
     if(!selectedDrill) return;
     if(isAssigned(pid, selectedDrill.id)){
+      const toRemove = assignments.find(a => a.playerId===pid && a.drillId===selectedDrill.id);
       setAsgn(prev => prev.filter(a => !(a.playerId===pid && a.drillId===selectedDrill.id)));
+      if(teamId && toRemove) supabase.from('assignments').delete().eq('id',toRemove.id)
+        .then(({error})=>{ if(error) console.error('Asgn delete failed:',error.message); });
     } else {
-      setAsgn(prev => [...prev, {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false}]);
+      const newA = {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false};
+      setAsgn(prev => [...prev, newA]);
+      if(teamId) supabase.from('assignments').insert({
+        id:newA.id, team_id:teamId, player_id:pid, drill_id:selectedDrill.id,
+        assigned_date:newA.assignedDate, completed:false, notes:'', acknowledged:false, coach_rating:null,
+      }).then(({error})=>{ if(error) console.error('Asgn insert failed:',error.message); });
     }
   };
 
@@ -2421,7 +2428,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 // ─── SCHEDULE ─────────────────────────────────────────────────────────────────
 const PITCH_TYPES = ["Fastball","Two-Seam","Curveball","Slider","Changeup","Sinker","Cutter","Splitter"];
 
-function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{}}) {
+function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId}) {
   const [view,      setView]      = useState("list"); // "list" | "form"
   const [formTab,   setFormTab]   = useState("info"); // "info"|"lineup"|"pitching"|"situations"
   const [editId,    setEditId]    = useState(null);
@@ -2477,11 +2484,20 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     setFormTab("info"); setSelectedPid(null); setSelectedFieldPid(null);
     setView("form");
   };
-  const save=()=>{
+  const save=async ()=>{
     if(!form.date||!form.fieldName)return;
     const location=[form.fieldName,form.address].filter(Boolean).join(" — ");
-    if(editId) setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
-    else setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
+    const row = {id:formEvId, team_id:teamId, type:form.type, date:form.date, time:form.time||'',
+      field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||''};
+    if(editId){
+      setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
+      if(teamId) supabase.from('events').update(row).eq('id',editId)
+        .then(({error})=>{ if(error) console.error('Event update failed:',error.message); });
+    } else {
+      setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
+      if(teamId) supabase.from('events').insert(row)
+        .then(({error})=>{ if(error) console.error('Event insert failed:',error.message); });
+    }
     setView("list");
   };
   const cancel=()=>{
@@ -2495,6 +2511,8 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     setEvents(prev=>prev.filter(e=>e.id!==id));
     setGamePlans(prev=>{const n={...prev};delete n[id];return n;});
     setLineups(prev=>{const n={...prev};delete n[id];return n;});
+    if(teamId) supabase.from('events').delete().eq('id',id)
+      .then(({error})=>{ if(error) console.error('Event delete failed:',error.message); });
   };
   const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date));
   const isGame=form.type==="game";
