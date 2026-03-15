@@ -2814,7 +2814,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   return (
     <div>
       {/* Player hero card */}
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 18px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
 
         {editing && form ? (
