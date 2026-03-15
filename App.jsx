@@ -1078,13 +1078,10 @@ function AppInner() {
       if (teamData?.name) setTeamDisplayName(teamData.name);
       if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
       await loadTeamData(data.team_id);
-      // For parents: load link first, THEN mark data loaded so UI renders with correct state
-      if(data.role === 'parent') {
-        const {data:links} = await supabase.from("parent_players").select("*").eq("parent_id",userId);
-        if(links && links.length > 0) {
-          setParentPlayerLink(links[0]);
-          setPUID(userId);
-        }
+      // For parents: player_id is stored directly on the profile — no extra query needed
+      if(data.role === 'parent' && data.player_id) {
+        setParentPlayerLink({player_id: data.player_id, parent_id: userId});
+        setPUID(userId);
       }
     }
     setDataLoaded(true);
@@ -1638,13 +1635,12 @@ function LoginScreen({onAuth}) {
       const {data:invites} = await supabase.from("parent_invites").select("*").eq("email",email.toLowerCase().trim());
       if(invites && invites.length > 0) {
         const inv = invites[0];
-        // Link profile to team
-        await supabase.from("profiles").update({team_id: inv.team_id}).eq("id", userId);
-        // Link parent to player
+        // Link profile to team AND store player_id directly on profile
+        await supabase.from("profiles").update({team_id: inv.team_id, player_id: inv.player_id}).eq("id", userId);
+        // Also link via parent_players table
         await supabase.from("parent_players").insert({
           parent_id: userId, player_id: inv.player_id, label: inv.label || "Parent"
         });
-        // Handle multiple invites (e.g. parent has two kids on team)
         for(let i=1; i<invites.length; i++) {
           await supabase.from("parent_players").insert({
             parent_id: userId, player_id: invites[i].player_id, label: invites[i].label || "Parent"
