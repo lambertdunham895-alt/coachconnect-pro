@@ -1390,10 +1390,6 @@ function AppInner() {
   const role = profile.role;
 
   if (role==="parent") {
-    // If we have a link, auto-set parentUserId without waiting for players to load
-    if(parentPlayerLink && !parentUserId) {
-      setPUID(profile.id);
-    }
     const {player, parent} = getParentContext(parentUserId);
     // If no parentUserId yet, show player picker
     if(!parentUserId) {
@@ -1403,7 +1399,9 @@ function AppInner() {
           <style>{FONTS}</style>
           <div style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:360}}>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textDim,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>SELECT YOUR PLAYER</div>
-            {linkedPlayers.length > 0
+            {parentPlayerLink
+              ? <div style={{textAlign:"center",padding:"16px 0",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13}}>Loading your player…</div>
+              : linkedPlayers.length > 0
               ? linkedPlayers.map(({player:p, parentId})=>(
                 <button key={p.id} onClick={()=>setPUID(parentId)}
                   style={{display:"block",width:"100%",padding:"14px 18px",marginBottom:10,background:"transparent",border:`2px solid ${C.gold}60`,borderRadius:12,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:1,cursor:"pointer",textAlign:"left"}}>
