@@ -1439,7 +1439,7 @@ function AppInner() {
       );
     }
     const myAsgn = assignments.filter(a=>a.playerId===player?.id);
-    const myChannels = ["team", `dm-${parentUserId}`];
+    const myChannels = ["team", `dm-${player?.id}`];
     const myUnread   = myChannels.reduce((a,c)=>a+(unread[c]||0),0);
     return (
       <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif"}}>
@@ -1466,7 +1466,7 @@ function AppInner() {
 
       <style>{FONTS}</style>
       <TopBar
-        title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{ for(const pl of players){ const par=(pl.parents||[]).find(p=>`dm-${p.id}`===activeChat); if(par) return par.name; } return "Direct Message"; })()) : (tab==="player"&&selectedPlayer ? selectedPlayer.name : "CoachConnect Pro")}
+        title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{ const pl=players.find(p=>`dm-${p.id}`===activeChat); return pl ? (pl.parents[0]?.name||pl.name) : "Direct Message"; })()) : (tab==="player"&&selectedPlayer ? selectedPlayer.name : "CoachConnect Pro")}
         sub={activeChat ? null : (tab==="player"&&selectedPlayer ? selectedPlayer.position : "Coach Dashboard")}
         onBack={activeChat ? ()=>setActiveChat(null) : (tab==="player" ? ()=>setTab("roster") : null)}
         onLogout={(!activeChat&&tab!=="player") ? handleSignOut : null}
@@ -1753,15 +1753,16 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
   const [broadcastText, setBroadcastText] = useState("");
 
   const parentChannels = players.flatMap(p =>
-    (p.parents||[]).map(par => ({
-      id: `dm-${par.id}`,
-      name: par.name,
-      sub: `${p.name} · ${p.position}`,
-      icon: null,
-      isGroup: false,
-      playerId: p.id,
-      parentId: par.id,
-    }))
+    (p.parents||[]).length > 0
+      ? [{
+          id: `dm-${p.id}`,
+          name: (p.parents[0]?.name) || 'Parent',
+          sub: `${p.name} · ${p.position}`,
+          icon: null,
+          isGroup: false,
+          playerId: p.id,
+        }]
+      : []
   );
   const channels = [
     {id:"team", name:"Team Chat", sub:"Everyone", icon:"⚾", isGroup:true},
@@ -3782,7 +3783,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {[
             {id:"team",          name:"Team Chat",       sub:"Coach + all families", icon:"⚾", isGroup:true},
-            {id:`dm-${parentUserId}`,name:"Coach",           sub:"Direct message",        icon:null, isGroup:false},
+            {id:`dm-${player?.id}`,name:"Coach", sub:"Direct message", icon:null, isGroup:false},
           ].map(ch=>(
             <button key={ch.id} onClick={()=>onOpenChat(ch.id)} className="card-hover" style={{display:"flex",gap:14,alignItems:"center",padding:"16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,textAlign:"left",width:"100%",minHeight:70,cursor:"pointer"}}>
               {ch.isGroup
