@@ -1394,21 +1394,37 @@ function AppInner() {
   if (role==="parent") {
     const {player, parent} = getParentContext(parentUserId);
     // If no parentUserId yet, show player picker
-    if(!parentUserId) return (
-      <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
-        <style>{FONTS}</style>
-        <div style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:360}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textDim,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>SELECT YOUR PLAYER</div>
-          {players.map(p=>(p.parents||[]).map(par=>(
-            <button key={par.id} onClick={()=>setPUID(par.id)}
-              style={{display:"block",width:"100%",padding:"14px 18px",marginBottom:10,background:"transparent",border:`2px solid ${C.gold}60`,borderRadius:12,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:1,cursor:"pointer",textAlign:"left"}}>
-              👤 {par.name} <span style={{color:C.textDim,fontSize:12}}>({p.name})</span>
-            </button>
-          )))}
-          <button onClick={handleSignOut} style={{display:"block",width:"100%",marginTop:8,background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Sign out</button>
+    if(!parentUserId) {
+      // Build list from DB-linked players (via parentPlayerLink) or legacy parents_info
+      const linkedPlayers = parentPlayerLink
+        ? players.filter(p=>p.id===parentPlayerLink.player_id).map(p=>({player:p, parentId:session?.user?.id, parentName:profile?.full_name||'Parent'}))
+        : players.flatMap(p=>(p.parents||[]).map(par=>({player:p, parentId:par.id, parentName:par.name})));
+
+      return (
+        <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
+          <style>{FONTS}</style>
+          <div style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:360}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textDim,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>SELECT YOUR PLAYER</div>
+            {linkedPlayers.length > 0
+              ? linkedPlayers.map(({player:p, parentId, parentName})=>(
+                <button key={p.id} onClick={()=>setPUID(parentId)}
+                  style={{display:"block",width:"100%",padding:"14px 18px",marginBottom:10,background:"transparent",border:`2px solid ${C.gold}60`,borderRadius:12,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:1,cursor:"pointer",textAlign:"left"}}>
+                  ⚾ {p.name} <span style={{color:C.textDim,fontSize:12}}>({p.position})</span>
+                </button>
+              ))
+              : (
+                <div style={{textAlign:"center",padding:"16px 0"}}>
+                  <div style={{fontSize:32,marginBottom:12}}>⏳</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid,marginBottom:8}}>Not linked yet</div>
+                  <div style={{fontSize:13,color:C.textDim,lineHeight:1.6}}>Your coach needs to send you an invite from your player's profile. Ask them to tap the 📨 Invite button next to your email.</div>
+                </div>
+              )
+            }
+            <button onClick={handleSignOut} style={{display:"block",width:"100%",marginTop:8,background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Sign out</button>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
     const myAsgn = assignments.filter(a=>a.playerId===player?.id);
     const myChannels = ["team", `dm-${parentUserId}`];
     const myUnread   = myChannels.reduce((a,c)=>a+(unread[c]||0),0);
