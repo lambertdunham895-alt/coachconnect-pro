@@ -2939,7 +2939,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
   const toggle=id=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:!a.completed}:a));
   const setRating=(id,r)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,coachRating:r}:a));
   const setNote=(id,note)=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,notes:note}:a));
-  const acknowledge=(id)=>{
+  const acknowledge=(id, teamId)=>{
     const note = reviewNotes[id] || "";
     setAsgn(prev=>{
       const asgn = prev.find(a=>a.id===id);
@@ -2947,10 +2947,13 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
       const videoKey = player ? `${player.id}_${asgn.drillId}` : null;
       const hasVideo = videoKey && playerVideos[videoKey]?.url;
       if(!hasVideo) {
-        // No video — remove the drill entirely (coach acknowledged, nothing for player to see)
+        // No video — remove the drill entirely
+        supabase.from('assignments').delete().eq('id',id).then(({error})=>{ if(error) console.error('Acknowledge delete failed:',error.message); });
         return prev.filter(a=>a.id!==id);
       }
       // Has video — mark acknowledged so player sees feedback and can dismiss
+      supabase.from('assignments').update({acknowledged:true, notes:note||asgn.notes}).eq('id',id)
+        .then(({error})=>{ if(error) console.error('Acknowledge update failed:',error.message); });
       return prev.map(a=>a.id===id?{...a,acknowledged:true,notes:note||a.notes}:a);
     });
     setReviewNotes(prev=>{const n={...prev};delete n[id];return n;});
@@ -3430,8 +3433,14 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   const [section,setSection]=useState("drills");
   const [selEvId,setSelEvId]=useState(null);
   if(!player)return <div style={{padding:40,color:C.textDim}}>Player not found.</div>;
-  const toggle=id=>setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:!a.completed}:a));
-  const removeAsgn=id=>setAsgn(prev=>prev.filter(a=>a.id!==id));
+  const toggle=id=>{
+    setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:true}:a));
+    supabase.from('assignments').update({completed:true}).eq('id',id).then(({error})=>{ if(error) console.error('Toggle complete failed:',error.message); });
+  };
+  const removeAsgn=id=>{
+    setAsgn(prev=>prev.filter(a=>a.id!==id));
+    supabase.from('assignments').delete().eq('id',id).then(({error})=>{ if(error) console.error('removeAsgn failed:',error.message); });
+  };
   const today=new Date().toISOString().slice(0,10);
   const upcoming=events.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
   const nextEvent=upcoming[0];
