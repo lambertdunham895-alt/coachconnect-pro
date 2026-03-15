@@ -2756,27 +2756,41 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
 
 // ─── PLAYER DETAIL ────────────────────────────────────────────────────────────
 function InviteButton({playerId, teamId, email, name}) {
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
-  const send = async () => {
-    setStatus("sending");
-    const {error} = await supabase.from('parent_invites').upsert(
-      {player_id:playerId, team_id:teamId, email:email.toLowerCase().trim(), label:name||'Parent'},
-      {onConflict:'player_id,email'}
-    );
-    if(error){ setStatus("error"); return; }
-    setStatus("sent");
-  };
-  if(status==="sent") return (
+  const [status, setStatus] = useState("loading");
+
+  useEffect(()=>{
+    // Check if a parent is already linked to this player
+    supabase.from('parent_players').select('id').eq('player_id', playerId).then(({data})=>{
+      if(data && data.length > 0) setStatus("linked");
+      else {
+        // Check if invite already sent
+        supabase.from('parent_invites').select('id').eq('player_id', playerId).eq('email', email.toLowerCase().trim())
+          .then(({data:inv})=>{ setStatus(inv && inv.length > 0 ? "sent" : "idle"); });
+      }
+    });
+  },[playerId]);
+
+  if(status==="loading") return null;
+  if(status==="linked") return (
     <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.teal,background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px"}}>
-      ✓ Invite ready
+      ✓ Linked
     </div>
   );
-  if(status==="error") return (
-    <div style={{fontSize:11,color:C.red,fontStyle:"italic"}}>Failed — try again</div>
+  if(status==="sent") return (
+    <div style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.gold,background:`${C.gold}15`,border:`1px solid ${C.gold}30`,borderRadius:7,padding:"4px 10px"}}>
+      📨 Invite sent
+    </div>
   );
   return (
-    <button onClick={send} disabled={status==="sending"} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.gold,background:`${C.gold}15`,border:`1px solid ${C.gold}30`,borderRadius:7,padding:"4px 10px",cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>
-      {status==="sending" ? "..." : "📨 Invite"}
+    <button onClick={async()=>{
+      setStatus("sending");
+      const {error} = await supabase.from('parent_invites').upsert(
+        {player_id:playerId, team_id:teamId, email:email.toLowerCase().trim(), label:name||'Parent'},
+        {onConflict:'player_id,email'}
+      );
+      setStatus(error ? "idle" : "sent");
+    }} style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:C.gold,background:`${C.gold}15`,border:`1px solid ${C.gold}30`,borderRadius:7,padding:"4px 10px",cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>
+      📨 Invite
     </button>
   );
 }
