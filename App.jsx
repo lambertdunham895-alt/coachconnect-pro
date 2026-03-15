@@ -1369,12 +1369,13 @@ function AppInner() {
   const totalUnread = Object.values(unread).reduce((a,b)=>a+(b||0),0);
 
   const sendMsg = (channelId, text, senderInfo) => {
-    const msg = {id:uid(), senderId:senderInfo.id, senderName:senderInfo.name, text, ts:Date.now()};
+    const realSenderId = session?.user?.id || senderInfo.id;
+    const msg = {id:uid(), senderId:realSenderId, senderName:senderInfo.name, text, ts:Date.now()};
     setMessages(prev=>({...prev,[channelId]:[...(prev[channelId]||[]),msg]}));
     if(profile?.team_id)
       supabase.from('messages').insert({
         id:msg.id, team_id:profile.team_id,
-        sender_id:session?.user?.id||null, sender_name:senderInfo.name,
+        sender_id:realSenderId, sender_name:senderInfo.name,
         channel:channelId, text,
       }).then(({error})=>error&&console.error('Message insert',error));
   };
@@ -1506,7 +1507,7 @@ function AppInner() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:"coach",name:"Coach"})} myId="coach" onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:"Coach"})} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
