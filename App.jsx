@@ -1499,7 +1499,7 @@ function AppInner() {
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
-            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id}/>}
+            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")}/>}
           </div>
         )
       }
@@ -2746,7 +2746,7 @@ function InviteButton({playerId, teamId, email, name}) {
   );
 }
 
-function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setSkillSnapshots,drillVideos={},setDrillVideos=()=>{},playerVideos={},setPlayerVideos=()=>{},playerPhotos={},canAccess,onUpgrade,teamId}) {
+function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setSkillSnapshots,drillVideos={},setDrillVideos=()=>{},playerVideos={},setPlayerVideos=()=>{},playerPhotos={},canAccess,onUpgrade,teamId,onDelete=()=>{}}) {
   const [detailTab, setDetailTab] = useState("drills");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(null);
@@ -2876,6 +2876,12 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
               </div>{/* end photo+info flex row */}
               <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0,marginLeft:12}}>
                 <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:C.gold,flexShrink:0}}>✏️</button>
+                <button onClick={()=>{
+                  if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
+                  setPlayers(prev=>prev.filter(p=>p.id!==player.id));
+                  if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
+                  onDelete();
+                }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:C.red,flexShrink:0}}>🗑️</button>
                 <Ring pct={pct} size={56} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
               </div>
             </div>
