@@ -992,6 +992,7 @@ function AppInner() {
   const [profile,  setProfile]  = useState(null);   // { role, team_id, full_name }
   const [authReady,setAuthReady]= useState(false);  // hide UI until auth checked
   const [parentUserId, setPUID] = useState(null);
+  const [parentPlayerLink, setParentPlayerLink] = useState(null);
   const [launching, setLaunching] = useState(true); // show launch screen first
 
   // ── Listen for auth state changes ────────────────────────────────────────
@@ -1105,8 +1106,6 @@ function AppInner() {
   };
 
   // derive player and parent object from parentUserId
-  const [parentPlayerLink, setParentPlayerLink] = useState(null);
-
   const getParentContext = (uid) => {
     // First try DB linkage (real accounts)
     if(parentPlayerLink) {
