@@ -1447,7 +1447,8 @@ function AppInner() {
   const goToPlayer = p => {setSP(p); setTab("player");};
 
   return (
-    <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",paddingBottom:72}}>
+    <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",paddingBottom:"calc(72px + env(safe-area-inset-bottom))"}}>
+
       <style>{FONTS}</style>
       <TopBar
         title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{ for(const pl of players){ const par=(pl.parents||[]).find(p=>`dm-${p.id}`===activeChat); if(par) return par.name; } return "Direct Message"; })()) : (tab==="player"&&selectedPlayer ? selectedPlayer.name : "CoachConnect Pro")}
@@ -1563,7 +1564,8 @@ function BottomNav({tab,setTab,totalUnread}) {
   ];
 
   return (
-    <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${C.bg}f2`,backdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",height:66}}>
+    <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${C.bg}f2`,backdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",paddingBottom:"env(safe-area-inset-bottom)",height:"calc(66px + env(safe-area-inset-bottom))"}}>
+
       <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`}}/>
       {items.map(item => {
         const active = tab===item.id||(tab==="player"&&item.id==="roster");
