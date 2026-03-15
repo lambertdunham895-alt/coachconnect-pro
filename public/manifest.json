@@ -1,0 +1,21 @@
+{
+  "name": "CoachConnect Pro",
+  "short_name": "CoachConnect",
+  "description": "Youth Baseball Development",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060a12",
+  "theme_color": "#e8192c",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
