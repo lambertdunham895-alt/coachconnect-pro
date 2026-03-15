@@ -1077,10 +1077,13 @@ function AppInner() {
       if (teamData?.name) setTeamDisplayName(teamData.name);
       if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
       await loadTeamData(data.team_id);
-      // For parents linked via parent_players, auto-set their userId as the parentUserId
+      // For parents: load their player link, set it in state, and skip the picker
       if(data.role === 'parent') {
-        const {data:links} = await supabase.from("parent_players").select("player_id").eq("parent_id",userId);
-        if(links && links.length > 0) setPUID(userId);
+        const {data:links} = await supabase.from("parent_players").select("*").eq("parent_id",userId);
+        if(links && links.length > 0) {
+          setParentPlayerLink(links[0]);
+          setPUID(userId);
+        }
       }
     } else {
       setDataLoaded(true);
@@ -1102,15 +1105,7 @@ function AppInner() {
   };
 
   // derive player and parent object from parentUserId
-  // For real accounts: parentUserId IS the Supabase auth user ID, linked via parent_players
-  // For legacy: look up by matching par.id in players array
   const [parentPlayerLink, setParentPlayerLink] = useState(null);
-  useEffect(()=>{
-    if(!parentUserId || !profile?.role==='parent') return;
-    supabase.from("parent_players").select("*").eq("parent_id",parentUserId).then(({data})=>{
-      if(data && data.length>0) setParentPlayerLink(data[0]);
-    });
-  },[parentUserId]);
 
   const getParentContext = (uid) => {
     // First try DB linkage (real accounts)
