@@ -800,7 +800,7 @@ function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode, teamI
     setDrillVideos(prev => ({...prev, [drillId]: v}));
     if(teamId) {
       await supabase.from('drill_videos').upsert(
-        {team_id: teamId, drill_id: drillId, url: v.url},
+        {team_id: teamId, drill_id: drillId, url: v.url, label: v.label},
         {onConflict: 'team_id,drill_id'}
       );
     }
@@ -1033,6 +1033,7 @@ function AppInner() {
     const [
       {data:pData}, {data:aData}, {data:eData},
       {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
+      {data:cpData}, {data:phData},
     ] = await Promise.all([
       supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
       supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1042,6 +1043,8 @@ function AppInner() {
       supabase.from('lineups').select('*').eq('team_id',teamId),
       supabase.from('game_plans').select('*').eq('team_id',teamId),
       supabase.from('drill_videos').select('*').eq('team_id',teamId),
+      supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
+      supabase.from('player_photos').select('*').eq('team_id' , teamId),
     ]);
 
     setPlayers((pData||[]).map(p=>({
@@ -1082,6 +1085,21 @@ function AppInner() {
     const dvMap = {};
     (dvData||[]).forEach(d=>{ dvMap[d.drill_id]={url:d.url||'',label:d.label||'Watch Video'}; });
     setDrillVideos(dvMap);
+
+    setCustomPlans((cpData||[]).map(p=>({
+      id:p.id, title:p.title||'', focus:p.focus||'', ageGroup:p.age_group||'',
+      duration:p.duration||'', blocks:p.blocks||[],
+    })));
+
+    const photoMap = {};
+    (phData||[]).forEach(ph=>{
+      if(ph.player_id && ph.storage_path) {
+        const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(ph.storage_path);
+        photoMap[ph.player_id] = publicUrl;
+      }
+    });
+    setPlayerPhotos(photoMap);
+
     // setDataLoaded is called in loadProfile after parent link is also set
   };
 
@@ -1125,6 +1143,8 @@ function AppInner() {
     setSession(null); setProfile(null); setPUID(null);
     setPlayers([]); setAsgn([]); setEvents([]); setMessages({}); setUnread({});
     setSkillSnapshots([]); setLineups({}); setGamePlans({});
+    setCustomPlans([]); setDrillVideos({}); setPlayerVideos({});
+    setPlayerPhotos({}); setTeamLogo(null); setTeamDisplayName("");
     setDataLoaded(false);
   };
 
@@ -1317,6 +1337,57 @@ function AppInner() {
     });
   };
 
+  const setCustomPlansDb = (updater) => {
+    setCustomPlans(prev => {
+      const next = typeof updater==='function' ? updater(prev) : updater;
+      if (!tid()) return next;
+
+      const prevIds = new Set(prev.map(p=>p.id));
+      const nextIds = new Set(next.map(p=>p.id));
+      // Inserts
+      next.filter(p=>!prevIds.has(p.id)).forEach(p=>{
+        supabase.from('custom_plans').insert({
+          id:p.id, team_id:tid(), title:p.title||'', focus:p.focus||'',
+          age_group:p.ageGroup||'', duration:p.duration||'', blocks:p.blocks||[],
+        }).then(({error})=>{ if(error) console.error('Plan insert FAILED:',error.message); });
+      });
+      // Updates
+      next.filter(p=>prevIds.has(p.id)&&JSON.stringify(prev.find(x=>x.id===p.id))!==JSON.stringify(p)).forEach(p=>{
+        supabase.from('custom_plans').update({
+          title:p.title||'', focus:p.focus||'', age_group:p.ageGroup||'',
+          duration:p.duration||'', blocks:p.blocks||[], updated_at:new Date().toISOString(),
+        }).eq('id',p.id).then(({error})=>{ if(error) console.error('Plan update FAILED:',error.message); });
+      });
+      // Deletes
+      prev.filter(p=>!nextIds.has(p.id)).forEach(p=>{
+        supabase.from('custom_plans').delete().eq('id',p.id).then(({error})=>{
+          if(error) console.error('Plan delete FAILED:',error.message);
+        });
+      });
+      return next;
+    });
+  };
+
+  const handlePlayerPhotoUpload = async (playerId, base64DataUrl) => {
+    setPlayerPhotos(prev=>({...prev,[playerId]:base64DataUrl}));
+    const teamId = profile?.team_id;
+    if (!teamId) return;
+    try {
+      const res = await fetch(base64DataUrl);
+      const blob = await res.blob();
+      const ext = (blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
+      const path = `player-photos/${playerId}.${ext}`;
+      const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
+      if (error) { console.error('Player photo upload error:', error.message); return; }
+      const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
+      setPlayerPhotos(prev=>({...prev,[playerId]:publicUrl}));
+      await supabase.from('player_photos').upsert({
+        player_id:playerId, team_id:teamId, storage_path:path,
+        uploaded_by:session?.user?.id||null,
+      },{onConflict:'player_id'});
+    } catch(err) { console.error('Player photo error:',err); }
+  };
+
   // ── Realtime messages ────────────────────────────────────────────────────
   useEffect(()=>{
     if(!profile?.team_id) return;
@@ -1453,7 +1524,7 @@ function AppInner() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} teamLogo={teamLogo} teamName={teamDisplayName}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
         }
       </div>
     );
@@ -1514,7 +1585,7 @@ function AppInner() {
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
-            {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlans}/>}
+            {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")}/>}
           </div>
@@ -3474,7 +3545,7 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
 }
 
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},teamLogo=null,teamName=""}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName=""}) {
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
@@ -3500,7 +3571,10 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     const file = e.target.files?.[0];
     if(!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setPlayerPhotos(prev=>({...prev,[player.id]:ev.target.result}));
+    reader.onload = (ev) => {
+      if(onPhotoUpload) onPhotoUpload(player.id, ev.target.result);
+      else setPlayerPhotos(prev=>({...prev,[player.id]:ev.target.result}));
+    };
     reader.readAsDataURL(file);
   };
 
