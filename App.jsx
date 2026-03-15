@@ -1103,6 +1103,11 @@ function AppInner() {
       });
   },[profile?.id]);
 
+  const handleAuth = (user, prof) => {
+    setSession({user});
+    setProfile(prof);
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSession(null); setProfile(null); setPUID(null);
