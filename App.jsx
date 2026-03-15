@@ -3488,20 +3488,16 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   };
 
   const sections=[
-    {id:"report",  label:"📋 Report"},
-    {id:"drills",  label:"Drills"},
-    {id:"schedule",label:"Schedule"},
-    {id:"chat",    label:"Chat", badge:unread},
+    {id:"report",  icon:"📋", label:"Report"},
+    {id:"drills",  icon:"⚾", label:"Drills"},
+    {id:"schedule",icon:"📅", label:"Schedule"},
+    {id:"chat",    icon:"💬", label:"Chat", badge:unread},
   ];
 
   return (
-    <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:80}}>
+    <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:100}}>
 
-      {/* ── Floating Chat Button ── */}
-      <button onClick={()=>{setSection("chat");setSelEvId(null);}} style={{position:"fixed",bottom:24,right:20,zIndex:150,width:56,height:56,borderRadius:"50%",background:`linear-gradient(135deg,${C.blue},#1560b0)`,border:"none",boxShadow:`0 4px 20px ${C.blue}80`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"transform 0.15s"}}>
-        <span style={{fontSize:24}}>💬</span>
-        {unread>0&&<div style={{position:"absolute",top:0,right:0,width:18,height:18,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,color:"#fff"}}>{unread}</div>}
-      </button>
+
 
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
@@ -3573,15 +3569,24 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         </div>
       </div>
 
-      {/* Tab switcher */}
-      <div style={{display:"flex",gap:0,marginBottom:18,background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`}}>
-        {sections.map(s=>(
-          <button key={s.id} onClick={()=>{setSection(s.id);setSelEvId(null);}} style={{flex:1,padding:"10px 0",borderRadius:9,background:section===s.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:section===s.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",minHeight:42,boxShadow:section===s.id?`0 4px 16px ${C.red}40`:"none",transition:"all 0.2s",position:"relative"}}>
-            {s.label}
-            {s.badge>0&&<div style={{position:"absolute",top:4,right:4,width:14,height:14,borderRadius:"50%",background:C.red,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{s.badge}</div>}
-          </button>
-        ))}
-      </div>
+      {/* ── Fixed Bottom Nav Bar ── */}
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${C.bg}f2`,backdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",paddingBottom:"env(safe-area-inset-bottom)",height:"calc(66px + env(safe-area-inset-bottom))"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`}}/>
+        {sections.map(s=>{
+          const active=section===s.id;
+          return (
+            <button key={s.id} onClick={()=>{setSection(s.id);setSelEvId(null);}}
+              style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.2s"}}>
+              {active&&<div style={{position:"absolute",top:0,left:"10%",right:"10%",height:2,background:`linear-gradient(90deg,transparent,${C.red},transparent)`,borderRadius:"0 0 4px 4px"}}/>}
+              <div style={{position:"relative"}}>
+                <span style={{fontSize:16,filter:active?`drop-shadow(0 0 6px ${C.red}99)`:"none",transition:"filter 0.2s"}}>{s.icon}</span>
+                {s.badge>0&&<div style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{s.badge>9?"9+":s.badge}</div>}
+              </div>
+              <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,textTransform:"uppercase"}}>{s.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Drills */}
       {section==="drills"&&(
