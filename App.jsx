@@ -1425,14 +1425,66 @@ function AppInner() {
 
   // ── Subscription ─────────────────────────────────────────────────────────
   const TRIAL_DAYS = 14;
-  const [subscription, setSubscription] = useState({status:"trial",trialStart:Date.now(),plan:null});
+  const [subscription, setSubscription] = useState({status:"trialing",trialStart:Date.now(),plan:"trial"});
+  const [subLoaded, setSubLoaded] = useState(false);
+
+  // Load subscription from DB
+  useEffect(()=>{
+    if(!session?.user?.id || !profile) return;
+    supabase.from('subscriptions').select('*').eq('user_id',session.user.id).single()
+      .then(({data})=>{
+        if(data) {
+          setSubscription({
+            status:data.status,
+            plan:data.plan,
+            trialStart:new Date(data.trial_start||data.created_at).getTime(),
+            stripeSubId:data.stripe_subscription_id,
+            periodEnd:data.current_period_end,
+          });
+        } else {
+          // No sub record yet — create a trial record
+          const trialStart = new Date(profile.created_at||Date.now());
+          setSubscription({status:"trialing",plan:"trial",trialStart:trialStart.getTime()});
+          supabase.from('subscriptions').upsert({
+            user_id:session.user.id, team_id:profile.team_id,
+            plan:"trial", status:"trialing",
+            trial_start:trialStart.toISOString(),
+            trial_end:new Date(trialStart.getTime()+TRIAL_DAYS*86400000).toISOString(),
+          },{onConflict:'user_id'}).then(({error})=>{if(error)console.error('Trial insert:',error.message);});
+        }
+        setSubLoaded(true);
+      });
+  },[session?.user?.id, profile?.id]);
+
+  // Handle ?checkout=success URL param
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    if(params.get('checkout')==='success') {
+      setSubscription(prev=>({...prev,status:'active',plan:params.get('plan')||'pro'}));
+      setShowUpgrade(true);
+      setCheckoutSuccess(true);
+      // Clean URL
+      window.history.replaceState({},document.title,window.location.pathname);
+      // Reload from DB after a short delay (webhook needs time)
+      setTimeout(()=>{
+        if(session?.user?.id) {
+          supabase.from('subscriptions').select('*').eq('user_id',session.user.id).single()
+            .then(({data})=>{
+              if(data && data.status==='active') setSubscription(prev=>({...prev,status:'active',plan:data.plan}));
+            });
+        }
+      }, 3000);
+    }
+  },[session?.user?.id]);
+
   const msLeft = (subscription.trialStart + TRIAL_DAYS*86400000) - Date.now();
   const daysLeft = Math.max(0,Math.ceil(msLeft/86400000));
   const isActive  = subscription.status==="active";
-  const isExpired = subscription.status==="expired"||(subscription.status==="trial"&&daysLeft===0);
-  const isTrial   = subscription.status==="trial"&&daysLeft>0;
+  const isExpired = subscription.status==="expired"||subscription.status==="canceled"||(subscription.status==="trialing"&&daysLeft===0);
+  const isTrial   = subscription.status==="trialing"&&daysLeft>0;
   const canAccess = () => { if(isActive) return true; if(isExpired) return false; return true; };
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [tab, setTab]           = useState("home");
   const [selectedPlayer, setSP] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
@@ -1573,7 +1625,9 @@ function AppInner() {
           isTrial={isTrial}
           isExpired={isExpired}
           onClose={()=>setShowUpgrade(false)}
-          onSubscribe={()=>{ setSubscription({status:"active",trialStart:subscription.trialStart,plan:"pro"}); setShowUpgrade(false); }}
+          onSubscribe={()=>{ setSubscription(prev=>({...prev,status:"active"})); setShowUpgrade(false); setCheckoutSuccess(false); }}
+          session={session}
+          initialSuccess={checkoutSuccess}
         />
       )}
 
@@ -4364,21 +4418,37 @@ function PaywallGate({feature, onUpgrade}) {
 }
 
 // ─── UPGRADE SCREEN ───────────────────────────────────────────────────────────
-function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe}) {
-  const [step, setStep] = useState("plans"); // "plans" | "checkout" | "success"
-  const [billing, setBilling] = useState("monthly");
-  const [form, setForm] = useState({name:"",email:"",card:"",exp:"",cvv:""});
+function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, session, initialSuccess}) {
+  const [step, setStep] = useState(initialSuccess ? "success" : "plans"); // "plans" | "success"
+  const [selectedPlan, setSelectedPlan] = useState("founding_monthly");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const price = billing==="annual" ? "14.99" : "19.99";
-  const annualSave = Math.round((19.99-14.99)*12);
+  const plans = [
+    {id:"founding_monthly", name:"Founding Coach", price:"14.99", interval:"mo", desc:"Locked-in rate for early supporters", badge:"🔥 Limited — First 50 Coaches", badgeColor:C.gold},
+    {id:"pro_monthly",      name:"Pro Monthly",    price:"24.99", interval:"mo", desc:"Full access, billed monthly",       badge:null},
+    {id:"pro_yearly",       name:"Pro Annual",     price:"20.83", interval:"mo", desc:"$249.99/year — save $50/year",       badge:"💰 Best Value", badgeColor:C.teal},
+  ];
 
-  const fmtCard = v => v.replace(/\D/g,"").slice(0,16).replace(/(.{4})/g,"$1 ").trim();
-  const fmtExp  = v => { const d=v.replace(/\D/g,"").slice(0,4); return d.length>2?d.slice(0,2)+"/"+d.slice(2):d; };
-
-  const handlePay = () => {
-    setLoading(true);
-    setTimeout(()=>{ setLoading(false); setStep("success"); }, 1800);
+  const handleCheckout = async () => {
+    setLoading(true); setError("");
+    try {
+      const {data:{session:authSession}} = await supabase.auth.getSession();
+      const token = authSession?.access_token;
+      if (!token) throw new Error("Not logged in");
+      const res = await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/stripe-checkout", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","Authorization":`Bearer ${token}`},
+        body: JSON.stringify({action:"checkout", price_key:selectedPlan}),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      if (data.url) window.location.href = data.url;
+      else throw new Error("No checkout URL returned");
+    } catch(err) {
+      setError(String(err.message||err));
+      setLoading(false);
+    }
   };
 
   const FEATURES = [
@@ -4386,9 +4456,11 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe}) {
     { icon:"📈", label:"Progress Tracking", sub:"Skill charts, streaks & snapshots" },
     { icon:"📋", label:"Game Builder",    sub:"Batting order & field positions" },
     { icon:"💬", label:"Team Messaging",    sub:"Group chat & parent DMs" },
-    { icon:"📅", label:"Schedule Manager",  sub:"Games, practices & reminders" },
+    { icon:"📅", label:"Schedule Manager",  sub:"Games, practices & RSVP" },
     { icon:"🎬", label:"Video per Drill",   sub:"Attach YouTube or any video link" },
   ];
+
+  const sel = plans.find(p=>p.id===selectedPlan);
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)",display:"flex",flexDirection:"column",overflowY:"auto"}}>
@@ -4415,24 +4487,33 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe}) {
             <div style={{fontSize:12,color:C.textMid}}>Reactivate now to regain full access</div></div>
           </div>}
 
-          {/* Billing toggle */}
-          <div style={{display:"flex",background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`,marginBottom:20}}>
-            {[{id:"monthly",label:"Monthly"},{id:"annual",label:`Annual · Save $${annualSave}`}].map(b=>(
-              <button key={b.id} onClick={()=>setBilling(b.id)} style={{flex:1,padding:"10px 0",borderRadius:9,background:billing===b.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:billing===b.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>{b.label}</button>
-            ))}
+          {/* Plan cards */}
+          <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+            {plans.map(p=>{
+              const active = selectedPlan===p.id;
+              return (
+                <button key={p.id} onClick={()=>setSelectedPlan(p.id)} style={{background:active?`linear-gradient(135deg,#100c1a,${C.card})`:C.card,border:`2px solid ${active?C.red+"80":C.border}`,borderRadius:16,padding:"16px 18px",cursor:"pointer",textAlign:"left",position:"relative",overflow:"hidden",transition:"all 0.2s",boxShadow:active?`0 0 24px ${C.red}20`:"none"}}>
+                  {active&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>}
+                  {p.badge&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:p.badgeColor||C.textMid,textTransform:"uppercase",marginBottom:6}}>{p.badge}</div>}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:active?C.text:C.textMid,letterSpacing:1}}>{p.name}</div>
+                      <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{p.desc}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,color:active?C.text:C.textMid,lineHeight:1}}>${p.price}</div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:10,color:C.textDim,letterSpacing:1}}>/{p.interval}</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Price card */}
-          <div style={{background:`linear-gradient(135deg,#100c1a,${C.card})`,border:`2px solid ${C.red}50`,borderRadius:20,padding:"28px 24px",marginBottom:20,textAlign:"center",position:"relative",overflow:"hidden",boxShadow:`0 0 40px ${C.red}20`}}>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:8}}>CoachConnect Pro</div>
-            <div style={{display:"flex",alignItems:"flex-start",justifyContent:"center",gap:4,marginBottom:4}}>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:20,color:C.textMid,marginTop:8}}>$</div>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:64,color:C.text,lineHeight:1}}>{price.split(".")[0]}</div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,color:C.textMid,marginTop:12}}>.{price.split(".")[1]}</div>
-            </div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:12,color:C.textMid,letterSpacing:1,textTransform:"uppercase",marginBottom:20}}>per month · {billing==="annual"?"billed annually":"billed monthly"} · per team</div>
-            <div style={{display:"flex",flexDirection:"column",gap:10,textAlign:"left",marginBottom:24}}>
+          {/* Feature list */}
+          <div style={{background:`linear-gradient(135deg,#100c1a,${C.card})`,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 18px",marginBottom:20}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:14}}>Everything included</div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {FEATURES.map(f=>(
                 <div key={f.label} style={{display:"flex",gap:12,alignItems:"center"}}>
                   <div style={{width:32,height:32,borderRadius:8,background:`${C.teal}18`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{f.icon}</div>
@@ -4444,53 +4525,14 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe}) {
                 </div>
               ))}
             </div>
-            <button onClick={()=>setStep("checkout")} style={{width:"100%",padding:"16px 0",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:54,boxShadow:`0 8px 24px ${C.red}50`}}>
-              Start Now — ${price}/mo
-            </button>
-          </div>
-          <div style={{textAlign:"center",fontSize:11,color:C.textDim,lineHeight:1.6}}>Cancel anytime · No contracts · Secure payment via Stripe</div>
-        </>)}
-
-        {/* ── CHECKOUT STEP ── */}
-        {step==="checkout" && (<>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 18px",marginBottom:16}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:14}}>Order Summary</div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text}}>CoachConnect Pro · {billing==="annual"?"Annual":"Monthly"}</div>
-                <div style={{fontSize:12,color:C.textDim}}>1 team · unlimited players</div>
-              </div>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:C.gold}}>${price}<span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textDim}}>/mo</span></div>
-            </div>
           </div>
 
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 18px",marginBottom:20}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:14}}>Payment Details</div>
-            {[
-              {key:"name",  label:"Name on Card",  placeholder:"Jane Smith",        format:v=>v},
-              {key:"email", label:"Email",          placeholder:"jane@example.com",  format:v=>v},
-              {key:"card",  label:"Card Number",    placeholder:"4242 4242 4242 4242",format:fmtCard},
-            ].map(f=>(
-              <div key={f.key} style={{marginBottom:12}}>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:5}}>{f.label}</div>
-                <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:f.format(e.target.value)}))} placeholder={f.placeholder} style={inp}/>
-              </div>
-            ))}
-            <div style={{display:"flex",gap:12}}>
-              {[{key:"exp",label:"Expiry",placeholder:"MM/YY",format:fmtExp},{key:"cvv",label:"CVV",placeholder:"123",format:v=>v.replace(/\D/g,"").slice(0,3)}].map(f=>(
-                <div key={f.key} style={{flex:1}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:5}}>{f.label}</div>
-                  <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:f.format(e.target.value)}))} placeholder={f.placeholder} style={inp}/>
-                </div>
-              ))}
-            </div>
-          </div>
+          {error&&<div style={{marginBottom:12,padding:"10px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontSize:12,color:"#ff8080"}}>{error}</div>}
 
-          <button onClick={handlePay} disabled={loading} style={{width:"100%",padding:"16px 0",borderRadius:12,background:loading?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:loading?`1px solid ${C.border}`:"none",color:loading?C.textMid:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:loading?"not-allowed":"pointer",minHeight:54,boxShadow:loading?"none":`0 8px 24px ${C.red}50`,transition:"all 0.2s",marginBottom:12}}>
-            {loading ? "Processing..." : `Pay $${price}/mo`}
+          <button onClick={handleCheckout} disabled={loading} style={{width:"100%",padding:"16px 0",borderRadius:12,background:loading?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:loading?`1px solid ${C.border}`:"none",color:loading?C.textMid:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:loading?"not-allowed":"pointer",minHeight:54,boxShadow:loading?"none":`0 8px 24px ${C.red}50`,transition:"all 0.2s"}}>
+            {loading ? "Redirecting to Stripe..." : `Subscribe — $${sel?.price}/${sel?.interval}`}
           </button>
-          <button onClick={()=>setStep("plans")} style={{width:"100%",padding:"12px 0",background:"transparent",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:13,cursor:"pointer"}}>← Back to Plans</button>
-          <div style={{textAlign:"center",fontSize:11,color:C.textDim,marginTop:8,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>🔒 Secured by Stripe</div>
+          <div style={{textAlign:"center",fontSize:11,color:C.textDim,marginTop:12,lineHeight:1.6}}>Cancel anytime · No contracts · Secure payment via Stripe</div>
         </>)}
 
         {/* ── SUCCESS STEP ── */}
