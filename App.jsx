@@ -2814,7 +2814,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   return (
     <div>
       {/* Player hero card */}
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 18px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`}}>
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 14px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
 
         {editing && form ? (
@@ -2894,15 +2894,15 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
                 )}
                 </div>{/* end flex:1 inner */}
               </div>{/* end photo+info flex row */}
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,flexShrink:0,marginLeft:12}}>
-                <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:C.gold,flexShrink:0}}>✏️</button>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0,marginLeft:8}}>
+                <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.gold,flexShrink:0}}>✏️</button>
                 <button onClick={()=>{
                   if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
                   setPlayers(prev=>prev.filter(p=>p.id!==player.id));
                   if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
                   onDelete();
-                }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:C.red,flexShrink:0}}>🗑️</button>
-                <Ring pct={pct} size={56} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
+                }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.red,flexShrink:0}}>🗑️</button>
+                <Ring pct={pct} size={52} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
               </div>
             </div>
             <div style={{marginTop:12,background:"#1a2f5240",borderRadius:4,height:5,overflow:"hidden"}}>
