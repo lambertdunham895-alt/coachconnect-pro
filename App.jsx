@@ -1067,7 +1067,7 @@ function AppInner() {
     const gpMap = {};
     (gData||[]).forEach(g=>{ gpMap[g.event_id]={pitcher:g.pitcher||'',defense:g.defense||'',offense:g.offense||'',notes:g.notes||'',shared:g.shared||false}; });
     setGamePlans(gpMap);
-    setDataLoaded(true);
+    // setDataLoaded is called in loadProfile after parent link is also set
   };
 
   const loadProfile = async (userId) => {
@@ -1078,7 +1078,7 @@ function AppInner() {
       if (teamData?.name) setTeamDisplayName(teamData.name);
       if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
       await loadTeamData(data.team_id);
-      // For parents: load their player link, set it in state, and skip the picker
+      // For parents: load link first, THEN mark data loaded so UI renders with correct state
       if(data.role === 'parent') {
         const {data:links} = await supabase.from("parent_players").select("*").eq("parent_id",userId);
         if(links && links.length > 0) {
@@ -1086,9 +1086,8 @@ function AppInner() {
           setPUID(userId);
         }
       }
-    } else {
-      setDataLoaded(true);
     }
+    setDataLoaded(true);
     setAuthReady(true);
   };
 
