@@ -6031,19 +6031,18 @@ function PlanBuilder({plan, onSave, onCancel}) {
                     const bc=BLOCK_COLORS[block.type]||BLOCK_COLORS.drill;
                     return (
                       <button key={`${block._planId}-${block._blockIdx}`} className="btn-press" onClick={()=>addPreMadeSegment(block)}
-                        style={{background:"#0f1e38",border:`1px solid ${bc.color}30`,borderRadius:12,padding:"14px 16px",textAlign:"left",cursor:"pointer",width:"100%",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>
-                        <div style={{position:"absolute",top:0,left:0,bottom:0,width:4,background:bc.color,boxShadow:`0 0 8px ${bc.color}60`}}/>
-                        <div style={{display:"flex",gap:12,alignItems:"center"}}>
-                          <div style={{flex:1,minWidth:0,paddingLeft:4}}>
-                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:"#fff",marginBottom:4,letterSpacing:0.5}}>{block.name}</div>
-                            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:block.activity?6:0}}>
+                        style={{background:"#0f1e38",border:`1px solid ${bc.color}30`,borderRadius:12,padding:"12px 14px",textAlign:"left",cursor:"pointer",width:"100%",transition:"all 0.15s",position:"relative"}}>
+                        <div style={{position:"absolute",top:0,left:0,bottom:0,width:4,borderRadius:"4px 0 0 4px",background:bc.color,boxShadow:`0 0 8px ${bc.color}60`}}/>
+                        <div style={{display:"flex",gap:10,alignItems:"center",paddingLeft:8,paddingRight:2}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:"#fff",marginBottom:3,letterSpacing:0.5}}>{block.name}</div>
+                            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                               <Tag label={bc.label} color={bc.color} small/>
                               <Tag label={`${block.duration} min`} color={C.textMid} small/>
                               {browseFilter==="All"&&<Tag label={block._planTitle} color={C.teal} small/>}
                             </div>
-                            {block.activity&&<div style={{fontSize:12,color:"#8899b4",marginTop:2,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{block.activity}</div>}
                           </div>
-                          <div style={{flexShrink:0,width:36,height:36,borderRadius:10,background:`${C.teal}20`,border:`1px solid ${C.teal}50`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,fontSize:18,fontWeight:800}}>+</div>
+                          <div style={{flexShrink:0,width:40,height:40,borderRadius:10,background:`linear-gradient(135deg,${C.teal}30,${C.teal}15)`,border:`2px solid ${C.teal}`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,fontSize:22,fontWeight:800,boxShadow:`0 0 12px ${C.teal}30`}}>+</div>
                         </div>
                       </button>
                     );
