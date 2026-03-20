@@ -1204,22 +1204,23 @@ function AppInner() {
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
   const loadTeamData = async (teamId) => {
-    const [
-      {data:pData}, {data:aData}, {data:eData},
-      {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
-      {data:cpData}, {data:phData},
-    ] = await Promise.all([
-      supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('events').select('*').eq('team_id',teamId).order('date'),
-      supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
-      supabase.from('lineups').select('*').eq('team_id',teamId),
-      supabase.from('game_plans').select('*').eq('team_id',teamId),
-      supabase.from('drill_videos').select('*').eq('team_id',teamId),
-      supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
-      supabase.from('player_photos').select('*').eq('team_id' , teamId),
-    ]);
+    try {
+      const [
+        {data:pData}, {data:aData}, {data:eData},
+        {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
+        {data:cpData}, {data:phData},
+      ] = await Promise.all([
+        supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
+        supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
+        supabase.from('events').select('*').eq('team_id',teamId).order('date'),
+        supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
+        supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
+        supabase.from('lineups').select('*').eq('team_id',teamId),
+        supabase.from('game_plans').select('*').eq('team_id',teamId),
+        supabase.from('drill_videos').select('*').eq('team_id',teamId),
+        supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
+        supabase.from('player_photos').select('*').eq('team_id' , teamId),
+      ]);
 
     setPlayers((pData||[]).map(p=>({
       id:p.id, name:p.name, age:p.age, ageGroup:p.age_group||'',
@@ -1262,7 +1263,7 @@ function AppInner() {
 
     setCustomPlans((cpData||[]).map(p=>({
       id:p.id, title:p.title||'', focus:p.focus||'', ageGroup:p.age_group||'',
-      duration:p.duration||'', blocks:p.blocks||[],
+      duration:p.duration||'', blocks:p.blocks||[], isCustom:true,
     })));
 
     const photoMap = {};
@@ -1275,24 +1276,37 @@ function AppInner() {
     setPlayerPhotos(photoMap);
 
     // setDataLoaded is called in loadProfile after parent link is also set
+    } catch(err) {
+      console.error('loadTeamData error:', err);
+      throw err; // re-throw so loadProfile's catch picks it up
+    }
   };
 
+  const [loadError, setLoadError] = useState(null);
+
   const loadProfile = async (userId) => {
-    const {data} = await supabase.from("profiles").select("*").eq("id",userId).single();
-    setProfile(data);
-    if (data?.team_id) {
-      const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
-      if (teamData?.name) setTeamDisplayName(teamData.name);
-      if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
-      await loadTeamData(data.team_id);
-      // For parents: player_id is stored directly on the profile — no extra query needed
-      if(data.role === 'parent' && data.player_id) {
-        setParentPlayerLink({player_id: data.player_id, parent_id: userId});
-        setPUID(userId);
+    try {
+      const {data, error} = await supabase.from("profiles").select("*").eq("id",userId).single();
+      if (error) { console.error('Profile load error:', error.message); setLoadError("Couldn't load your profile. Please try again."); setAuthReady(true); return; }
+      if (!data) { setLoadError("Profile not found. Please sign out and create a new account."); setAuthReady(true); return; }
+      setProfile(data);
+      if (data?.team_id) {
+        const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
+        if (teamData?.name) setTeamDisplayName(teamData.name);
+        if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
+        await loadTeamData(data.team_id);
+        if(data.role === 'parent' && data.player_id) {
+          setParentPlayerLink({player_id: data.player_id, parent_id: userId});
+          setPUID(userId);
+        }
       }
+      setDataLoaded(true);
+      setAuthReady(true);
+    } catch(err) {
+      console.error('loadProfile error:', err);
+      setLoadError("Something went wrong loading your data. Check your internet connection and try again.");
+      setAuthReady(true);
     }
-    setDataLoaded(true);
-    setAuthReady(true);
   };
 
   // For parents: whenever profile is set, fetch their player link
@@ -1681,11 +1695,27 @@ function AppInner() {
 
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
+  if (loadError) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
+      <style>{FONTS}</style>
+      <div style={{textAlign:"center",maxWidth:380}}>
+        <div style={{fontSize:48,marginBottom:16}}>⚠️</div>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.red,marginBottom:12}}>Connection Error</div>
+        <div style={{fontSize:14,color:C.textMid,lineHeight:1.7,marginBottom:24}}>{loadError}</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+          <button onClick={()=>window.location.reload()} className="btn-press" style={{padding:"12px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.red}40`}}>Try Again</button>
+          <button onClick={handleSignOut} className="btn-press" style={{padding:"12px 24px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>Sign Out</button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (!authReady) return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <style>{FONTS}</style>
       <div style={{textAlign:"center"}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.textDim}}>Loading…</div>
+        <div style={{fontSize:12,color:C.textDim,marginTop:12}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
       </div>
     </div>
   );
@@ -1696,6 +1726,7 @@ function AppInner() {
       <div style={{textAlign:"center"}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.teal,marginBottom:8}}>Loading Team Data…</div>
         <div style={{fontSize:13,color:C.textDim}}>Getting your roster, drills, and schedule</div>
+        <div style={{fontSize:12,color:C.textDim,marginTop:16}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
       </div>
     </div>
   );
@@ -1757,7 +1788,26 @@ function AppInner() {
   }
 
   // Coach
+  const [skipOnboarding, setSkipOnboarding] = useState(false);
+  const needsOnboarding = role==="coach" && dataLoaded && players.length===0 && !skipOnboarding;
   const goToPlayer = p => {setSP(p); setTab("player");};
+
+  if (needsOnboarding) return (
+    <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif"}}>
+      <style>{FONTS}</style>
+      <ErrorBoundary>
+        <OnboardingFlow
+          coachName={profile?.full_name||"Coach"}
+          teamName={teamDisplayName}
+          teamId={profile?.team_id}
+          setPlayers={setPlayersDb}
+          setAsgn={setAsgnDb}
+          onSkip={()=>setSkipOnboarding(true)}
+          onComplete={()=>setSkipOnboarding(true)}
+        />
+      </ErrorBoundary>
+    </div>
+  );
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",paddingBottom:"calc(72px + env(safe-area-inset-bottom))"}}>
@@ -3272,7 +3322,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
       </div>}
 
       <ErrorBoundary>
-      {!editing && detailTab==="drills"    && <DrillsTab mine={mine} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} player={player} coachMode={true} removeAsgn={id=>setAsgn(prev=>prev.filter(a=>a.id!==id))} teamId={teamId}/>}
+      {!editing && detailTab==="drills"    && <DrillsTab mine={mine} setAsgn={setAsgn} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} player={player} coachMode={true} removeAsgn={id=>{setAsgn(prev=>prev.filter(a=>a.id!==id));supabase.from('assignments').delete().eq('id',id).then(({error})=>{if(error)console.error('Coach removeAsgn DB failed:',error.message);});}} teamId={teamId}/>}
       {!editing && detailTab==="progress"  && <ProgressTab player={player} assignments={assignments} skillSnapshots={skillSnapshots.filter(s=>s.playerId===player.id)} setSkillSnapshots={setSkillSnapshots} canAccess={canAccess} onUpgrade={onUpgrade}/>}
       {!editing && detailTab==="goals"     && <GoalsTab player={player} setPlayers={setPlayers}/>}
       {!editing && detailTab==="badges"    && <BadgesPanel player={player} assignments={assignments} skillSnapshots={skillSnapshots} events={[]}/>}
@@ -3442,6 +3492,13 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
                   {!coachMode && a.acknowledged && a.notes && <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic"}}>🗣 Coach: {a.notes}</div>}
                   {!coachMode && a.completed && !a.acknowledged && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,fontStyle:"italic"}}>✅ Marked complete — waiting for coach feedback</div>}
                 </div>
+
+                {/* Coach: Remove drill button — always visible */}
+                {coachMode && removeAsgn && (
+                  <button onClick={()=>{if(window.confirm(`Remove "${drill.name}" from this player?`))removeAsgn(a.id);}} style={{width:"100%",padding:"10px 0",borderRadius:10,background:`${C.red}08`,border:`1px solid ${C.red}30`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:40,marginTop:12}}>
+                    🗑 Remove Drill
+                  </button>
+                )}
               </div>}
             </div>
           );
@@ -3780,7 +3837,13 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     : "TC";
   const [section,setSection]=useState("drills");
   const [selEvId,setSelEvId]=useState(null);
-  if(!player)return <div style={{padding:40,color:C.textDim}}>Player not found.</div>;
+  if(!player)return (
+    <div style={{padding:40,textAlign:"center"}}>
+      <div style={{fontSize:40,marginBottom:12}}>⚾</div>
+      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:2,color:C.textMid,marginBottom:8}}>Player Not Found</div>
+      <div style={{fontSize:13,color:C.textDim,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Your player profile couldn't be loaded. Ask your coach to check that your invite is set up correctly.</div>
+    </div>
+  );
   const toggle=id=>{
     setAsgn(prev=>prev.map(a=>a.id===id?{...a,completed:true}:a));
     supabase.from('assignments').update({completed:true}).eq('id',id).then(({error})=>{ if(error) console.error('Toggle complete failed:',error.message); });
@@ -3953,11 +4016,11 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                   const pvKey = `${player.id}_${drill.id}`;
                   const hadVideo = playerVideos[pvKey]?.url;
                   if(!a.completed) return null;
-                  // Acknowledged + had video → show coach notes + player dismiss button
-                  if(a.acknowledged && hadVideo) return (
+                  // Acknowledged → show coach notes + player dismiss button
+                  if(a.acknowledged) return (
                     <div style={{marginTop:10}}>
                       {a.notes && <div style={{padding:"10px 14px",background:`${C.gold}10`,borderLeft:`3px solid ${C.gold}`,borderRadius:"0 8px 8px 0",fontSize:13,color:C.text,fontStyle:"italic",marginBottom:10}}>🗣 Coach: {a.notes}</div>}
-                      {!a.notes && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,marginBottom:10}}>✅ Coach reviewed your video!</div>}
+                      {!a.notes && <div style={{padding:"8px 14px",background:`${C.teal}08`,borderLeft:`3px solid ${C.teal}40`,borderRadius:"0 8px 8px 0",fontSize:12,color:C.textMid,marginBottom:10}}>{hadVideo?"✅ Coach reviewed your video!":"✅ Coach acknowledged — great work!"}</div>}
                       <button onClick={()=>removeAsgn(a.id)} style={{width:"100%",padding:"10px 0",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:40}}>
                         ✓ Got it — Remove Drill
                       </button>
@@ -4573,6 +4636,238 @@ function BenchRoster({bench, selectedPid, onSelectPlayer, onTapAdd}) {
             })}
           </div>
       }
+    </div>
+  );
+}
+
+// ─── ONBOARDING FLOW ──────────────────────────────────────────────────────────
+function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSkip, onComplete}) {
+  const [step, setStep] = useState(0); // 0=welcome, 1=add player, 2=assign drill, 3=done
+  const [addedPlayer, setAddedPlayer] = useState(null);
+  const [form, setForm] = useState({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1email:""});
+  const f = (k,v) => setForm(p=>({...p,[k]:v}));
+  const [selectedDrill, setSelectedDrill] = useState(null);
+  const [drillSearch, setDrillSearch] = useState("");
+  const [drillCat, setDrillCat] = useState("All");
+
+  const firstName = (coachName||"Coach").split(" ")[0];
+
+  const savePlayer = async () => {
+    if(!form.name.trim()) return;
+    const pid = uid();
+    const parents = [];
+    if(form.parent1.trim()) parents.push({id:pid+"a",name:form.parent1.trim(),phone:"",email:form.parent1email.trim()});
+    const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:[]};
+    if(teamId) {
+      const {error} = await supabase.from('players').insert({
+        id:pid, team_id:teamId, name:form.name, age:String(parseInt(form.age)||0),
+        age_group:form.ageGroup, position:form.position, number:form.number,
+        bats:form.bats, throws:form.throws, goals:[], parents_info:parents,
+      });
+      if(error) { console.error('Player save failed:', error.message); return; }
+    }
+    setPlayers(prev=>[...prev,newPlayer]);
+    setAddedPlayer(newPlayer);
+    setStep(2);
+  };
+
+  const assignDrill = () => {
+    if(!selectedDrill || !addedPlayer) return;
+    const asgn = {id:uid(),playerId:addedPlayer.id,drillId:selectedDrill.id,assignedDate:new Date().toISOString().slice(0,10),completed:false,notes:"",acknowledged:false,coachRating:null};
+    setAsgn(prev=>[...prev,asgn]);
+    setStep(3);
+  };
+
+  const filteredDrills = DRILL_LIBRARY.filter(d => {
+    if(drillCat!=="All" && d.category!==drillCat) return false;
+    if(drillSearch && !d.name.toLowerCase().includes(drillSearch.toLowerCase())) return false;
+    return true;
+  }).slice(0,8);
+
+  const categories = ["All",...Object.keys(catMeta)];
+
+  const stepIndicator = (
+    <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:28}}>
+      {[0,1,2,3].map(i=>(
+        <div key={i} style={{width:i===step?28:8,height:8,borderRadius:4,background:i<=step?`linear-gradient(90deg,${C.red},${C.gold})`:C.border,transition:"all 0.3s cubic-bezier(0.22,1,0.36,1)"}}/>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{maxWidth:500,margin:"0 auto",padding:"24px 16px",minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+
+      {/* Skip button */}
+      {step<3&&(
+        <div style={{textAlign:"right",marginBottom:8}}>
+          <button onClick={onSkip} style={{background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:12,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",padding:"8px 4px"}}>Skip for now →</button>
+        </div>
+      )}
+
+      {stepIndicator}
+
+      {/* ── STEP 0: WELCOME ── */}
+      {step===0&&(
+        <div className="fade-up" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:24}}>
+          <div style={{fontSize:56,marginBottom:8}}>⚾</div>
+          <div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:36,letterSpacing:3,color:C.text,lineHeight:1.1}}>
+              Welcome, {firstName}!
+            </div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:14,color:C.textMid,marginTop:12,lineHeight:1.6,maxWidth:340,margin:"12px auto 0"}}>
+              Let's set up <span style={{color:C.gold,fontWeight:800}}>{teamName||"your team"}</span> in under a minute. We'll walk you through adding your first player and assigning a drill.
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:320,marginTop:8}}>
+            {[
+              {icon:"👥",label:"Add your players",sub:"Names, positions, parent contacts"},
+              {icon:"⚾",label:"Assign drills",sub:"69 drills across 9 categories"},
+              {icon:"📅",label:"Build your schedule",sub:"Games, practices, and lineups"},
+            ].map((item,i)=>(
+              <div key={i} className={`fade-up-${i+1}`} style={{display:"flex",gap:14,alignItems:"center",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left"}}>
+                <div style={{width:40,height:40,borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{item.icon}</div>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.text,letterSpacing:0.5}}>{item.label}</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{item.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button className="btn-press" onClick={()=>setStep(1)} style={{width:"100%",maxWidth:320,padding:"16px 0",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:54,boxShadow:`0 8px 24px ${C.red}50`,marginTop:8}}>
+            Let's Go →
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP 1: ADD FIRST PLAYER ── */}
+      {step===1&&(
+        <div className="fade-up">
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{fontSize:40,marginBottom:8}}>👤</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:3,color:C.text}}>Add Your First Player</div>
+            <div style={{fontSize:13,color:C.textDim,marginTop:6}}>You can add the rest later — let's start with one</div>
+          </div>
+
+          <div style={{background:`linear-gradient(135deg,#100c1a,${C.card})`,borderRadius:16,border:`1px solid ${C.red}40`,padding:20,boxShadow:`0 0 30px ${C.red}15`}}>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <Inp label="Player Name" value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. Nolan Ryan Jr."/>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <Inp label="Age" value={form.age} type="number" onChange={e=>f("age",e.target.value)} placeholder="12"/>
+                <Inp label="Jersey #" value={form.number} onChange={e=>f("number",e.target.value)} placeholder="7"/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                <SelF label="Position" value={form.position} onChange={v=>f("position",v)} options={POSITIONS}/>
+                <SelF label="Bats" value={form.bats} onChange={v=>f("bats",v)} options={["R","L","S"]}/>
+                <SelF label="Throws" value={form.throws} onChange={v=>f("throws",v)} options={["R","L"]}/>
+              </div>
+              <SelF label="Age Group" value={form.ageGroup} onChange={v=>f("ageGroup",v)} options={AGE_GROUPS}/>
+              <div style={{background:`${C.blue}08`,border:`1px solid ${C.blue}20`,borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.blue,textTransform:"uppercase"}}>Parent / Guardian (optional)</div>
+                <Inp label="Name" value={form.parent1} onChange={e=>f("parent1",e.target.value)} placeholder="Parent's full name"/>
+                <Inp label="Email" value={form.parent1email} onChange={e=>f("parent1email",e.target.value)} placeholder="parent@email.com" type="email"/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:20}}>
+              <button className="btn-press" onClick={savePlayer} disabled={!form.name.trim()} style={{flex:1,padding:"14px 0",borderRadius:12,background:!form.name.trim()?"#1a2f52":`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:!form.name.trim()?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:!form.name.trim()?"default":"pointer",minHeight:52,boxShadow:!form.name.trim()?"none":`0 6px 20px ${C.red}40`}}>
+                Save & Continue →
+              </button>
+            </div>
+          </div>
+
+          <button onClick={()=>setStep(0)} style={{display:"block",width:"100%",marginTop:12,background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Back</button>
+        </div>
+      )}
+
+      {/* ── STEP 2: ASSIGN A DRILL ── */}
+      {step===2&&(
+        <div className="fade-up">
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:40,marginBottom:8}}>🏋️</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:3,color:C.text}}>Assign a Drill</div>
+            <div style={{fontSize:13,color:C.textDim,marginTop:6}}>
+              Pick a drill for <span style={{color:C.gold,fontWeight:700}}>{addedPlayer?.name||"your player"}</span>
+            </div>
+          </div>
+
+          {/* Category filter */}
+          <div className="pill-scroll" style={{display:"flex",gap:6,overflowX:"auto",marginBottom:12,paddingBottom:4}}>
+            {categories.map(cat=>(
+              <button key={cat} onClick={()=>setDrillCat(cat)} style={{padding:"7px 14px",borderRadius:20,background:drillCat===cat?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:`1px solid ${drillCat===cat?C.red:C.border}`,color:drillCat===cat?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,transition:"all 0.15s"}}>
+                {cat==="All"?"All":catIcon(cat)+" "+cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <input value={drillSearch} onChange={e=>setDrillSearch(e.target.value)} placeholder="Search drills..." style={{...inp,marginBottom:14}}/>
+
+          {/* Drill list */}
+          <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:320,overflowY:"auto"}}>
+            {filteredDrills.map(drill=>{
+              const cc = catColor(drill.category);
+              const selected = selectedDrill?.id===drill.id;
+              return (
+                <button key={drill.id} className="btn-press" onClick={()=>setSelectedDrill(drill)} style={{background:selected?`${cc}15`:C.card,border:`2px solid ${selected?cc:C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left",cursor:"pointer",transition:"all 0.15s",boxShadow:selected?`0 0 20px ${cc}25`:"none"}}>
+                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",background:cc,boxShadow:`0 0 8px ${cc}80`,flexShrink:0}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:selected?cc:C.text,letterSpacing:0.5}}>{drill.name}</div>
+                      <div style={{display:"flex",gap:6,marginTop:4}}>
+                        <Tag label={drill.category} color={cc} small/>
+                        <Tag label={drill.duration} color={C.textDim} small/>
+                      </div>
+                    </div>
+                    {selected&&<div style={{color:cc,fontSize:18,fontWeight:800}}>✓</div>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{display:"flex",gap:10,marginTop:16}}>
+            <button className="btn-press" onClick={assignDrill} disabled={!selectedDrill} style={{flex:1,padding:"14px 0",borderRadius:12,background:!selectedDrill?"#1a2f52":`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:!selectedDrill?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:!selectedDrill?"default":"pointer",minHeight:52,boxShadow:!selectedDrill?"none":`0 6px 20px ${C.red}40`}}>
+              Assign & Finish →
+            </button>
+          </div>
+
+          <button onClick={()=>{setStep(3);}} style={{display:"block",width:"100%",marginTop:10,background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:12,cursor:"pointer",padding:"8px 0"}}>Skip this step →</button>
+        </div>
+      )}
+
+      {/* ── STEP 3: ALL SET ── */}
+      {step===3&&(
+        <div className="fade-up" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",gap:20}}>
+          <div style={{width:80,height:80,borderRadius:"50%",background:`${C.teal}20`,border:`2px solid ${C.teal}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,boxShadow:`0 0 32px ${C.teal}40`}}>🎉</div>
+          <div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:32,letterSpacing:3,color:C.text}}>You're All Set!</div>
+            <div style={{fontSize:14,color:C.textMid,marginTop:10,lineHeight:1.7,maxWidth:340,margin:"10px auto 0"}}>
+              {addedPlayer ? `${addedPlayer.name} is on the roster${selectedDrill?` with "${selectedDrill.name}" assigned`:""}.` : "Your team is ready."} Here's what to do next:
+            </div>
+          </div>
+
+          <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:340}}>
+            {[
+              {icon:"👥",label:"Add the rest of your roster",sub:"Go to Roster tab to add all players"},
+              {icon:"📅",label:"Set up your schedule",sub:"Add upcoming games and practices"},
+              {icon:"📨",label:"Invite parents",sub:"From a player's profile, send invite emails"},
+            ].map((item,i)=>(
+              <div key={i} className={`fade-up-${i+1}`} style={{display:"flex",gap:14,alignItems:"center",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left"}}>
+                <div style={{width:36,height:36,borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{item.icon}</div>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.text}}>{item.label}</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{item.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button className="btn-press" onClick={onComplete} style={{width:"100%",maxWidth:340,padding:"16px 0",borderRadius:12,background:`linear-gradient(135deg,${C.teal},#00a882)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:54,boxShadow:`0 8px 24px ${C.teal}40`,marginTop:4}}>
+            Go to Dashboard →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -5449,7 +5744,7 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
           {isCustom&&(
             <div style={{display:"flex",gap:8,paddingBottom:16}}>
               <button onClick={()=>{setEditing(selected.id);setView("build");}} style={{padding:"7px 14px",borderRadius:9,background:`${C.blue}20`,border:`1px solid ${C.blue}50`,color:C.blue,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,cursor:"pointer"}}>✏️ Edit</button>
-              <button onClick={()=>deleteCustom(selected.id)} style={{padding:"7px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,cursor:"pointer"}}>🗑 Delete</button>
+              <button onClick={()=>{if(window.confirm(`Delete "${selected.title||"Untitled Plan"}"? This cannot be undone.`))deleteCustom(selected.id);}} style={{padding:"7px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,cursor:"pointer"}}>🗑 Delete</button>
             </div>
           )}
           {!isCustom&&(
@@ -5482,20 +5777,25 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
               const fc=FOCUS_COLORS[p.focus]||C.gold;
               const totalMins=p.blocks.reduce((a,b)=>a+b.duration,0);
               return (
-                <button key={p.id} onClick={()=>openPlan(p)} style={{background:`${C.gold}08`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:"14px 16px",textAlign:"left",width:"100%",cursor:"pointer",position:"relative",overflow:"hidden",transition:"all 0.15s",boxShadow:"0 4px 16px #00000040"}}>
-                  <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.gold},${C.gold}60)`}}/>
-                  <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:C.text,marginBottom:6,lineHeight:1.1}}>{p.title||"Untitled Plan"}</div>
-                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                        <Tag label={p.focus} color={fc} small/>
-                        <Tag label={`${totalMins} min`} color={C.textDim} small/>
-                        <Tag label={`${p.blocks.length} blocks`} color={C.textDim} small/>
+                <div key={p.id} style={{position:"relative"}}>
+                  <button onClick={()=>openPlan(p)} style={{background:`${C.gold}08`,border:`1px solid ${C.gold}30`,borderRadius:16,padding:"14px 16px",textAlign:"left",width:"100%",cursor:"pointer",position:"relative",overflow:"hidden",transition:"all 0.15s",boxShadow:"0 4px 16px #00000040"}}>
+                    <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.gold},${C.gold}60)`}}/>
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:C.text,marginBottom:6,lineHeight:1.1}}>{p.title||"Untitled Plan"}</div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                          <Tag label={p.focus} color={fc} small/>
+                          <Tag label={`${totalMins} min`} color={C.textDim} small/>
+                          <Tag label={`${p.blocks.length} blocks`} color={C.textDim} small/>
+                        </div>
                       </div>
+                      <div style={{fontSize:20}}>›</div>
                     </div>
-                    <div style={{fontSize:20}}>›</div>
-                  </div>
-                </button>
+                  </button>
+                  {/* Delete button */}
+                  <button onClick={(e)=>{e.stopPropagation();if(window.confirm(`Delete "${p.title||"Untitled Plan"}"? This cannot be undone.`))deleteCustom(p.id);}}
+                    style={{position:"absolute",top:10,right:10,width:30,height:30,borderRadius:8,background:`${C.red}15`,border:`1px solid ${C.red}30`,color:C.red,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer",zIndex:2}}>✕</button>
+                </div>
               );
             })}
           </div>
@@ -5538,6 +5838,8 @@ function PlanBuilder({plan, onSave, onCancel}) {
   const [blocks,   setBlocks]  = useState(plan.blocks||[]);
   const [addingBlock, setAddingBlock] = useState(false);
   const [editBlockIdx, setEditBlockIdx] = useState(null);
+  const [browsing, setBrowsing] = useState(false); // NEW: browse pre-made segments
+  const [browseFilter, setBrowseFilter] = useState("All"); // NEW: filter by plan
   const blankBlock = {type:"drill",name:"",duration:10,coachingPoints:"",activity:"",result:""};
   const [blockForm, setBlockForm] = useState(blankBlock);
   const bf = (k,v) => setBlockForm(p=>({...p,[k]:v}));
@@ -5569,6 +5871,12 @@ function PlanBuilder({plan, onSave, onCancel}) {
     setBlockForm({...blocks[i]});
     setEditBlockIdx(i);
     setAddingBlock(true);
+    setBrowsing(false);
+  };
+
+  // NEW: add a segment from a pre-made plan
+  const addPreMadeSegment = (block) => {
+    setBlocks(prev=>[...prev,{...block}]);
   };
 
   const handleSave = () => {
@@ -5686,10 +5994,64 @@ function PlanBuilder({plan, onSave, onCancel}) {
             })}
           </div>
 
-          <button onClick={()=>{setAddingBlock(true);setBlockForm(blankBlock);setEditBlockIdx(null);}}
-            style={{width:"100%",padding:"12px 0",borderRadius:12,background:"transparent",border:`1px dashed ${C.blue}50`,color:C.blue,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:14,minHeight:46}}>
+          <button onClick={()=>{setAddingBlock(true);setBlockForm(blankBlock);setEditBlockIdx(null);setBrowsing(false);}}
+            style={{width:"100%",padding:"12px 0",borderRadius:12,background:"transparent",border:`1px dashed ${C.blue}50`,color:C.blue,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:8,minHeight:46}}>
             + Add Block
           </button>
+
+          <button onClick={()=>{setBrowsing(!browsing);setAddingBlock(false);setEditBlockIdx(null);}}
+            style={{width:"100%",padding:"12px 0",borderRadius:12,background:browsing?`${C.teal}15`:"transparent",border:`1px dashed ${C.teal}50`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:14,minHeight:46,transition:"all 0.15s"}}>
+            {browsing?"▾ Close Segments":"📚 Browse Pre-Made Segments"}
+          </button>
+
+          {/* Pre-Made Segment Browser */}
+          {browsing&&(
+            <div className="fade-up" style={{background:`${C.teal}06`,border:`1px solid ${C.teal}25`,borderRadius:16,padding:16,marginBottom:14}}>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:2,color:C.teal,marginBottom:12}}>PRE-MADE SEGMENTS</div>
+              <div style={{fontSize:12,color:C.textDim,marginBottom:14,lineHeight:1.5}}>Tap any segment below to add it to your plan. You can edit it after adding.</div>
+
+              {/* Filter by plan */}
+              <div className="pill-scroll" style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:4}}>
+                <button onClick={()=>setBrowseFilter("All")} style={{padding:"6px 12px",borderRadius:20,background:browseFilter==="All"?`linear-gradient(135deg,${C.teal},#00a882)`:"transparent",border:`1px solid ${browseFilter==="All"?C.teal:C.border}`,color:browseFilter==="All"?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                  All Plans
+                </button>
+                {PRACTICE_PLANS.map(pp=>(
+                  <button key={pp.id} onClick={()=>setBrowseFilter(pp.id)} style={{padding:"6px 12px",borderRadius:20,background:browseFilter===pp.id?`linear-gradient(135deg,${FOCUS_COLORS[pp.focus]||C.red},${FOCUS_COLORS[pp.focus]||C.red}cc)`:"transparent",border:`1px solid ${browseFilter===pp.id?(FOCUS_COLORS[pp.focus]||C.red):C.border}`,color:browseFilter===pp.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                    {pp.title}
+                  </button>
+                ))}
+              </div>
+
+              {/* Segment list */}
+              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto"}}>
+                {PRACTICE_PLANS
+                  .filter(pp=>browseFilter==="All"||pp.id===browseFilter)
+                  .flatMap(pp=>pp.blocks.map((block,bi)=>({...block,_planTitle:pp.title,_planId:pp.id,_blockIdx:bi})))
+                  .map((block,i)=>{
+                    const bc=BLOCK_COLORS[block.type]||BLOCK_COLORS.drill;
+                    return (
+                      <button key={`${block._planId}-${block._blockIdx}`} className="btn-press" onClick={()=>addPreMadeSegment(block)}
+                        style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",textAlign:"left",cursor:"pointer",width:"100%",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>
+                        <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:bc.color}}/>
+                        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:3}}>{block.name}</div>
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                              <Tag label={bc.label} color={bc.color} small/>
+                              <Tag label={`${block.duration} min`} color={C.textDim} small/>
+                              {browseFilter==="All"&&<Tag label={block._planTitle} color={C.textMid} small/>}
+                            </div>
+                            {block.activity&&<div style={{fontSize:11,color:C.textDim,marginTop:4,lineHeight:1.4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{block.activity}</div>}
+                          </div>
+                          <div style={{flexShrink:0,width:32,height:32,borderRadius:8,background:`${C.teal}15`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,fontSize:16,fontWeight:800}}>+</div>
+                        </div>
+                      </button>
+                    );
+                  })
+                }
+              </div>
+            </div>
+          )}
 
           <PrimaryBtn full onClick={handleSave} disabled={!title.trim()&&!blocks.length}>
             ✓ Save Plan
