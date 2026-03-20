@@ -1674,6 +1674,7 @@ function AppInner() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [tab, setTab]           = useState("home");
+  const [skipOnboarding, setSkipOnboarding] = useState(false);
   const [selectedPlayer, setSP] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
 
@@ -1788,7 +1789,6 @@ function AppInner() {
   }
 
   // Coach
-  const [skipOnboarding, setSkipOnboarding] = useState(false);
   const needsOnboarding = role==="coach" && dataLoaded && players.length===0 && !skipOnboarding;
   const goToPlayer = p => {setSP(p); setTab("player");};
 
