@@ -1133,7 +1133,7 @@ function AppInner() {
       const [
         {data:pData}, {data:aData}, {data:eData},
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
-        {data:cpData}, {data:phData}, {data:readData},
+        {data:cpData}, {data:phData}, {data:readData}, {data:ppData},
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1146,6 +1146,7 @@ function AppInner() {
         supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('player_photos').select('*').eq('team_id' , teamId),
         supabase.from('chat_read_status').select('*').eq('team_id',teamId),
+        supabase.from('parent_players').select('*'),
       ]);
 
     // Build players
@@ -1170,27 +1171,45 @@ function AppInner() {
       notes:e.notes||'', opponent:e.opponent||'',
     })));
 
-    // Map old dm-${playerId} channels to new dm-${parentInfoId} channels
-    const oldToNew = {};
+    // Build channel ID mapping: old formats → new per-parent format
+    const channelRemap = {};
     loadedPlayers.forEach(p=>{
-      if(p.parents && p.parents.length > 0) {
-        oldToNew[`dm-${p.id}`] = `dm-${p.parents[0].id}`;
+      (p.parents||[]).forEach(par => {
+        // Map old dm-{playerId} → dm-{parentInfoId}
+        channelRemap[`dm-${p.id}`] = `dm-${par.id}`;
+      });
+    });
+    // Map dm-{authUserId} → dm-{parentInfoId} using parent_players links
+    (ppData||[]).forEach(pp => {
+      const player = loadedPlayers.find(p=>p.id===pp.player_id);
+      if(player && player.parents && player.parents.length > 0) {
+        // Find the matching parent info entry by email or just use the first
+        const matchedPar = player.parents.find(par => par.email && pp.email && par.email.toLowerCase()===pp.email.toLowerCase()) || player.parents[0];
+        if(matchedPar) channelRemap[`dm-${pp.parent_id}`] = `dm-${matchedPar.id}`;
       }
     });
+
     const msgMap = {};
     (mData||[]).forEach(m=>{
       let ch = m.channel;
-      if(oldToNew[ch]) ch = oldToNew[ch];
+      if(channelRemap[ch]) ch = channelRemap[ch];
       if(!msgMap[ch]) msgMap[ch]=[];
       msgMap[ch].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
     });
     setMessages(msgMap);
 
-    // Compute unread from read status
+    // Build set of known channels (only count unread for these)
+    const knownChannels = new Set(["team"]);
+    loadedPlayers.forEach(p=>{
+      (p.parents||[]).forEach(par => knownChannels.add(`dm-${par.id}`));
+    });
+
+    // Compute unread from read status — only for known channels
     const readMap = {};
     (readData||[]).forEach(r=>{ readMap[r.channel] = new Date(r.last_read_at).getTime(); });
     const unreadMap = {};
-    Object.entries(msgMap).forEach(([ch, msgs])=>{
+    knownChannels.forEach(ch => {
+      const msgs = msgMap[ch] || [];
       const lastRead = readMap[ch] || 0;
       unreadMap[ch] = msgs.filter(m => m.ts > lastRead && m.senderId !== userId).length;
     });
