@@ -5697,7 +5697,7 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
   const openPlan = (plan) => { setSelected(plan); setView("view"); };
 
   const startNew = () => {
-    const blank = {id:uid(),title:"",focus:"Custom",duration:90,blocks:[],isCustom:true};
+    const blank = {id:uid(),title:"",focus:"Custom",duration:90,blocks:[],isCustom:true,_unsaved:true};
     setCustomPlans(prev=>[...prev,blank]);
     setEditing(blank.id);
     setSelected(blank);
@@ -5705,7 +5705,7 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
   };
 
   const clonePlan = (plan) => {
-    const clone = {...plan, id:uid(), title:`${plan.title} (Copy)`, isCustom:true,
+    const clone = {...plan, id:uid(), title:`${plan.title} (Copy)`, isCustom:true, _unsaved:true,
       blocks: plan.blocks.map(b=>({...b}))};
     setCustomPlans(prev=>[...prev,clone]);
     setEditing(clone.id);
@@ -5728,7 +5728,7 @@ function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
   if(view==="build") {
     const plan = customPlans.find(p=>p.id===editing)||selected;
     return <PlanBuilder plan={plan} onSave={savePlan} onCancel={()=>{
-      if(!plan.title&&!plan.blocks.length) setCustomPlans(prev=>prev.filter(p=>p.id!==plan.id));
+      if(plan._unsaved) setCustomPlans(prev=>prev.filter(p=>p.id!==plan.id));
       setView("list"); setEditing(null);
     }}/>;
   }
@@ -5880,7 +5880,8 @@ function PlanBuilder({plan, onSave, onCancel}) {
   };
 
   const handleSave = () => {
-    onSave({...plan, title:title||"Untitled Plan", focus, blocks, duration:totalMins, isCustom:true});
+    const {_unsaved, ...rest} = plan;
+    onSave({...rest, title:title||"Untitled Plan", focus, blocks, duration:totalMins, isCustom:true});
   };
 
   return (
