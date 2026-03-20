@@ -381,7 +381,7 @@ const initEvents = [
 const now = Date.now();
 const ago = m => now - m * 60000;
 
-// Channels: "team" = group chat, "dm-{playerId}" = coach ↔ parent DM
+// Channels: "team" = group chat, "dm-{parentInfoId}" = coach ↔ individual parent DM
 const initMessages = {
   "team": [
     {id:"tm1",senderId:"coach",senderName:"Coach",text:"Welcome to the team chat everyone! Use this for updates, questions, and team news 🙌⚾",ts:ago(2880)},
@@ -1203,12 +1203,12 @@ function AppInner() {
 
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
-  const loadTeamData = async (teamId) => {
+  const loadTeamData = async (teamId, userId) => {
     try {
       const [
         {data:pData}, {data:aData}, {data:eData},
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
-        {data:cpData}, {data:phData},
+        {data:cpData}, {data:phData}, {data:readData},
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1220,14 +1220,18 @@ function AppInner() {
         supabase.from('drill_videos').select('*').eq('team_id',teamId),
         supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('player_photos').select('*').eq('team_id' , teamId),
+        supabase.from('chat_read_status').select('*').eq('team_id',teamId),
       ]);
 
-    setPlayers((pData||[]).map(p=>({
+    // Build players
+    const loadedPlayers = (pData||[]).map(p=>({
       id:p.id, name:p.name, age:p.age, ageGroup:p.age_group||'',
       position:p.position||'', number:p.number||'',
       bats:p.bats||'R', throws:p.throws||'R',
       goals:p.goals||[], parents:p.parents_info||[],
-    })));
+    }));
+    setPlayers(loadedPlayers);
+
     setAsgn((aData||[]).map(a=>({
       id:a.id, playerId:a.player_id, drillId:a.drill_id,
       assignedDate:a.assigned_date, completed:a.completed||false,
@@ -1240,12 +1244,32 @@ function AppInner() {
       fieldName:e.field_name||'', address:e.address||'',
       notes:e.notes||'', opponent:e.opponent||'',
     })));
+
+    // Map old dm-${playerId} channels to new dm-${parentInfoId} channels
+    const oldToNew = {};
+    loadedPlayers.forEach(p=>{
+      if(p.parents && p.parents.length > 0) {
+        oldToNew[`dm-${p.id}`] = `dm-${p.parents[0].id}`;
+      }
+    });
     const msgMap = {};
     (mData||[]).forEach(m=>{
-      if(!msgMap[m.channel]) msgMap[m.channel]=[];
-      msgMap[m.channel].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
+      let ch = m.channel;
+      if(oldToNew[ch]) ch = oldToNew[ch];
+      if(!msgMap[ch]) msgMap[ch]=[];
+      msgMap[ch].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
     });
     setMessages(msgMap);
+
+    // Compute unread from read status
+    const readMap = {};
+    (readData||[]).forEach(r=>{ readMap[r.channel] = new Date(r.last_read_at).getTime(); });
+    const unreadMap = {};
+    Object.entries(msgMap).forEach(([ch, msgs])=>{
+      const lastRead = readMap[ch] || 0;
+      unreadMap[ch] = msgs.filter(m => m.ts > lastRead && m.senderId !== userId).length;
+    });
+    setUnread(unreadMap);
     setSkillSnapshots((sData||[]).map(s=>({
       id:s.id, playerId:s.player_id, date:s.date,
       rubric:s.rubric||{}, notes:s.notes||'',
@@ -1294,7 +1318,7 @@ function AppInner() {
         const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
         if (teamData?.name) setTeamDisplayName(teamData.name);
         if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
-        await loadTeamData(data.team_id);
+        await loadTeamData(data.team_id, userId);
         if(data.role === 'parent' && data.player_id) {
           setParentPlayerLink({player_id: data.player_id, parent_id: userId});
           setPUID(userId);
@@ -1692,7 +1716,20 @@ function AppInner() {
       }).then(({error})=>error&&console.error('Message insert',error));
   };
 
-  const markRead = channelId => setUnread(prev=>({...prev,[channelId]:0}));
+  const markRead = channelId => {
+    setUnread(prev=>({...prev,[channelId]:0}));
+    // Persist to DB
+    if(profile?.team_id && session?.user?.id) {
+      supabase.from('chat_read_status').upsert({
+        user_id: session.user.id,
+        team_id: profile.team_id,
+        channel: channelId,
+        last_read_at: new Date().toISOString(),
+      }, {onConflict: 'user_id,channel'}).then(({error})=>{
+        if(error) console.error('markRead save failed:', error.message);
+      });
+    }
+  };
 
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
@@ -1769,7 +1806,10 @@ function AppInner() {
       );
     }
     const myAsgn = assignments.filter(a=>a.playerId===player?.id);
-    const myChannels = ["team", `dm-${player?.id}`];
+    // Find this parent's matching entry in parents_info to get the right DM channel
+    const myParentEntry = player?.parents?.find(par => par.email && session?.user?.email && par.email.toLowerCase() === session.user.email.toLowerCase());
+    const myDmChannel = myParentEntry ? `dm-${myParentEntry.id}` : `dm-${player?.parents?.[0]?.id || player?.id}`;
+    const myChannels = ["team", myDmChannel];
     const myUnread   = myChannels.reduce((a,c)=>a+(unread[c]||0),0);
     return (
       <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif"}}>
@@ -1782,7 +1822,7 @@ function AppInner() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
         }
       </div>
     );
@@ -1814,7 +1854,14 @@ function AppInner() {
 
       <style>{FONTS}</style>
       <TopBar
-        title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{ const pl=players.find(p=>`dm-${p.id}`===activeChat); return pl ? (pl.parents[0]?.name||pl.name) : "Direct Message"; })()) : (tab==="player"&&selectedPlayer ? selectedPlayer.name : "CoachConnect Pro")}
+        title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{
+          const chId = activeChat.replace('dm-','');
+          for(const pl of players) {
+            const par = (pl.parents||[]).find(p=>p.id===chId);
+            if(par) return par.name || pl.name;
+          }
+          return "Direct Message";
+        })()) : (tab==="player"&&selectedPlayer ? selectedPlayer.name : "CoachConnect Pro")}
         sub={activeChat ? null : (tab==="player"&&selectedPlayer ? selectedPlayer.position : "Coach Dashboard")}
         onBack={activeChat ? ()=>setActiveChat(null) : (tab==="player" ? ()=>setTab("roster") : null)}
         onLogout={(!activeChat&&tab!=="player") ? handleSignOut : null}
@@ -1856,7 +1903,7 @@ function AppInner() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:"Coach"})} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"})} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
@@ -1864,7 +1911,7 @@ function AppInner() {
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/>}
-            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:"coach",name:"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
+            {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:session?.user?.id||"coach",name:profile?.full_name||"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")}/>}
           </div>
         )
@@ -2103,20 +2150,20 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [broadcastText, setBroadcastText] = useState("");
 
+  // Create one channel per parent (not per player)
   const parentChannels = players.flatMap(p =>
-    (p.parents||[]).length > 0
-      ? [{
-          id: `dm-${p.id}`,
-          name: (p.parents[0]?.name) || 'Parent',
-          sub: `${p.name} · ${p.position}`,
-          icon: null,
-          isGroup: false,
-          playerId: p.id,
-        }]
-      : []
+    (p.parents||[]).map(par => ({
+      id: `dm-${par.id}`,
+      name: par.name || 'Parent',
+      sub: `${p.name}'s parent`,
+      playerName: p.name,
+      playerPosition: p.position,
+      icon: null,
+      isGroup: false,
+    }))
   );
   const channels = [
-    {id:"team", name:"Team Chat", sub:"Everyone", icon:"⚾", isGroup:true},
+    {id:"team", name:"Team Chat", sub:"Everyone on the team", icon:"⚾", isGroup:true},
     ...parentChannels,
   ];
 
@@ -2181,18 +2228,19 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
                 : <Avatar name={ch.name} size={46} showRing={uCount>0}/>
               }
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:uCount>0?C.text:C.textMid,letterSpacing:0.5}}>{ch.name}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:uCount>0?"#fff":C.textMid,letterSpacing:0.5}}>{ch.name}</div>
                   <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:10,color:C.textDim,flexShrink:0,marginLeft:8}}>{last?fmtTime(last.ts):""}</div>
                 </div>
-                <div style={{fontSize:12,color:C.textDim,fontStyle:"italic",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"90%"}}>
-                  {ch.sub}
-                </div>
-                {last&&<div style={{fontSize:12,color:uCount>0?C.textMid:C.textDim,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"90%",marginTop:2}}>
-                  {last.senderName==="Coach"?"You: ":""}{last.text}
-                </div>}
+                {last ? (
+                  <div style={{fontSize:13,color:uCount>0?C.text:C.textDim,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"90%",fontWeight:uCount>0?600:400}}>
+                    {last.senderName}: {last.text}
+                  </div>
+                ) : (
+                  <div style={{fontSize:12,color:C.textDim,fontStyle:"italic"}}>{ch.sub}</div>
+                )}
               </div>
-              {uCount>0&&<div style={{width:20,height:20,borderRadius:"50%",background:C.red,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,color:"#fff",flexShrink:0,boxShadow:`0 0 8px ${C.red}60`}}>{uCount}</div>}
+              {uCount>0&&<div className="pulseBadge" style={{width:22,height:22,borderRadius:"50%",background:C.red,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,color:"#fff",flexShrink:0,boxShadow:`0 0 8px ${C.red}60`}}>{uCount}</div>}
             </button>
           );
         })}
@@ -3831,7 +3879,7 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
 }
 
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName=""}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,dmChannel="",drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName=""}) {
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
@@ -4173,7 +4221,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {[
             {id:"team",          name:"Team Chat",       sub:"Coach + all families", icon:"⚾", isGroup:true},
-            {id:`dm-${player?.id}`,name:"Coach", sub:"Direct message", icon:null, isGroup:false},
+            {id:dmChannel||`dm-${player?.id}`,name:"Coach", sub:"Direct message", icon:null, isGroup:false},
           ].map(ch=>(
             <button key={ch.id} onClick={()=>onOpenChat(ch.id)} className="card-hover" style={{display:"flex",gap:14,alignItems:"center",padding:"16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,textAlign:"left",width:"100%",minHeight:70,cursor:"pointer"}}>
               {ch.isGroup
