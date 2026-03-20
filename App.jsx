@@ -6006,9 +6006,9 @@ function PlanBuilder({plan, onSave, onCancel}) {
 
           {/* Pre-Made Segment Browser */}
           {browsing&&(
-            <div className="fade-up" style={{background:`${C.teal}06`,border:`1px solid ${C.teal}25`,borderRadius:16,padding:16,marginBottom:14}}>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,letterSpacing:2,color:C.teal,marginBottom:12}}>PRE-MADE SEGMENTS</div>
-              <div style={{fontSize:12,color:C.textDim,marginBottom:14,lineHeight:1.5}}>Tap any segment below to add it to your plan. You can edit it after adding.</div>
+            <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1929,#0f1e38)`,border:`1px solid ${C.teal}30`,borderRadius:16,padding:16,marginBottom:14}}>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,letterSpacing:3,color:C.teal,marginBottom:8}}>PRE-MADE SEGMENTS</div>
+              <div style={{fontSize:13,color:"#8899b4",marginBottom:14,lineHeight:1.5}}>Tap any segment to add it to your plan. You can edit it after adding.</div>
 
               {/* Filter by plan */}
               <div className="pill-scroll" style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:4}}>
@@ -6023,7 +6023,7 @@ function PlanBuilder({plan, onSave, onCancel}) {
               </div>
 
               {/* Segment list */}
-              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:380,overflowY:"auto"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:380,overflowY:"auto"}}>
                 {PRACTICE_PLANS
                   .filter(pp=>browseFilter==="All"||pp.id===browseFilter)
                   .flatMap(pp=>pp.blocks.map((block,bi)=>({...block,_planTitle:pp.title,_planId:pp.id,_blockIdx:bi})))
@@ -6031,19 +6031,19 @@ function PlanBuilder({plan, onSave, onCancel}) {
                     const bc=BLOCK_COLORS[block.type]||BLOCK_COLORS.drill;
                     return (
                       <button key={`${block._planId}-${block._blockIdx}`} className="btn-press" onClick={()=>addPreMadeSegment(block)}
-                        style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",textAlign:"left",cursor:"pointer",width:"100%",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>
-                        <div style={{position:"absolute",top:0,left:0,bottom:0,width:3,background:bc.color}}/>
-                        <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:3}}>{block.name}</div>
-                            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                        style={{background:"#0f1e38",border:`1px solid ${bc.color}30`,borderRadius:12,padding:"14px 16px",textAlign:"left",cursor:"pointer",width:"100%",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>
+                        <div style={{position:"absolute",top:0,left:0,bottom:0,width:4,background:bc.color,boxShadow:`0 0 8px ${bc.color}60`}}/>
+                        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                          <div style={{flex:1,minWidth:0,paddingLeft:4}}>
+                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:"#fff",marginBottom:4,letterSpacing:0.5}}>{block.name}</div>
+                            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:block.activity?6:0}}>
                               <Tag label={bc.label} color={bc.color} small/>
-                              <Tag label={`${block.duration} min`} color={C.textDim} small/>
-                              {browseFilter==="All"&&<Tag label={block._planTitle} color={C.textMid} small/>}
+                              <Tag label={`${block.duration} min`} color={C.textMid} small/>
+                              {browseFilter==="All"&&<Tag label={block._planTitle} color={C.teal} small/>}
                             </div>
-                            {block.activity&&<div style={{fontSize:11,color:C.textDim,marginTop:4,lineHeight:1.4,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{block.activity}</div>}
+                            {block.activity&&<div style={{fontSize:12,color:"#8899b4",marginTop:2,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{block.activity}</div>}
                           </div>
-                          <div style={{flexShrink:0,width:32,height:32,borderRadius:8,background:`${C.teal}15`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,fontSize:16,fontWeight:800}}>+</div>
+                          <div style={{flexShrink:0,width:36,height:36,borderRadius:10,background:`${C.teal}20`,border:`1px solid ${C.teal}50`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,fontSize:18,fontWeight:800}}>+</div>
                         </div>
                       </button>
                     );
