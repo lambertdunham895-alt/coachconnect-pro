@@ -1285,7 +1285,7 @@ function AppInner() {
     (phData||[]).forEach(ph=>{
       if(ph.player_id && ph.storage_path) {
         const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(ph.storage_path);
-        photoMap[ph.player_id] = publicUrl;
+        photoMap[ph.player_id] = publicUrl + '?t=' + Date.now();
       }
     });
     setPlayerPhotos(photoMap);
@@ -1608,11 +1608,11 @@ function AppInner() {
       const res = await fetch(base64DataUrl);
       const blob = await res.blob();
       const ext = (blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
-      const path = `player-photos/${playerId}.${ext}`;
+      const path = `${playerId}.${ext}`;
       const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
       if (error) { console.error('Player photo upload error:', error.message); return; }
       const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
-      setPlayerPhotos(prev=>({...prev,[playerId]:publicUrl}));
+      setPlayerPhotos(prev=>({...prev,[playerId]:publicUrl + '?t=' + Date.now()}));
       await supabase.from('player_photos').upsert({
         player_id:playerId, team_id:teamId, storage_path:path,
         uploaded_by:session?.user?.id||null,
