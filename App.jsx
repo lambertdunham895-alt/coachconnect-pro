@@ -1259,9 +1259,10 @@ function AppInner() {
       if (!data) { setLoadError("Profile not found. Please sign out and create a new account."); setAuthReady(true); return; }
       setProfile(data);
       if (data?.team_id) {
-        const {data:teamData} = await supabase.from("teams").select("name, logo_url").eq("id",data.team_id).single();
-        if (teamData?.name) setTeamDisplayName(teamData.name);
-        if (teamData?.logo_url) setTeamLogo(teamData.logo_url);
+        const {data:td} = await supabase.from("teams").select("*").eq("id",data.team_id).single();
+        if (td?.name) setTeamDisplayName(td.name);
+        if (td?.logo_url) setTeamLogo(td.logo_url);
+        if (td) setTeamData(td);
         await loadTeamData(data.team_id, userId);
         if(data.role === 'parent' && data.player_id) {
           setParentPlayerLink({player_id: data.player_id, parent_id: userId});
@@ -1330,6 +1331,7 @@ function AppInner() {
   const [playerVideos, setPlayerVideos] = useState({});
   const [playerPhotos, setPlayerPhotos] = useState({});
   const [teamLogo, setTeamLogo]       = useState(null);
+  const [teamData, setTeamData]       = useState({});
   const [lineups, setLineups]         = useState({});
   const [customPlans, setCustomPlans] = useState([]);
   const [gamePlans, setGamePlans]     = useState({});
@@ -1577,6 +1579,29 @@ function AppInner() {
         setTeamLogo(publicUrl);
       }
     } catch(err) { console.error('Logo upload error:',err); }
+  };
+
+  // ── Team settings save ──────────────────────────────────────────────────
+  const handleTeamSettingsSave = async (formData) => {
+    const teamId = profile?.team_id;
+    if (!teamId) return;
+    const {error} = await supabase.from('teams').update({
+      name: formData.name,
+      age_group: formData.age_group,
+      season: formData.season,
+      location: formData.location,
+      coach_name: formData.coach_name,
+      coach_phone: formData.coach_phone,
+      coach_email: formData.coach_email,
+    }).eq('id', teamId);
+    if (error) {
+      console.error('Team settings save failed:', error.message);
+      alert('Failed to save team settings: ' + error.message);
+      return;
+    }
+    // Update local state
+    if (formData.name) setTeamDisplayName(formData.name);
+    setTeamData(prev => ({...prev, ...formData}));
   };
 
   // ── Subscription ─────────────────────────────────────────────────────────
@@ -1850,7 +1875,7 @@ function AppInner() {
         ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"})} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
@@ -2364,8 +2389,68 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
   );
 }
 
+// ─── TEAM SETTINGS PANEL ──────────────────────────────────────────────────────
+function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
+  const [form, setForm] = useState({
+    name: teamData.name || teamName || "",
+    age_group: teamData.age_group || "",
+    season: teamData.season || "2026",
+    location: teamData.location || "",
+    coach_name: teamData.coach_name || "",
+    coach_phone: teamData.coach_phone || "",
+    coach_email: teamData.coach_email || "",
+  });
+  const f = (k,v) => setForm(p=>({...p,[k]:v}));
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:3,color:C.text}}>Team Settings</div>
+        <button onClick={onCancel} style={{background:"none",border:"none",color:C.textDim,fontSize:22,cursor:"pointer",padding:"4px 8px"}}>✕</button>
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:16}}>
+        {/* Team Info */}
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:C.red,textTransform:"uppercase",marginBottom:14}}>⚾ Team Info</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <Inp label="Team Name" value={form.name} onChange={e=>f("name",e.target.value)} placeholder="e.g. Big Dogs"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <SelF label="Age Group" value={form.age_group} onChange={v=>f("age_group",v)} options={["","6–8 (T-ball)","9–12 (Little League)","13–15 (Junior)","16–18 (Senior)"]}/>
+              <Inp label="Season" value={form.season} onChange={e=>f("season",e.target.value)} placeholder="2026"/>
+            </div>
+            <Inp label="Home Field / Location" value={form.location} onChange={e=>f("location",e.target.value)} placeholder="e.g. Riverside Park, Field 2"/>
+          </div>
+        </div>
+
+        {/* Coach Contact */}
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:C.blue,textTransform:"uppercase",marginBottom:14}}>👤 Coach Contact Info</div>
+          <div style={{fontSize:12,color:C.textDim,marginBottom:12,lineHeight:1.5}}>This info is shared with parents so they can reach you.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            <Inp label="Coach Name" value={form.coach_name} onChange={e=>f("coach_name",e.target.value)} placeholder="e.g. Lambert Dunham"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <Inp label="Phone" value={form.coach_phone} onChange={e=>f("coach_phone",e.target.value)} placeholder="(555) 000-0000" type="tel"/>
+              <Inp label="Email" value={form.coach_email} onChange={e=>f("coach_email",e.target.value)} placeholder="coach@email.com" type="email"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:10,marginTop:20}}>
+        <button className="btn-press" onClick={()=>onSave(form)} disabled={!form.name.trim()} style={{flex:1,padding:"14px 0",borderRadius:12,background:form.name.trim()?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",color:form.name.trim()?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:form.name.trim()?"pointer":"default",minHeight:52,boxShadow:form.name.trim()?`0 6px 20px ${C.red}40`:"none"}}>
+          ✓ Save Settings
+        </button>
+        <button onClick={onCancel} style={{padding:"14px 20px",borderRadius:12,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:52}}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={}}) {
+function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
@@ -2374,6 +2459,7 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
+  const [showSettings, setShowSettings] = useState(false);
 
   // Needs Review: completed but not yet acknowledged
   const needsReview = assignments.filter(a=>a.completed && !a.acknowledged);
@@ -2393,6 +2479,20 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
   return (
     <div>
+      {/* Team Settings Modal */}
+      {showSettings && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div style={{width:"100%",maxWidth:500,background:C.bg,borderRadius:"20px 20px 0 0",padding:"24px 20px 40px",boxShadow:"0 -8px 40px #000a",maxHeight:"85vh",overflowY:"auto"}}>
+            <TeamSettingsPanel
+              teamData={teamData}
+              teamName={teamName}
+              onSave={(data)=>{onTeamSettingsSave(data);setShowSettings(false);}}
+              onCancel={()=>setShowSettings(false)}
+            />
+          </div>
+        </div>
+      )}
+
       <NewCoachCard page="home" setTab={setTab}/>
 
       {/* ── Team Identity Banner ── */}
@@ -2455,6 +2555,11 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
               {teamLogo?"Tap logo to update":"Tap logo to add"}
             </div>
           </div>
+
+          {/* Settings gear */}
+          {onTeamSettingsSave && (
+            <button onClick={()=>setShowSettings(true)} style={{position:"absolute",top:16,right:16,width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",zIndex:3,color:"#fff"}}>⚙️</button>
+          )}
         </div>
       </div>
       <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38 0%,#0c1628 60%,#150b10 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
