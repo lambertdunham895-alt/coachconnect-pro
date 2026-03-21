@@ -1149,6 +1149,7 @@ function AppInner() {
   const [parentUserId, setPUID] = useState(null);
   const [parentPlayerLink, setParentPlayerLink] = useState(null);
   const [launching, setLaunching] = useState(true); // show launch screen first
+  const [showIOSBanner, setShowIOSBanner] = useState(false); // iOS "Add to Home Screen" prompt
 
   // ── Listen for auth state changes ────────────────────────────────────────
   useEffect(()=>{
@@ -1784,6 +1785,21 @@ function AppInner() {
     }
   };
 
+  // ── iOS "Add to Home Screen" detection ──────────────────────────────────
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    const wasDismissed = localStorage.getItem('ccp_ios_banner_dismissed');
+    if (isIOS && !isStandalone && !wasDismissed) {
+      setShowIOSBanner(true);
+    }
+  }, []);
+
+  const dismissIOSBanner = () => {
+    setShowIOSBanner(false);
+    localStorage.setItem('ccp_ios_banner_dismissed', '1');
+  };
+
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
   if (loadError) return (
@@ -1873,6 +1889,7 @@ function AppInner() {
           backLabel={activeChat ? "Chat" : "Sign Out"}
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
+        {showIOSBanner && <IOSBanner onDismiss={dismissIOSBanner}/>}
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
           : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
@@ -1921,6 +1938,8 @@ function AppInner() {
         trialBadge={isTrial ? daysLeft : null}
         onUpgrade={!isActive ? ()=>setShowUpgrade(true) : null}
       />
+
+      {showIOSBanner && <IOSBanner onDismiss={dismissIOSBanner}/>}
 
       {/* Trial / expired banner */}
       {isTrial && daysLeft <= 5 && !showUpgrade && (
@@ -1979,6 +1998,24 @@ export default function App() {
     <ErrorBoundary>
       <AppInner/>
     </ErrorBoundary>
+  );
+}
+
+// ─── iOS ADD TO HOME SCREEN BANNER ───────────────────────────────────────────
+function IOSBanner({onDismiss}) {
+  return (
+    <div style={{background:`linear-gradient(135deg, ${C.card} 0%, ${C.cardAlt||C.card} 100%)`,borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"flex-start",gap:12}}>
+      <div style={{fontSize:28,flexShrink:0,lineHeight:1}}>📲</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,color:C.text,marginBottom:4}}>
+          Install CoachConnect Pro
+        </div>
+        <div style={{fontSize:12,color:C.textMid,lineHeight:1.5}}>
+          Tap the <span style={{display:"inline-flex",verticalAlign:"middle",background:C.bg,borderRadius:4,padding:"1px 5px",margin:"0 2px",fontSize:16,lineHeight:1}}>⎋</span> share button at the bottom of Safari, then tap <strong style={{color:C.text}}>"Add to Home Screen"</strong> for the best experience.
+        </div>
+      </div>
+      <button onClick={onDismiss} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1,flexShrink:0}} title="Dismiss">✕</button>
+    </div>
   );
 }
 
