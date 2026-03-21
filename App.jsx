@@ -48,16 +48,11 @@ async function registerPushSubscription(userId, teamId) {
 
 async function sendPushNotification(teamId, title, body, excludeUserId=null) {
   try {
-    const { data:{ session } } = await supabase.auth.getSession();
-    if(!session) return;
-    await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/send-notification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ team_id: teamId, title, body, exclude_user_id: excludeUserId }),
+    const { data, error } = await supabase.functions.invoke('send-notification', {
+      body: { team_id: teamId, title, body, exclude_user_id: excludeUserId },
     });
+    if(error) console.error('Push notification error:', error);
+    else console.log('Push sent:', data);
   } catch(err) { console.error('Push send error:', err); }
 }
 
@@ -3012,7 +3007,15 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
       if(teamId) supabase.from('assignments').insert({
         id:newA.id, team_id:teamId, player_id:pid, drill_id:selectedDrill.id,
         assigned_date:newA.assignedDate, completed:false, notes:'', acknowledged:false, coach_rating:null,
-      }).then(({error})=>{ if(error) console.error('Asgn insert failed:',error.message); });
+      }).then(({error})=>{ 
+        if(error) console.error('Asgn insert failed:',error.message);
+        else {
+          const player = players.find(p=>p.id===pid);
+          if(selectedDrill && player) {
+            sendPushNotification(teamId, `New Drill: ${selectedDrill.name}`, `Coach assigned "${selectedDrill.name}" to ${player.name}`, session?.user?.id);
+          }
+        }
+      });
     }
   };
 
@@ -3178,6 +3181,11 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       if(teamId) {
         const {error}=await supabase.from('events').insert(row);
         if(error) console.error('Event insert failed:',error.message);
+        else {
+          const dateStr = form.date ? new Date(form.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
+          const typeLabel = form.type==='game' ? 'Game' : 'Practice';
+          sendPushNotification(teamId, `New ${typeLabel} Scheduled`, `${typeLabel} on ${dateStr}${form.time?' at '+form.time:''}${form.opponent?' vs '+form.opponent:''}`, session?.user?.id);
+        }
       }
     }
     // Now that the event exists in DB, explicitly save lineup & game plan
