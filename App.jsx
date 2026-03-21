@@ -2066,6 +2066,8 @@ function LandingPage({onAuth}) {
 
       {/* ── HOW IT WORKS ── */}
       <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Simple Setup</div>
           <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Up and Running in 2 Minutes</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:500,margin:"0 auto"}}>
