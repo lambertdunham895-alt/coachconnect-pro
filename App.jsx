@@ -2036,9 +2036,36 @@ function LandingPage({onAuth}) {
           {features.map((f,i)=>(<div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px 20px",position:"relative",overflow:"hidden"}}><div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,transparent)`}}/><div style={{fontSize:28,marginBottom:12}}>{f.icon}</div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:17,color:"#fff",letterSpacing:0.5,marginBottom:8}}>{f.title}</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.6}}>{f.desc}</div></div>))}
         </div>
       </Section>
+
+      {/* ── FREE RESOURCES ── */}
       <Section>
         <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Simple Setup</div>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.teal,textTransform:"uppercase",marginBottom:8}}>Free Coach Resources</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Download. Print. Use Today.</div>
+          <div style={{fontSize:14,color:C.textDim,marginTop:8}}>No signup required. These are yours.</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,maxWidth:660,margin:"0 auto"}}>
+          <a href="/The_Emotional_Game_Plan.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+            <div style={{fontSize:36,marginBottom:12}}>📖</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>The Emotional Game Plan</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.gold,textTransform:"uppercase",marginBottom:10}}>16-Page PDF Guide</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Scripts for strikeouts, errors, angry players, scared batters, and parent conversations. Pre-game and post-game talk templates. 4-week practice plan framework.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.gold}15`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.gold}}>Download Free PDF ↓</div>
+          </a>
+          <a href="/Defensive_Positioning_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
+            <div style={{fontSize:36,marginBottom:12}}>🗺️</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>Defensive Positioning Guide</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.teal,textTransform:"uppercase",marginBottom:10}}>29-Page Visual Reference</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Every position on every play. Fly balls to LF/CF/RF, grounders to 3B/SS/2B/1B/P. No runners, runner on 1st, runner on 2nd, runners on 1st & 2nd.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.teal}}>Download Free PDF ↓</div>
+          </a>
+        </div>
+      </Section>
+
+      {/* ── HOW IT WORKS ── */}
+      <Section>
           <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Up and Running in 2 Minutes</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:500,margin:"0 auto"}}>
