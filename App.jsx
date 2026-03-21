@@ -1738,7 +1738,7 @@ function AppInner() {
     </div>
   );
 
-  if (!session || !profile) return <LoginScreen onAuth={handleAuth}/>;
+  if (!session || !profile) return <LandingPage onAuth={handleAuth}/>;
 
   const role = profile.role;
 
@@ -1968,8 +1968,111 @@ function BottomNav({tab,setTab,totalUnread}) {
   );
 }
 
+// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
+function LandingPage({onAuth}) {
+  const [showLogin, setShowLogin] = useState(false);
+
+  if (showLogin) return <LoginScreen onAuth={onAuth} onBack={()=>setShowLogin(false)}/>;
+
+  const Section = ({children, style={}}) => (
+    <div style={{padding:"60px 20px",maxWidth:800,margin:"0 auto",...style}}>{children}</div>
+  );
+
+  const features = [
+    {icon:"⚾",title:"69 Drills, 9 Categories",desc:"From hitting mechanics to mental toughness — assign drills that build the whole player, not just the skills."},
+    {icon:"📱",title:"Parent Communication",desc:"Built-in team chat and individual DMs. Keep parents in the loop without group text chaos."},
+    {icon:"📊",title:"Player Progress Tracking",desc:"Skill snapshots, rubric evaluations, and video uploads. See growth over the whole season."},
+    {icon:"📅",title:"Schedule & Lineup Builder",desc:"Games, practices, batting orders, and field positions — all in one place. Share with parents instantly."},
+    {icon:"📝",title:"Practice Plan Builder",desc:"Build custom plans from 50+ pre-made segments. Run practice with a built-in timer."},
+    {icon:"🏆",title:"Development Over Trophies",desc:"Focus on what matters — confidence, effort, and love for the game. Built for coaches who coach the kid first."},
+  ];
+
+  const pricing = [
+    {name:"Founding Coach",price:"$14.99",period:"/mo",desc:"Lock in this rate forever",badge:"🔥 Limited",color:C.gold,features:["Full drill library (69 drills)","Unlimited players","Parent app & messaging","Practice plan builder","Progress tracking","Priority support"]},
+    {name:"Pro Monthly",price:"$24.99",period:"/mo",desc:"Full access, cancel anytime",badge:null,color:C.red,features:["Everything in Founding Coach","Advanced analytics (coming)","Email notifications (coming)","Custom branding (coming)"]},
+    {name:"Pro Annual",price:"$249.99",period:"/yr",desc:"Save $49.89 per year",badge:"💰 Best Value",color:C.teal,features:["Everything in Pro Monthly","2 months free","Annual billing"]},
+  ];
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",overflowX:"hidden"}}>
+      <style>{FONTS}</style>
+      <nav style={{position:"sticky",top:0,zIndex:100,background:`${C.bg}ee`,backdropFilter:"blur(12px)",borderBottom:`1px solid ${C.border}`,padding:"0 20px"}}>
+        <div style={{maxWidth:900,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <img src={LOGO} alt="CCP" style={{width:32,height:32,borderRadius:8}}/>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,letterSpacing:3,color:"#fff",lineHeight:1}}>CoachConnect Pro</div>
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={()=>setShowLogin(true)} style={{padding:"8px 18px",borderRadius:8,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer"}}>Log In</button>
+            <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"8px 18px",borderRadius:8,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.red}40`}}>Start Free Trial</button>
+          </div>
+        </div>
+      </nav>
+      <div style={{position:"relative",overflow:"hidden",padding:"80px 20px 60px",textAlign:"center"}}>
+        <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 50% 0%,${C.red}15 0%,transparent 70%)`}}/>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`}}/>
+        <div style={{position:"relative",maxWidth:700,margin:"0 auto"}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:16}}>For Youth Baseball Coaches Who Coach the Kid First</div>
+          <h1 style={{fontFamily:"Bebas Neue, sans-serif",fontSize:"clamp(42px,8vw,72px)",letterSpacing:3,color:"#fff",lineHeight:1.05,margin:"0 0 20px",textShadow:`0 4px 40px ${C.red}30`}}>Build Better Players.<br/><span style={{background:`linear-gradient(90deg,${C.red},${C.gold})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Build Better Kids.</span></h1>
+          <p style={{fontSize:17,color:C.textMid,lineHeight:1.7,maxWidth:540,margin:"0 auto 32px",fontWeight:400}}>The only youth baseball app built around player development and the emotional side of coaching. Drills, communication, and progress tracking — all in one place.</p>
+          <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"16px 36px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 8px 32px ${C.red}50`,minHeight:54}}>Start Free 14-Day Trial →</button>
+          <div style={{marginTop:16,fontSize:13,color:C.textDim}}>No credit card required · Set up in 2 minutes</div>
+        </div>
+      </div>
+      <Section>
+        <div style={{textAlign:"center",maxWidth:600,margin:"0 auto",padding:"40px 24px",background:C.card,borderRadius:20,border:`1px solid ${C.border}`,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+          <div style={{fontSize:40,marginBottom:16}}>💛</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1.3,marginBottom:12}}>"The best coaches don't just teach the game — they shape the person playing it."</div>
+          <div style={{fontSize:14,color:C.textDim,lineHeight:1.7}}>CoachConnect Pro was built for coaches who understand that youth baseball is about more than wins and losses. It's about building confidence, teaching resilience, and creating an environment where every kid wants to come back next season.</div>
+        </div>
+      </Section>
+      <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:8}}>Everything You Need</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Tools Built for Real Coaches</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16}}>
+          {features.map((f,i)=>(<div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"24px 20px",position:"relative",overflow:"hidden"}}><div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,transparent)`}}/><div style={{fontSize:28,marginBottom:12}}>{f.icon}</div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:17,color:"#fff",letterSpacing:0.5,marginBottom:8}}>{f.title}</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.6}}>{f.desc}</div></div>))}
+        </div>
+      </Section>
+      <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Simple Setup</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Up and Running in 2 Minutes</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:500,margin:"0 auto"}}>
+          {[{num:"1",title:"Create your team",desc:"Sign up, name your team, and you're in."},{num:"2",title:"Add your players",desc:"Enter names, positions, and parent contacts."},{num:"3",title:"Assign drills & communicate",desc:"Pick from 69 drills across 9 categories. Parents see everything in their app."}].map((step,i)=>(<div key={i} style={{display:"flex",gap:16,alignItems:"flex-start",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px"}}><div style={{width:44,height:44,borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:"#fff",flexShrink:0,boxShadow:`0 4px 16px ${C.red}40`}}>{step.num}</div><div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:"#fff",marginBottom:4}}>{step.title}</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.5}}>{step.desc}</div></div></div>))}
+        </div>
+      </Section>
+      <Section style={{padding:"60px 20px 40px"}}>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.teal,textTransform:"uppercase",marginBottom:8}}>Pricing</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Start Free. Upgrade When Ready.</div>
+          <div style={{fontSize:14,color:C.textDim,marginTop:8}}>14-day free trial on all plans · No credit card required</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,maxWidth:740,margin:"0 auto"}}>
+          {pricing.map((plan,i)=>(<div key={i} style={{background:C.card,border:`1px solid ${plan.color}40`,borderRadius:18,padding:"24px 20px",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}><div style={{position:"absolute",top:0,left:0,right:0,height:3,background:plan.color}}/>{plan.badge&&<div style={{position:"absolute",top:12,right:12,padding:"4px 10px",borderRadius:8,background:`${plan.color}20`,border:`1px solid ${plan.color}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:plan.color,textTransform:"uppercase"}}>{plan.badge}</div>}<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:plan.color,textTransform:"uppercase",marginBottom:8}}>{plan.name}</div><div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:36,color:"#fff",lineHeight:1}}>{plan.price}<span style={{fontSize:16,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600}}>{plan.period}</span></div><div style={{fontSize:12,color:C.textDim,marginTop:4,marginBottom:16}}>{plan.desc}</div><div style={{flex:1,display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>{plan.features.map((ft,fi)=>(<div key={fi} style={{display:"flex",gap:8,alignItems:"flex-start",fontSize:13,color:C.textMid}}><span style={{color:plan.color,fontSize:12,marginTop:2}}>✓</span><span>{ft}</span></div>))}</div><button onClick={()=>setShowLogin(true)} className="btn-press" style={{width:"100%",padding:"12px 0",borderRadius:10,background:`linear-gradient(135deg,${plan.color},${plan.color}cc)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:46,boxShadow:`0 4px 16px ${plan.color}30`}}>Start Free Trial</button></div>))}
+        </div>
+      </Section>
+      <Section style={{padding:"40px 20px 60px"}}>
+        <div style={{textAlign:"center",maxWidth:500,margin:"0 auto",padding:"40px 24px",background:`linear-gradient(135deg,#1a0808,${C.card})`,borderRadius:20,border:`1px solid ${C.red}40`,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,background:`radial-gradient(ellipse at 50% 100%,${C.red}12,transparent 70%)`}}/>
+          <div style={{position:"relative"}}><div style={{fontSize:40,marginBottom:12}}>⚾</div><div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1.2,marginBottom:12}}>Ready to Coach Differently?</div><div style={{fontSize:14,color:C.textMid,lineHeight:1.7,marginBottom:24}}>Join the coaches who are putting player development and the emotional game first. Your team deserves it.</div><button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"16px 36px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 8px 32px ${C.red}50`,minHeight:54}}>Start Your Free Trial →</button></div>
+        </div>
+      </Section>
+      <div style={{borderTop:`1px solid ${C.border}`,padding:"28px 20px",textAlign:"center"}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:14,letterSpacing:3,color:C.textDim,marginBottom:8}}>CoachConnect Pro</div>
+        <div style={{display:"flex",gap:20,justifyContent:"center",marginBottom:8}}><a href="/terms.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Terms</a><a href="/privacy.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Privacy</a></div>
+        <div style={{fontSize:11,color:C.textDim}}>© 2026 CoachConnect Pro. All rights reserved.</div>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
-function LoginScreen({onAuth}) {
+function LoginScreen({onAuth, onBack=null}) {
   const [mode,    setMode]    = useState("login"); // "login" | "signup"
   const [email,   setEmail]   = useState("");
   const [pass,    setPass]    = useState("");
@@ -2045,6 +2148,9 @@ function LoginScreen({onAuth}) {
       <div style={{position:"absolute",bottom:-60,right:-60,width:260,height:260,borderRadius:"50%",background:`radial-gradient(circle,${C.blue}15 0%,transparent 70%)`,pointerEvents:"none"}}/>
 
       {/* Logo */}
+      {onBack && (
+        <button onClick={onBack} className="fade-up" style={{position:"relative",zIndex:2,background:"none",border:"none",color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1,cursor:"pointer",padding:"8px 4px",marginBottom:12,display:"flex",alignItems:"center",gap:4}}>‹ Back to Home</button>
+      )}
       <div className="fade-up" style={{textAlign:"center",marginBottom:32,position:"relative",zIndex:1}}>
         <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",background:"#fff",borderRadius:28,padding:"20px 28px 14px",boxShadow:"0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(30,123,212,0.3)",marginBottom:16}}>
           <img src={LOGO} alt="CoachConnect Pro" style={{width:120,height:120,objectFit:"contain",display:"block"}}/>
