@@ -1179,7 +1179,7 @@ function AppInner() {
       const [
         {data:pData}, {data:aData}, {data:eData},
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
-        {data:cpData}, {data:phData}, {data:readData}, {data:ppData},
+        {data:cpData}, {data:phData}, {data:readData}, {data:ppData}, {data:pvData},
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1193,6 +1193,7 @@ function AppInner() {
         supabase.from('player_photos').select('*').eq('team_id' , teamId),
         supabase.from('chat_read_status').select('*').eq('team_id',teamId),
         supabase.from('parent_players').select('*'),
+        supabase.from('player_videos').select('*').eq('team_id',teamId),
       ]);
 
     // Build players
@@ -1288,6 +1289,17 @@ function AppInner() {
       }
     });
     setPlayerPhotos(photoMap);
+
+    // Load player videos from DB
+    const pvMap = {};
+    (pvData||[]).forEach(pv=>{
+      if(pv.player_id && pv.drill_id && pv.storage_path) {
+        const {data:{publicUrl}} = supabase.storage.from('player-videos').getPublicUrl(pv.storage_path);
+        const key = `${pv.player_id}_${pv.drill_id}`;
+        pvMap[key] = { url: publicUrl, storagePath: pv.storage_path, uploadedAt: new Date(pv.uploaded_at).getTime(), feedback: [] };
+      }
+    });
+    setPlayerVideos(pvMap);
 
     // setDataLoaded is called in loadProfile after parent link is also set
     } catch(err) {
@@ -5346,23 +5358,60 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
   const inputRef = React.useRef();
 
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { alert('Video must be under 50MB'); return; }
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+    setUploadProgress('Uploading...');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { alert('Please sign in again'); setLoading(false); return; }
+      const userId = session.user.id;
+      const { data: prof } = await supabase.from('profiles').select('team_id').eq('id', userId).single();
+      const teamId = prof?.team_id;
+      if (!teamId) { alert('No team found'); setLoading(false); return; }
+
+      const ext = file.name.split('.').pop() || 'mp4';
+      const storagePath = `${teamId}/${playerId}/${drillId}_${Date.now()}.${ext}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage.from('player-videos').upload(storagePath, file, { cacheControl: '3600', upsert: true });
+      if (uploadError) { console.error('Upload error:', uploadError); alert('Upload failed: ' + uploadError.message); setLoading(false); return; }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('player-videos').getPublicUrl(storagePath);
+      const publicUrl = urlData?.publicUrl;
+
+      // Save to DB
+      setUploadProgress('Saving...');
+      const { error: dbError } = await supabase.from('player_videos').insert({
+        team_id: teamId, player_id: playerId, drill_id: drillId,
+        storage_path: storagePath, uploaded_by: userId,
+      });
+      if (dbError) console.error('DB save error:', dbError);
+
+      // Update local state
       setPlayerVideos(prev => ({
         ...prev,
-        [key]: { url: ev.target.result, name: file.name, uploadedAt: Date.now(), feedback: prev[key]?.feedback || [] }
+        [key]: { url: publicUrl, storagePath, name: file.name, uploadedAt: Date.now(), feedback: prev[key]?.feedback || [] }
       }));
-      setLoading(false);
-    };
-    reader.readAsDataURL(file);
+    } catch(err) {
+      console.error('Video upload failed:', err);
+      alert('Video upload failed. Please try again.');
+    }
+    setLoading(false);
+    setUploadProgress('');
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    if (!entry?.storagePath) { setPlayerVideos(prev => { const n={...prev}; delete n[key]; return n; }); return; }
+    try {
+      await supabase.storage.from('player-videos').remove([entry.storagePath]);
+      await supabase.from('player_videos').delete().eq('storage_path', entry.storagePath);
+    } catch(err) { console.error('Delete error:', err); }
     setPlayerVideos(prev => { const n={...prev}; delete n[key]; return n; });
   };
 
@@ -5377,7 +5426,6 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
       </div>
       <video src={entry.url} controls playsInline style={{width:"100%",borderRadius:10,background:"#000",maxHeight:220,objectFit:"contain"}}/>
       <div style={{fontSize:11,color:C.textDim,marginTop:5}}>Uploaded {new Date(entry.uploadedAt).toLocaleDateString()} · Visible to your coach</div>
-      {/* Show coach timestamped feedback if any */}
       {entry.feedback?.length > 0 && (
         <div style={{marginTop:12,background:`${C.teal}08`,border:`1px solid ${C.teal}30`,borderRadius:10,padding:"10px 14px"}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.teal,textTransform:"uppercase",marginBottom:8}}>💬 Coach Feedback</div>
@@ -5396,7 +5444,7 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
     <div style={{marginTop:12,borderTop:`1px solid ${C.border}`,paddingTop:12}}>
       <input ref={inputRef} type="file" accept="video/*" style={{display:"none"}} onChange={handleFile}/>
       <button onClick={()=>inputRef.current.click()} disabled={loading} style={{width:"100%",padding:"11px 0",borderRadius:10,background:"transparent",border:`1px dashed ${C.teal}50`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:loading?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,minHeight:44,transition:"all 0.2s",opacity:loading?0.6:1}}>
-        <span style={{fontSize:16}}>📹</span> {loading ? "Processing…" : "Upload Practice Video"}
+        <span style={{fontSize:16}}>📹</span> {loading ? uploadProgress || "Uploading…" : "Upload Practice Video"}
       </button>
       <div style={{fontSize:11,color:C.textDim,marginTop:5,textAlign:"center"}}>Film {drillName} at home and send it to your coach for feedback</div>
     </div>
