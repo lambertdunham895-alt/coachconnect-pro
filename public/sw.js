@@ -1,5 +1,4 @@
 // CoachConnect Pro - Push Notification Service Worker
-
 self.addEventListener('push', function(event) {
   let data = { title: 'CoachConnect Pro', body: 'You have a new notification', icon: '/icon-192x192.png' };
   
@@ -10,22 +9,19 @@ self.addEventListener('push', function(event) {
   } catch(e) {
     console.error('Push data parse error:', e);
   }
-
   const options = {
     body: data.body || '',
     icon: data.icon || '/icon-192x192.png',
-    badge: '/icon-192x192.png',
+    badge: '/badge-96x96.png',
     tag: data.tag || 'default',
     data: { url: data.url || '/' },
     vibrate: [200, 100, 200],
     actions: data.actions || [],
   };
-
   event.waitUntil(
     self.registration.showNotification(data.title || 'CoachConnect Pro', options)
   );
 });
-
 // Handle notification click - open the app
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
@@ -44,12 +40,10 @@ self.addEventListener('notificationclick', function(event) {
     })
   );
 });
-
 // Service worker install
 self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
-
 // Service worker activate
 self.addEventListener('activate', function(event) {
   event.waitUntil(clients.claim());
