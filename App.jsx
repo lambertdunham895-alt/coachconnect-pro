@@ -1149,7 +1149,6 @@ function AppInner() {
   const [parentUserId, setPUID] = useState(null);
   const [parentPlayerLink, setParentPlayerLink] = useState(null);
   const [launching, setLaunching] = useState(true); // show launch screen first
-  const [showIOSBanner, setShowIOSBanner] = useState(false); // iOS "Add to Home Screen" prompt
 
   // ── Listen for auth state changes ────────────────────────────────────────
   useEffect(()=>{
@@ -1785,21 +1784,6 @@ function AppInner() {
     }
   };
 
-  // ── iOS "Add to Home Screen" detection ──────────────────────────────────
-  useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-    const wasDismissed = localStorage.getItem('ccp_ios_banner_dismissed');
-    if (isIOS && !isStandalone && !wasDismissed) {
-      setShowIOSBanner(true);
-    }
-  }, []);
-
-  const dismissIOSBanner = () => {
-    setShowIOSBanner(false);
-    localStorage.setItem('ccp_ios_banner_dismissed', '1');
-  };
-
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
   if (loadError) return (
@@ -1889,7 +1873,6 @@ function AppInner() {
           backLabel={activeChat ? "Chat" : "Sign Out"}
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
-        {showIOSBanner && <IOSBanner onDismiss={dismissIOSBanner}/>}
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
           : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
@@ -1938,8 +1921,6 @@ function AppInner() {
         trialBadge={isTrial ? daysLeft : null}
         onUpgrade={!isActive ? ()=>setShowUpgrade(true) : null}
       />
-
-      {showIOSBanner && <IOSBanner onDismiss={dismissIOSBanner}/>}
 
       {/* Trial / expired banner */}
       {isTrial && daysLeft <= 5 && !showUpgrade && (
@@ -1998,24 +1979,6 @@ export default function App() {
     <ErrorBoundary>
       <AppInner/>
     </ErrorBoundary>
-  );
-}
-
-// ─── iOS ADD TO HOME SCREEN BANNER ───────────────────────────────────────────
-function IOSBanner({onDismiss}) {
-  return (
-    <div style={{background:`linear-gradient(135deg, ${C.card} 0%, ${C.cardAlt||C.card} 100%)`,borderBottom:`1px solid ${C.border}`,padding:"14px 16px",display:"flex",alignItems:"flex-start",gap:12}}>
-      <div style={{fontSize:28,flexShrink:0,lineHeight:1}}>📲</div>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,color:C.text,marginBottom:4}}>
-          Install CoachConnect Pro
-        </div>
-        <div style={{fontSize:12,color:C.textMid,lineHeight:1.5}}>
-          Tap the <span style={{display:"inline-flex",verticalAlign:"middle",background:C.bg,borderRadius:4,padding:"1px 5px",margin:"0 2px",fontSize:16,lineHeight:1}}>⎋</span> share button at the bottom of Safari, then tap <strong style={{color:C.text}}>"Add to Home Screen"</strong> for the best experience.
-        </div>
-      </div>
-      <button onClick={onDismiss} style={{background:"none",border:"none",color:C.textMid,fontSize:20,cursor:"pointer",padding:"0 4px",lineHeight:1,flexShrink:0}} title="Dismiss">✕</button>
-    </div>
   );
 }
 
@@ -3576,9 +3539,9 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   const f = (k,v) => setForm(p=>({...p,[k]:v}));
 
   return (
-    <div>
+    <div style={{overflowX:"hidden"}}>
       {/* Player hero card */}
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 14px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`}}>
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 14px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`,overflow:"hidden"}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
 
         {editing && form ? (
@@ -3625,14 +3588,14 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
         ) : (
           /* ── VIEW MODE ── */
           <>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
-              <div style={{display:"flex",gap:14,alignItems:"flex-start",flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",overflow:"hidden"}}>
+              <div style={{display:"flex",gap:14,alignItems:"flex-start",flex:1,minWidth:0}}>
                 {/* Player photo (read-only for coach) */}
                 {playerPhotos[player.id]
                   ? <div style={{flexShrink:0}}><Avatar name={player.name} size={64} photo={playerPhotos[player.id]} showRing/></div>
                   : null
                 }
-                <div style={{flex:1}}>
+                <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
                     {player.number&&<Tag label={`#${player.number}`} color={C.gold}/>}
                     <Tag label={player.position} color={C.red}/>
@@ -3648,7 +3611,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
                         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
                         <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                           {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
-                          {par.email&&<a href={`mailto:${par.email}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px"}}>✉️ {par.email}</a>}
+                          {par.email&&<a href={`mailto:${par.email}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%"}}>✉️ {par.email}</a>}
                           {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
                           {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
                         </div>
