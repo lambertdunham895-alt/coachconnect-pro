@@ -3588,54 +3588,62 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
         ) : (
           /* ── VIEW MODE ── */
           <>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative",overflow:"hidden"}}>
-              <div style={{display:"flex",gap:14,alignItems:"flex-start",flex:1,minWidth:0}}>
-                {/* Player photo (read-only for coach) */}
-                {playerPhotos[player.id]
-                  ? <div style={{flexShrink:0}}><Avatar name={player.name} size={64} photo={playerPhotos[player.id]} showRing/></div>
-                  : null
-                }
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-                    {player.number&&<Tag label={`#${player.number}`} color={C.gold}/>}
-                    <Tag label={player.position} color={C.red}/>
-                    <Tag label={player.ageGroup} color={C.textMid}/>
-                    <Tag label={`Age ${player.age}`} color={C.textDim}/>
-                    {player.bats&&<Tag label={`Bats ${player.bats==="S"?"Switch":player.bats}`} color={C.blue}/>}
-                    {player.throws&&<Tag label={`Throws ${player.throws}`} color={C.teal}/>}
-                  </div>
-                {(player.parents||[]).length>0&&(
-                  <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>
-                    {player.parents.map(par=>(
-                      <div key={par.id} style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:10,padding:"10px 12px"}}>
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
-                        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                          {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
-                          {par.email&&<a href={`mailto:${par.email}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100%"}}>✉️ {par.email}</a>}
-                          {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
-                          {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                </div>{/* end flex:1 inner */}
-              </div>{/* end photo+info flex row */}
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0,marginLeft:8}}>
-                <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.gold,flexShrink:0}}>✏️</button>
-                <button onClick={()=>{
-                  if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
-                  setPlayers(prev=>prev.filter(p=>p.id!==player.id));
-                  if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
-                  onDelete();
-                }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.red,flexShrink:0}}>🗑️</button>
-                <Ring pct={pct} size={52} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
+            {/* Top row: photo + tags + action buttons */}
+            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
+              {/* Player photo */}
+              {playerPhotos[player.id]
+                ? <div style={{flexShrink:0}}><Avatar name={player.name} size={64} photo={playerPhotos[player.id]} showRing/></div>
+                : null
+              }
+              {/* Tags + actions */}
+              <div style={{flex:1,minWidth:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",flex:1,minWidth:0}}>
+                  {player.number&&<Tag label={`#${player.number}`} color={C.gold}/>}
+                  <Tag label={player.position} color={C.red}/>
+                  <Tag label={player.ageGroup} color={C.textMid}/>
+                  <Tag label={`Age ${player.age}`} color={C.textDim}/>
+                  {player.bats&&<Tag label={`Bats ${player.bats==="S"?"Switch":player.bats}`} color={C.blue}/>}
+                  {player.throws&&<Tag label={`Throws ${player.throws}`} color={C.teal}/>}
+                </div>
+                <div style={{display:"flex",gap:6,flexShrink:0}}>
+                  <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.gold}}>✏️</button>
+                  <button onClick={()=>{
+                    if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
+                    setPlayers(prev=>prev.filter(p=>p.id!==player.id));
+                    if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
+                    onDelete();
+                  }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.red}}>🗑️</button>
+                </div>
               </div>
             </div>
-            <div style={{marginTop:12,background:"#1a2f5240",borderRadius:4,height:5,overflow:"hidden"}}>
-              <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 8px ${C.gold}60`,transition:"width 0.8s ease"}}/>
+
+            {/* Parent info */}
+            {(player.parents||[]).length>0&&(
+              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
+                {player.parents.map(par=>(
+                  <div key={par.id} style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:10,padding:"10px 12px"}}>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                      {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
+                      {par.email&&<a href={`mailto:${par.email}`} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px",minWidth:0,overflow:"hidden"}}><span style={{flexShrink:0}}>✉️</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{par.email}</span></a>}
+                      {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
+                      {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Progress bar + ring */}
+            <div style={{marginTop:12,display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{background:"#1a2f5240",borderRadius:4,height:5,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 8px ${C.gold}60`,transition:"width 0.8s ease"}}/>
+                </div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textDim,marginTop:5,letterSpacing:1}}>{done} of {mine.length} drills complete</div>
+              </div>
+              <Ring pct={pct} size={48} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
             </div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textDim,marginTop:5,letterSpacing:1}}>{done} of {mine.length} drills complete</div>
           </>
         )}
       </div>
