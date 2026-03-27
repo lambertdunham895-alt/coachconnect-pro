@@ -2052,6 +2052,116 @@ function BottomNav({tab,setTab,totalUnread}) {
   );
 }
 
+// ─── REVIEWS SECTION ────────────────────────────────────────────────────────
+function ReviewsSection() {
+  const [reviews, setReviews] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formRole, setFormRole] = useState('Youth Baseball Coach');
+  const [formRating, setFormRating] = useState(5);
+  const [formText, setFormText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    supabase.from('reviews').select('*').eq('approved', true).order('created_at', { ascending: false }).limit(10).then(({ data }) => {
+      if (data) setReviews(data);
+    });
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!formName.trim() || !formText.trim() || formText.trim().length < 10) return;
+    setSubmitting(true);
+    const { error } = await supabase.from('reviews').insert({ name: formName.trim(), role: formRole.trim() || 'Youth Baseball Coach', rating: formRating, review_text: formText.trim() });
+    setSubmitting(false);
+    if (!error) {
+      setSubmitted(true);
+      setFormName(''); setFormRole('Youth Baseball Coach'); setFormRating(5); setFormText('');
+    }
+  };
+
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+  return (
+    <div style={{padding:"60px 20px",maxWidth:800,margin:"0 auto"}}>
+      <div style={{textAlign:"center",marginBottom:40}}>
+        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:8}}>What Coaches Are Saying</div>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Real Reviews From Real Coaches</div>
+      </div>
+
+      {reviews.length > 0 ? (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:32}}>
+          {reviews.map(r => (
+            <div key={r.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"24px 20px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.gold},${C.red})`}}/>
+              <div style={{color:C.gold,fontSize:18,letterSpacing:2,marginBottom:12}}>{stars(r.rating)}</div>
+              <div style={{fontSize:14,color:C.textMid,lineHeight:1.7,fontStyle:"italic",marginBottom:16}}>"{r.review_text}"</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${C.red}40,${C.gold}40)`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Bebas Neue, sans-serif",fontSize:16,color:"#fff"}}>{r.name.charAt(0).toUpperCase()}</div>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>{r.name}</div>
+                  <div style={{fontSize:11,color:C.textDim}}>{r.role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{textAlign:"center",padding:"40px 20px",background:C.card,borderRadius:18,border:`1px solid ${C.border}`,marginBottom:32}}>
+          <div style={{fontSize:40,marginBottom:12}}>⚾</div>
+          <div style={{fontSize:15,color:C.textMid,lineHeight:1.7}}>Be the first coach to leave a review!</div>
+        </div>
+      )}
+
+      <div style={{textAlign:"center"}}>
+        {!showForm && !submitted && (
+          <button onClick={()=>setShowForm(true)} className="btn-press" style={{padding:"12px 28px",borderRadius:10,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>Leave a Review ✍️</button>
+        )}
+
+        {submitted && (
+          <div style={{padding:"20px 24px",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,borderRadius:14,maxWidth:400,margin:"0 auto"}}>
+            <div style={{fontSize:24,marginBottom:8}}>🎉</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.teal,marginBottom:4}}>Thank You!</div>
+            <div style={{fontSize:13,color:C.textMid}}>Your review has been submitted and will appear after approval.</div>
+          </div>
+        )}
+
+        {showForm && !submitted && (
+          <div style={{maxWidth:440,margin:"0 auto",background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"28px 24px",textAlign:"left",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red})`}}/>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:20,textAlign:"center"}}>Share Your Experience</div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:6}}>Your Name *</div>
+              <input value={formName} onChange={e=>setFormName(e.target.value)} placeholder="Coach Mike" style={{width:"100%",padding:"10px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:6}}>Role / Title</div>
+              <input value={formRole} onChange={e=>setFormRole(e.target.value)} placeholder="Youth Baseball Coach" style={{width:"100%",padding:"10px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:6}}>Rating</div>
+              <div style={{display:"flex",gap:6}}>
+                {[1,2,3,4,5].map(n=>(
+                  <button key={n} onClick={()=>setFormRating(n)} style={{fontSize:28,background:"none",border:"none",cursor:"pointer",color:n<=formRating?C.gold:C.border,padding:0}}>★</button>
+                ))}
+              </div>
+            </div>
+            <div style={{marginBottom:20}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:6}}>Your Review * <span style={{fontWeight:400,textTransform:"none"}}>(10-500 characters)</span></div>
+              <textarea value={formText} onChange={e=>setFormText(e.target.value)} placeholder="Tell other coaches what you think..." rows={4} style={{width:"100%",padding:"10px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}}/>
+              <div style={{fontSize:11,color:C.textDim,marginTop:4,textAlign:"right"}}>{formText.length}/500</div>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setShowForm(false)} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>Cancel</button>
+              <button onClick={handleSubmit} disabled={submitting || !formName.trim() || formText.trim().length < 10} className="btn-press" style={{flex:2,padding:"12px",borderRadius:10,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",opacity:submitting||!formName.trim()||formText.trim().length<10?0.5:1}}>{submitting?'Submitting...':'Submit Review'}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 function LandingPage({onAuth}) {
   const [showLogin, setShowLogin] = useState(false);
@@ -2158,6 +2268,39 @@ function LandingPage({onAuth}) {
           {[{num:"1",title:"Create your team",desc:"Sign up, name your team, and you're in."},{num:"2",title:"Add your players",desc:"Enter names, positions, and parent contacts."},{num:"3",title:"Assign drills & communicate",desc:"Pick from 69 drills across 9 categories. Parents see everything in their app."}].map((step,i)=>(<div key={i} style={{display:"flex",gap:16,alignItems:"flex-start",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px"}}><div style={{width:44,height:44,borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:"#fff",flexShrink:0,boxShadow:`0 4px 16px ${C.red}40`}}>{step.num}</div><div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:"#fff",marginBottom:4}}>{step.title}</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.5}}>{step.desc}</div></div></div>))}
         </div>
       </Section>
+
+      {/* ── SOUND FAMILIAR? PAIN POINTS ── */}
+      <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Sound Familiar?</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>We've Been There Too.</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:600,margin:"0 auto"}}>
+          {[
+            {emoji:"😓",story:"It's 9:30 PM. You're staring at a blank notebook trying to plan tomorrow's practice. You've got 14 kids, 3 skill levels, and 90 minutes. You just finished a 10-hour workday. Again.",solve:"CoachConnect Pro gives you 50+ ready-to-go practice segments. Drag, drop, done. Timer included."},
+            {emoji:"📱",story:"Your phone buzzes for the 47th time today. \"What time is the game?\" \"Is practice canceled?\" \"Can Tyler play shortstop?\" You're managing a baseball team through group texts — and it's chaos.",solve:"Built-in team chat, individual DMs, and a parent app that answers the questions before they're asked."},
+            {emoji:"😢",story:"Your best hitter just struck out for the third time and he's crying in the dugout. His dad is yelling from the bleachers. You want to say the right thing — but you're not sure what that is.",solve:"Emotional coaching scripts and mental skills drills built right into the app. Handle the hard moments with confidence."},
+            {emoji:"📋",story:"Season's over. A parent asks: \"How much did my kid improve?\" You know he got better — you watched it happen. But you have zero data, zero proof, and zero way to show them.",solve:"Player progress tracking, skill snapshots, and rubric evaluations. Show growth with real data, not guesswork."},
+          ].map((p,i)=>(
+            <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}60,${C.gold}60,transparent)`}}/>
+              <div style={{fontSize:32,marginBottom:12}}>{p.emoji}</div>
+              <div style={{fontSize:14,color:C.textMid,lineHeight:1.7,fontStyle:"italic",marginBottom:16}}>"{p.story}"</div>
+              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                <span style={{color:C.teal,fontSize:18,marginTop:1,flexShrink:0}}>→</span>
+                <div style={{fontSize:13,color:C.teal,lineHeight:1.6,fontWeight:600}}>{p.solve}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:"center",marginTop:32}}>
+          <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"14px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 6px 24px ${C.red}40`}}>Stop Winging It →</button>
+        </div>
+      </Section>
+
+      {/* ── COACH REVIEWS ── */}
+      <ReviewsSection />
+
       <Section style={{padding:"60px 20px 40px"}}>
         <div style={{textAlign:"center",marginBottom:40}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.teal,textTransform:"uppercase",marginBottom:8}}>Pricing</div>
@@ -2781,7 +2924,7 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           )}
         </div>
       </div>
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38 0%,#0c1628 60%,#150b10 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`,overflow:"hidden"}}>
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38 0%,#0c1628 60%,#150b10 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,${C.gold}80,${C.red}80)`}}/>
@@ -3541,7 +3684,7 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
   return (
     <div>
       {/* Player hero card */}
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 14px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`,overflow:"hidden"}}>
+      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38,#100c18)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"18px 14px 18px 18px",marginBottom:16,backgroundImage:C.stripe,position:"relative",boxShadow:`0 8px 32px #00000060`}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
 
         {editing && form ? (
@@ -3588,62 +3731,54 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
         ) : (
           /* ── VIEW MODE ── */
           <>
-            {/* Top row: photo + tags + action buttons */}
-            <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
-              {/* Player photo */}
-              {playerPhotos[player.id]
-                ? <div style={{flexShrink:0}}><Avatar name={player.name} size={64} photo={playerPhotos[player.id]} showRing/></div>
-                : null
-              }
-              {/* Tags + actions */}
-              <div style={{flex:1,minWidth:0,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",flex:1,minWidth:0,paddingRight:4}}>
-                  {player.number&&<Tag label={`#${player.number}`} color={C.gold}/>}
-                  <Tag label={player.position} color={C.red}/>
-                  <Tag label={player.ageGroup} color={C.textMid}/>
-                  <Tag label={`Age ${player.age}`} color={C.textDim}/>
-                  {player.bats&&<Tag label={`Bats ${player.bats==="S"?"Switch":player.bats}`} color={C.blue}/>}
-                  {player.throws&&<Tag label={`Throws ${player.throws}`} color={C.teal}/>}
-                </div>
-                <div style={{display:"flex",gap:4,flexShrink:0}}>
-                  <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:6,width:26,height:26,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:11,color:C.gold}}>✏️</button>
-                  <button onClick={()=>{
-                    if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
-                    setPlayers(prev=>prev.filter(p=>p.id!==player.id));
-                    if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
-                    onDelete();
-                  }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:6,width:26,height:26,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:11,color:C.red}}>🗑️</button>
-                </div>
-              </div>
-            </div>
-
-            {/* Parent info */}
-            {(player.parents||[]).length>0&&(
-              <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:8}}>
-                {player.parents.map(par=>(
-                  <div key={par.id} style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:10,padding:"10px 12px"}}>
-                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                      {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
-                      {par.email&&<a href={`mailto:${par.email}`} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px",minWidth:0,overflow:"hidden"}}><span style={{flexShrink:0}}>✉️</span><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{par.email}</span></a>}
-                      {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
-                      {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
-                    </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
+              <div style={{display:"flex",gap:14,alignItems:"flex-start",flex:1}}>
+                {/* Player photo (read-only for coach) */}
+                {playerPhotos[player.id]
+                  ? <div style={{flexShrink:0}}><Avatar name={player.name} size={64} photo={playerPhotos[player.id]} showRing/></div>
+                  : null
+                }
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+                    {player.number&&<Tag label={`#${player.number}`} color={C.gold}/>}
+                    <Tag label={player.position} color={C.red}/>
+                    <Tag label={player.ageGroup} color={C.textMid}/>
+                    <Tag label={`Age ${player.age}`} color={C.textDim}/>
+                    {player.bats&&<Tag label={`Bats ${player.bats==="S"?"Switch":player.bats}`} color={C.blue}/>}
+                    {player.throws&&<Tag label={`Throws ${player.throws}`} color={C.teal}/>}
                   </div>
-                ))}
+                {(player.parents||[]).length>0&&(
+                  <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:8}}>
+                    {player.parents.map(par=>(
+                      <div key={par.id} style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:10,padding:"10px 12px"}}>
+                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:6}}>👤 {par.name}</div>
+                        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                          {par.phone&&<a href={`tel:${par.phone}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.blue,textDecoration:"none",background:`${C.blue}15`,border:`1px solid ${C.blue}30`,borderRadius:7,padding:"4px 10px"}}>📞 {par.phone}</a>}
+                          {par.email&&<a href={`mailto:${par.email}`} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:C.teal,textDecoration:"none",background:`${C.teal}15`,border:`1px solid ${C.teal}30`,borderRadius:7,padding:"4px 10px"}}>✉️ {par.email}</a>}
+                          {par.email&&teamId&&<InviteButton playerId={player.id} teamId={teamId} email={par.email} name={par.name}/>}
+                          {!par.phone&&!par.email&&<span style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>No contact info added</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                </div>{/* end flex:1 inner */}
+              </div>{/* end photo+info flex row */}
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0,marginLeft:8}}>
+                <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.gold,flexShrink:0}}>✏️</button>
+                <button onClick={()=>{
+                  if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
+                  setPlayers(prev=>prev.filter(p=>p.id!==player.id));
+                  if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
+                  onDelete();
+                }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:30,height:30,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:13,color:C.red,flexShrink:0}}>🗑️</button>
+                <Ring pct={pct} size={52} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
               </div>
-            )}
-
-            {/* Progress bar + ring */}
-            <div style={{marginTop:12,display:"flex",alignItems:"center",gap:14}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{background:"#1a2f5240",borderRadius:4,height:5,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 8px ${C.gold}60`,transition:"width 0.8s ease"}}/>
-                </div>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textDim,marginTop:5,letterSpacing:1}}>{done} of {mine.length} drills complete</div>
-              </div>
-              <Ring pct={pct} size={48} color={pct===100?C.teal:C.red} label={`${pct}%`} sub="Done"/>
             </div>
+            <div style={{marginTop:12,background:"#1a2f5240",borderRadius:4,height:5,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 8px ${C.gold}60`,transition:"width 0.8s ease"}}/>
+            </div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,color:C.textDim,marginTop:5,letterSpacing:1}}>{done} of {mine.length} drills complete</div>
           </>
         )}
       </div>
