@@ -575,6 +575,11 @@ const uid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
 });
 const CATEGORIES = ["Mental Skills","Hitting","Fielding","Throwing","Pitching","Catching","Base Running","Conditioning","Catching a Ball"];
 
+// Global mutable ref for custom drills — updated by App when loaded from Supabase
+let _customDrillsRef = [];
+function getAllDrills() { return [...DRILL_LIBRARY, ..._customDrillsRef]; }
+function findDrill(id) { return getAllDrills().find(d => d.id === id); }
+
 const fmtTime = ts => {
   const d = new Date(ts);
   const now2 = new Date();
@@ -1180,6 +1185,7 @@ function AppInner() {
         {data:pData}, {data:aData}, {data:eData},
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
         {data:cpData}, {data:phData}, {data:readData}, {data:ppData}, {data:pvData},
+        {data:cdData},
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1194,6 +1200,7 @@ function AppInner() {
         supabase.from('chat_read_status').select('*').eq('team_id',teamId),
         supabase.from('parent_players').select('*'),
         supabase.from('player_videos').select('*').eq('team_id',teamId),
+        supabase.from('custom_drills').select('*').eq('team_id',teamId).order('created_at'),
       ]);
 
     // Build players
@@ -1281,6 +1288,11 @@ function AppInner() {
       duration:p.duration||'', blocks:p.blocks||[], isCustom:true,
     })));
 
+    setCustomDrills((cdData||[]).map(d=>({
+      id:d.id, name:d.name, category:d.category, duration:d.duration,
+      desc:d.description, results:d.results, isCustom:true,
+    })));
+
     const photoMap = {};
     (phData||[]).forEach(ph=>{
       if(ph.player_id && ph.storage_path) {
@@ -1360,7 +1372,7 @@ function AppInner() {
     setSession(null); setProfile(null); setPUID(null);
     setPlayers([]); setAsgn([]); setEvents([]); setMessages({}); setUnread({});
     setSkillSnapshots([]); setLineups({}); setGamePlans({});
-    setCustomPlans([]); setDrillVideos({}); setPlayerVideos({});
+    setCustomPlans([]); setCustomDrills([]); setDrillVideos({}); setPlayerVideos({});
     setPlayerPhotos({}); setTeamLogo(null); setTeamDisplayName("");
     setDataLoaded(false);
   };
@@ -1394,12 +1406,16 @@ function AppInner() {
   const [teamData, setTeamData]       = useState({});
   const [lineups, setLineups]         = useState({});
   const [customPlans, setCustomPlans] = useState([]);
+  const [customDrills, setCustomDrills] = useState([]);
   const [gamePlans, setGamePlans]     = useState({});
   const [dataLoaded, setDataLoaded]   = useState(false);
 
   // Keep a ref so DB functions always have the current profile
   const profileRef = useRef(null);
   useEffect(()=>{ profileRef.current = profile; }, [profile]);
+
+  // Sync custom drills to global ref so getAllDrills()/findDrill() work everywhere
+  useEffect(()=>{ _customDrillsRef = customDrills; }, [customDrills]);
 
   // ── DB shape converters ──────────────────────────────────────────────────
   const tid = () => profileRef.current?.team_id;
@@ -1471,7 +1487,7 @@ function AppInner() {
           if(error) console.error('Asgn insert FAILED:',error.code,error.message);
           else {
             // Send push notification for new drill assignment
-            const drill = DRILL_LIBRARY.find(d=>d.id===a.drillId);
+            const drill = findDrill(a.drillId);
             const player = players.find(p=>p.id===a.playerId);
             if(drill && player) {
               sendPushNotification(tid(), `New Drill: ${drill.name}`, `Coach assigned "${drill.name}" to ${player.name}`, session?.user?.id);
@@ -1961,11 +1977,11 @@ function AppInner() {
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
-            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id}/>}
+            {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id} customDrills={customDrills} setCustomDrills={setCustomDrills}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
             {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/>}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:session?.user?.id||"coach",name:profile?.full_name||"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
-            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")}/>}
+            {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")} customDrills={customDrills}/>}
           </div>
         )
       }
@@ -3139,13 +3155,35 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
 }
 
 // ─── ASSIGN DRILLS ────────────────────────────────────────────────────────────
-function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade,playerVideos={},teamId}) {
+function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,canAccess,onUpgrade,playerVideos={},teamId,customDrills=[],setCustomDrills=()=>{}}) {
   if(canAccess && !canAccess("drills")) return <PaywallGate feature="Full Drill Library" onUpgrade={onUpgrade}/>;
   const [cat, setCat] = useState("All");
   const [selectedDrill, setSelectedDrill] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const [showCreateDrill, setShowCreateDrill] = useState(false);
+  const [newDrill, setNewDrill] = useState({name:'',category:'Hitting',duration:'15 min',desc:'',results:''});
+  const [saving, setSaving] = useState(false);
 
-  const filteredDrills = DRILL_LIBRARY.filter(d => cat==="All" || d.category===cat);
+  const filteredDrills = getAllDrills().filter(d => cat==="All" || d.category===cat);
+
+  const handleCreateDrill = async () => {
+    if(!newDrill.name.trim() || !newDrill.desc.trim()) return;
+    setSaving(true);
+    const drillId = 'custom_' + uid();
+    const drillObj = { id:drillId, name:newDrill.name.trim(), category:newDrill.category, duration:newDrill.duration.trim()||'15 min', desc:newDrill.desc.trim(), results:newDrill.results.trim(), isCustom:true };
+    setCustomDrills(prev => [...prev, drillObj]);
+    if(teamId) {
+      await supabase.from('custom_drills').insert({ id:drillId, team_id:teamId, name:drillObj.name, category:drillObj.category, duration:drillObj.duration, description:drillObj.desc, results:drillObj.results });
+    }
+    setSaving(false);
+    setNewDrill({name:'',category:'Hitting',duration:'15 min',desc:'',results:''});
+    setShowCreateDrill(false);
+  };
+
+  const handleDeleteCustomDrill = async (drillId) => {
+    setCustomDrills(prev => prev.filter(d => d.id !== drillId));
+    if(teamId) await supabase.from('custom_drills').delete().eq('id', drillId);
+  };
 
   const isAssigned = (pid, drillId) => assignments.some(a => a.playerId===pid && a.drillId===drillId);
 
@@ -3179,6 +3217,51 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
       <NewCoachCard page="drills"/>
       <SectionHead accent tip="Tap a drill to assign it to one or more players. They'll see it instantly in their parent app.">Assign Drills</SectionHead>
 
+      {/* Create Custom Drill Button */}
+      {!showCreateDrill && (
+        <button onClick={()=>setShowCreateDrill(true)} className="btn-press" style={{width:"100%",padding:"14px",borderRadius:12,background:`${C.gold}15`,border:`1.5px dashed ${C.gold}60`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <span style={{fontSize:18}}>+</span> Create Custom Drill
+        </button>
+      )}
+
+      {/* Create Custom Drill Form */}
+      {showCreateDrill && (
+        <div style={{background:C.card,border:`1px solid ${C.gold}40`,borderRadius:16,padding:"20px 18px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red})`}}/>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:16,textAlign:"center"}}>Create Custom Drill</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:4}}>Drill Name *</div>
+              <input value={newDrill.name} onChange={e=>setNewDrill(p=>({...p,name:e.target.value}))} placeholder="e.g. Line Drive Derby" style={{width:"100%",padding:"10px 12px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:4}}>Category</div>
+                <select value={newDrill.category} onChange={e=>setNewDrill(p=>({...p,category:e.target.value}))} style={{width:"100%",padding:"10px 12px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box",appearance:"auto"}}>
+                  {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:4}}>Duration</div>
+                <input value={newDrill.duration} onChange={e=>setNewDrill(p=>({...p,duration:e.target.value}))} placeholder="15 min" style={{width:"100%",padding:"10px 12px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+            </div>
+            <div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:4}}>Description *</div>
+              <textarea value={newDrill.desc} onChange={e=>setNewDrill(p=>({...p,desc:e.target.value}))} placeholder="Describe the drill setup, steps, and how to run it..." rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+            <div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textDim,textTransform:"uppercase",marginBottom:4}}>Expected Results <span style={{fontWeight:400,textTransform:"none"}}>(optional)</span></div>
+              <textarea value={newDrill.results} onChange={e=>setNewDrill(p=>({...p,results:e.target.value}))} placeholder="What should players improve at after doing this drill?" rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:"#fff",fontSize:14,outline:"none",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+            <div style={{display:"flex",gap:10,marginTop:4}}>
+              <button onClick={()=>{setShowCreateDrill(false);setNewDrill({name:'',category:'Hitting',duration:'15 min',desc:'',results:''});}} style={{flex:1,padding:"12px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>Cancel</button>
+              <button onClick={handleCreateDrill} disabled={saving||!newDrill.name.trim()||!newDrill.desc.trim()} className="btn-press" style={{flex:2,padding:"12px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},${C.gold}cc)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",opacity:saving||!newDrill.name.trim()||!newDrill.desc.trim()?0.5:1}}>{saving?'Saving...':'Save Drill'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Category filter */}
       <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
         <div style={{display:"flex",gap:8,paddingBottom:4,width:"max-content"}}>
@@ -3211,7 +3294,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
                 style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"transparent",border:"none",textAlign:"left",cursor:"pointer",minHeight:56}}>
                 <div style={{width:10,height:10,borderRadius:"50%",background:cc,boxShadow:`0 0 8px ${cc}80`,flexShrink:0}}/>
                 <div style={{flex:1}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{drill.name}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>{drill.name}{drill.isCustom&&<span style={{padding:"1px 6px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,color:C.gold,textTransform:"uppercase"}}>Custom</span>}</div>
                   <div style={{display:"flex",gap:6}}><Tag label={drill.category} color={cc} small/><Tag label={drill.duration} color={C.textDim} small/></div>
                 </div>
                 {assignedCount>0 && (
@@ -3251,6 +3334,11 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
                       })}
                     </div>
                   </div>
+                  {drill.isCustom && (
+                    <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                      <button onClick={(e)=>{e.stopPropagation();if(window.confirm(`Delete custom drill "${drill.name}"? Any existing assignments using this drill will remain but the drill details won't be visible.`)){handleDeleteCustomDrill(drill.id);setSelectedDrill(null);setExpanded(null);}}} style={{padding:"8px 16px",borderRadius:8,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>🗑 Delete Custom Drill</button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -3843,7 +3931,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {needsReview.map((a,i)=>{
-              const drill=DRILL_LIBRARY.find(d=>d.id===a.drillId);
+              const drill=findDrill(a.drillId);
               if(!drill) return null;
               const cc=catColor(drill.category);
               const pvKey=player?`${player.id}_${drill.id}`:null;
@@ -3902,7 +3990,7 @@ function DrillsTab({mine,setAsgn,drillVideos,setDrillVideos,playerVideos={},play
       {mine.length===0&&<EmptyState icon="🏋️" title="No drills assigned yet" body="Assign drills from the library and this player will see them in their parent app. Track their progress as they practice."/>}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
         {mine.map(a=>{
-          const drill=DRILL_LIBRARY.find(d=>d.id===a.drillId);
+          const drill=findDrill(a.drillId);
           if(!drill)return null;
           const open=openDrill===a.id,cc=catColor(drill.category);
           // player-uploaded video for this drill
@@ -4449,7 +4537,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {assignments.length===0&&<EmptyState icon="⚾" title="No drills yet" body="Your coach hasn't assigned any drills yet. Check back after your next practice!"/>}
           {assignments.map(a=>{
-            const drill=DRILL_LIBRARY.find(d=>d.id===a.drillId);
+            const drill=findDrill(a.drillId);
             if(!drill)return null;
             const cc=catColor(drill.category);
             return (
@@ -5150,7 +5238,7 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
     setStep(3);
   };
 
-  const filteredDrills = DRILL_LIBRARY.filter(d => {
+  const filteredDrills = getAllDrills().filter(d => {
     if(drillCat!=="All" && d.category!==drillCat) return false;
     if(drillSearch && !d.name.toLowerCase().includes(drillSearch.toLowerCase())) return false;
     return true;
@@ -5625,7 +5713,7 @@ function CoachVideoReview({player, assignments, playerVideos, setPlayerVideos}) 
 
   const entry = activeKey ? playerVideos[activeKey] : null;
   const drillId = activeKey ? activeKey.split("_")[1] : null;
-  const drill = drillId ? DRILL_LIBRARY.find(d => d.id === drillId) : null;
+  const drill = drillId ? findDrill(drillId) : null;
 
   const fmt = s => {
     const m = Math.floor(s / 60);
@@ -5682,7 +5770,7 @@ function CoachVideoReview({player, assignments, playerVideos, setPlayerVideos}) 
           <div style={{display:"flex",gap:8,width:"max-content",paddingBottom:4}}>
             {myKeys.map(k => {
               const dId = k.split("_")[1];
-              const d = DRILL_LIBRARY.find(x => x.id === dId);
+              const d = findDrill( dId);
               return (
                 <button key={k} onClick={()=>{setActiveKey(k);setNote("");setPendingTime(null);}}
                   style={{padding:"7px 12px",borderRadius:9,background:activeKey===k?`${C.teal}25`:"transparent",border:`1px solid ${activeKey===k?C.teal+"60":C.border}`,color:activeKey===k?C.teal:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,whiteSpace:"nowrap",cursor:"pointer",minHeight:36}}>
@@ -6928,7 +7016,7 @@ const BADGES = [
   { id:"skill_up",      icon:"📈", name:"Level Up",          desc:"Improved any skill since first snapshot", color:"#00d4aa",
     check:(p,asgn,snaps)=>{const ps=snaps.filter(s=>s.playerId===p.id).sort((a,b)=>a.date.localeCompare(b.date));if(ps.length<2)return false;const first=computeChartRatings(ps[0].rubric||{}),last=computeChartRatings(ps[ps.length-1].rubric||{});return Object.keys(last).some(k=>last[k]>first[k]);} },
   { id:"multi_cat",     icon:"🎯", name:"All-Around",        desc:"Completed drills in 4+ categories",   color:"#8b5cf6",
-    check:(p,asgn)=>{const cats=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed).map(a=>{const d=DRILL_LIBRARY.find(d=>d.id===a.drillId);return d?.category;}));return cats.size>=4;} },
+    check:(p,asgn)=>{const cats=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed).map(a=>{const d=findDrill(a.drillId);return d?.category;}));return cats.size>=4;} },
   { id:"team_player",   icon:"🤝", name:"Team Player",       desc:"Part of a scheduled game",            color:"#06b6d4",
     check:(p,asgn,snaps,streak,events)=>(events||[]).filter(e=>e.type==="game").length>=1 },
   { id:"consistency",   icon:"📅", name:"Consistent",        desc:"Completed drills in 3 different weeks", color:"#ec4899",
@@ -7198,7 +7286,7 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px",marginBottom:16}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>🗣 Recent Coach Feedback</div>
           {recentNotes.map((a,i)=>{
-            const drill=DRILL_LIBRARY.find(d=>d.id===a.drillId);
+            const drill=findDrill(a.drillId);
             return (
               <div key={a.id} style={{padding:"10px 14px",background:`${C.gold}08`,borderLeft:`3px solid ${C.gold}40`,borderRadius:"0 8px 8px 0",marginBottom:i<recentNotes.length-1?8:0}}>
                 <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.gold,letterSpacing:1,marginBottom:3}}>{drill?.name||"Drill"}</div>
@@ -7213,7 +7301,7 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
       {pending.length>0&&(
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px",marginBottom:16}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>📋 Drills To Complete ({pending.length})</div>
-          {pending.map(a=>{const d=DRILL_LIBRARY.find(dr=>dr.id===a.drillId);return d?(
+          {pending.map(a=>{const d=findDrill(a.drillId);return d?(
             <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}30`}}>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.text}}>{d.name}</div>
               <Tag label={d.duration} color={C.textDim} small/>
