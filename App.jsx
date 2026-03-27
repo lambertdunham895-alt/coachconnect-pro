@@ -7114,5 +7114,3 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
     </div>
   );
 }
-
-export default App;
