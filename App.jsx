@@ -3532,7 +3532,8 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     if(teamId) supabase.from('events').delete().eq('id',id)
       .then(({error})=>{ if(error) console.error('Event delete failed:',error.message); });
   };
-  const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date));
+  const todayStr=new Date().toISOString().slice(0,10);
+  const sorted=[...events].filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
   const isGame=form.type==="game";
   const formTabs=isGame?[{id:"info",label:"🔴 Info"},{id:"batting",label:"🔴 Batting Order"},{id:"field",label:"🔴 Field Positions"}]:[];
 
