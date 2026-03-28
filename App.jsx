@@ -1190,6 +1190,8 @@ function AppInner() {
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
         {data:cpData}, {data:phData}, {data:readData}, {data:ppData}, {data:pvData},
         {data:cdData},
+        {data:buData},
+        {data:crData},
       ] = await Promise.all([
         supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
@@ -1205,6 +1207,8 @@ function AppInner() {
         supabase.from('parent_players').select('*'),
         supabase.from('player_videos').select('*').eq('team_id',teamId),
         supabase.from('custom_drills').select('*').eq('team_id',teamId).order('created_at'),
+        supabase.from('blocked_users').select('*').eq('team_id',teamId),
+        supabase.from('chat_reports').select('*').eq('team_id',teamId).order('created_at',{ascending:false}),
       ]);
 
     // Build players
@@ -1317,6 +1321,10 @@ function AppInner() {
     });
     setPlayerVideos(pvMap);
 
+    // Load blocked users and chat reports
+    setBlockedUsers((buData||[]).map(b=>({id:b.id,userId:b.user_id,blockedUserId:b.blocked_user_id,teamId:b.team_id})));
+    setChatReports((crData||[]).map(r=>({id:r.id,reporterId:r.reporter_id,reporterName:r.reporter_name,reportedUserId:r.reported_user_id,reportedUserName:r.reported_user_name,messageId:r.message_id,messageText:r.message_text,reason:r.reason,createdAt:r.created_at,resolved:r.resolved||false})));
+
     // setDataLoaded is called in loadProfile after parent link is also set
     } catch(err) {
       console.error('loadTeamData error:', err);
@@ -1378,6 +1386,7 @@ function AppInner() {
     setSkillSnapshots([]); setLineups({}); setGamePlans({});
     setCustomPlans([]); setCustomDrills([]); setDrillVideos({}); setPlayerVideos({});
     setPlayerPhotos({}); setTeamLogo(null); setTeamDisplayName("");
+    setBlockedUsers([]); setChatReports([]);
     setDataLoaded(false);
   };
 
@@ -1412,6 +1421,8 @@ function AppInner() {
   const [customPlans, setCustomPlans] = useState([]);
   const [customDrills, setCustomDrills] = useState([]);
   const [gamePlans, setGamePlans]     = useState({});
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [chatReports, setChatReports]   = useState([]);
   const [dataLoaded, setDataLoaded]   = useState(false);
 
   // Keep a ref so DB functions always have the current profile
@@ -1805,6 +1816,46 @@ function AppInner() {
     }
   };
 
+  // ── Block & Report ──────────────────────────────────────────────────────
+  const blockUser = async (blockedUserId) => {
+    const userId = session?.user?.id;
+    const teamId = profile?.team_id;
+    if(!userId || !teamId || !blockedUserId || userId===blockedUserId) return;
+    if(blockedUsers.some(b=>b.userId===userId && b.blockedUserId===blockedUserId)) return; // already blocked
+    const entry = {id:uid(), user_id:userId, blocked_user_id:blockedUserId, team_id:teamId};
+    setBlockedUsers(prev=>[...prev,{id:entry.id,userId,blockedUserId,teamId}]);
+    const {error} = await supabase.from('blocked_users').insert(entry);
+    if(error) console.error('Block user failed:', error.message);
+  };
+
+  const unblockUser = async (blockedUserId) => {
+    const userId = session?.user?.id;
+    if(!userId) return;
+    setBlockedUsers(prev=>prev.filter(b=>!(b.userId===userId && b.blockedUserId===blockedUserId)));
+    await supabase.from('blocked_users').delete().eq('user_id',userId).eq('blocked_user_id',blockedUserId);
+  };
+
+  const reportMessage = async (msg, reason) => {
+    const userId = session?.user?.id;
+    const teamId = profile?.team_id;
+    const reporterName = profile?.full_name || 'Unknown';
+    if(!userId || !teamId) return;
+    const entry = {
+      id:uid(), reporter_id:userId, reporter_name:reporterName,
+      reported_user_id:msg.senderId, reported_user_name:msg.senderName,
+      message_id:msg.id, message_text:(msg.text||'[attachment]').substring(0,500),
+      reason, team_id:teamId, resolved:false,
+    };
+    setChatReports(prev=>[{id:entry.id,reporterId:userId,reporterName,reportedUserId:msg.senderId,reportedUserName:msg.senderName,messageId:msg.id,messageText:entry.message_text,reason,createdAt:new Date().toISOString(),resolved:false},...prev]);
+    const {error} = await supabase.from('chat_reports').insert(entry);
+    if(error) console.error('Report message failed:', error.message);
+  };
+
+  const resolveReport = async (reportId) => {
+    setChatReports(prev=>prev.map(r=>r.id===reportId?{...r,resolved:true}:r));
+    await supabase.from('chat_reports').update({resolved:true}).eq('id',reportId);
+  };
+
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
   if (loadError) return (
@@ -1895,7 +1946,7 @@ function AppInner() {
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
         {activeChat
-          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id}/>
+          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
           : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
         }
       </div>
@@ -1977,10 +2028,10 @@ function AppInner() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id} customDrills={customDrills} setCustomDrills={setCustomDrills}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
@@ -2602,10 +2653,13 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
 }
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
-function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId}) {
+function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId,blockedUsers=[],onBlock=()=>{},onUnblock=()=>{},onReport=()=>{}}) {
   const [text,setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // {file, preview, type, name}
+  const [msgMenu, setMsgMenu] = useState(null); // {msg, x, y} for context menu
+  const [reportModal, setReportModal] = useState(null); // msg being reported
+  const [reportReason, setReportReason] = useState("");
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const isTeam = channelId==="team";
@@ -2613,6 +2667,10 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
+
+  // Filter out messages from blocked users
+  const myBlockedIds = blockedUsers.filter(b=>b.userId===myId).map(b=>b.blockedUserId);
+  const filteredMessages = messages.filter(m=>!myBlockedIds.includes(m.senderId));
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -2629,7 +2687,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 
   useEffect(()=>{
     bottomRef.current?.scrollIntoView({behavior:"smooth"});
-  },[messages.length]);
+  },[filteredMessages.length]);
 
   const send = async () => {
     if(!text.trim() && !pendingFile) return;
@@ -2659,10 +2717,10 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
     e.target.value = '';
   };
 
-  // Group messages into date buckets
+  // Group messages into date buckets (using filtered messages)
   const grouped = [];
   let lastDate = null;
-  messages.forEach(m=>{
+  filteredMessages.forEach(m=>{
     const d = new Date(m.ts).toDateString();
     if(d!==lastDate){ grouped.push({type:"date",label:d===new Date().toDateString()?"Today":new Date(m.ts).toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}); lastDate=d; }
     grouped.push({type:"msg",...m});
@@ -2736,7 +2794,12 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
           const showName   = !isMe && !isSameAsPrev;
 
           return (
-            <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8}}>
+            <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8}}
+              onContextMenu={(e)=>{if(!isMe){e.preventDefault();setMsgMenu({msg:item,x:e.clientX,y:e.clientY});}}}
+              onTouchStart={(e)=>{if(isMe)return;const t=setTimeout(()=>{const touch=e.touches[0];setMsgMenu({msg:item,x:touch.clientX,y:touch.clientY});},600);e.currentTarget._lpt=t;}}
+              onTouchEnd={(e)=>{clearTimeout(e.currentTarget._lpt);}}
+              onTouchMove={(e)=>{clearTimeout(e.currentTarget._lpt);}}
+            >
               {/* Avatar placeholder to keep alignment */}
               {!isMe&&(
                 <div style={{width:32,flexShrink:0}}>
@@ -2777,7 +2840,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
             </div>
           );
         })}
-        {messages.length===0&&(
+        {filteredMessages.length===0&&(
           <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,padding:"32px 24px",textAlign:"center"}}>
             <div style={{fontSize:40}}>💬</div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.textMid}}>Start the conversation</div>
@@ -2835,11 +2898,66 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
           )}
         </button>
       </div>
+
+      {/* ── Message Context Menu (Report / Block) ──────────────────────────── */}
+      {msgMenu&&(
+        <div onClick={()=>setMsgMenu(null)} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.5)"}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:"fixed",left:Math.min(msgMenu.x,window.innerWidth-180),top:Math.min(msgMenu.y,window.innerHeight-140),background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:6,minWidth:170,boxShadow:`0 8px 32px rgba(0,0,0,0.6)`}}>
+            <button onClick={()=>{setReportModal(msgMenu.msg);setMsgMenu(null);setReportReason("");}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",background:"none",border:"none",cursor:"pointer",borderRadius:10,color:C.text,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:0.5,textAlign:"left"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#ffffff10"}
+              onMouseLeave={e=>e.currentTarget.style.background="none"}
+            >
+              <span style={{fontSize:16}}>🚩</span> Report Message
+            </button>
+            {!myBlockedIds.includes(msgMenu.msg.senderId) ? (
+              <button onClick={()=>{if(window.confirm(`Block ${msgMenu.msg.senderName}? Their messages will be hidden from you.`)){onBlock(msgMenu.msg.senderId);}setMsgMenu(null);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",background:"none",border:"none",cursor:"pointer",borderRadius:10,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:0.5,textAlign:"left"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#ffffff10"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}
+              >
+                <span style={{fontSize:16}}>🚫</span> Block {msgMenu.msg.senderName}
+              </button>
+            ) : (
+              <button onClick={()=>{onUnblock(msgMenu.msg.senderId);setMsgMenu(null);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",background:"none",border:"none",cursor:"pointer",borderRadius:10,color:C.green||"#34d399",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:0.5,textAlign:"left"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#ffffff10"}
+                onMouseLeave={e=>e.currentTarget.style.background="none"}
+              >
+                <span style={{fontSize:16}}>✅</span> Unblock {msgMenu.msg.senderName}
+              </button>
+            )}
+            <button onClick={()=>setMsgMenu(null)} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 14px",background:"none",border:"none",cursor:"pointer",borderRadius:10,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:0.5,textAlign:"left"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#ffffff10"}
+              onMouseLeave={e=>e.currentTarget.style.background="none"}
+            >
+              <span style={{fontSize:16}}>✕</span> Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Report Modal ──────────────────────────────────────────────────── */}
+      {reportModal&&(
+        <div onClick={()=>setReportModal(null)} style={{position:"fixed",inset:0,zIndex:10000,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:24,width:"100%",maxWidth:360,boxShadow:`0 12px 48px rgba(0,0,0,0.5)`}}>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:2,color:C.text,marginBottom:4}}>Report Message</div>
+            <div style={{fontSize:12,color:C.textDim,marginBottom:16,lineHeight:1.5}}>
+              From <span style={{color:C.text,fontWeight:600}}>{reportModal.senderName}</span>: "{(reportModal.text||"[attachment]").substring(0,80)}{(reportModal.text||"").length>80?"...":""}"
+            </div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,color:C.textMid,letterSpacing:1,marginBottom:8}}>SELECT A REASON</div>
+            {["Inappropriate content","Harassment or bullying","Spam","Other"].map(r=>(
+              <button key={r} onClick={()=>setReportReason(r)} style={{display:"block",width:"100%",padding:"10px 14px",marginBottom:6,background:reportReason===r?`${C.red}20`:"#ffffff08",border:`1px solid ${reportReason===r?C.red+"60":C.border}`,borderRadius:10,color:reportReason===r?C.red:C.text,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:0.5,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                {r}
+              </button>
+            ))}
+            <div style={{display:"flex",gap:10,marginTop:16}}>
+              <button onClick={()=>setReportModal(null)} style={{flex:1,padding:"12px 0",borderRadius:10,border:`1px solid ${C.border}`,background:"none",color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>{if(reportReason){onReport(reportModal,reportReason);setReportModal(null);alert("Report submitted. Thank you.");}}} disabled={!reportReason} style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:reportReason?`linear-gradient(135deg,${C.red},${C.redDim})`:"#333",color:reportReason?"#fff":"#666",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,cursor:reportReason?"pointer":"default",boxShadow:reportReason?`0 4px 16px ${C.red}40`:"none"}}>Submit Report</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// ─── TEAM SETTINGS PANEL ──────────────────────────────────────────────────────
 function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
   const [form, setForm] = useState({
     name: teamData.name || teamName || "",
@@ -2900,7 +3018,7 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
 }
 
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null}) {
+function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null,chatReports=[],onResolveReport=()=>{}}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
@@ -3111,6 +3229,44 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
         })}
         <button onClick={()=>setTab("roster")} style={{display:"block",width:"100%",padding:"13px 0",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:14,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,cursor:"pointer",minHeight:48,textTransform:"uppercase"}}>+ Add Player</button>
       </div>
+
+      {/* ── Chat Reports ── */}
+      {chatReports.length > 0 && (
+        <div style={{marginTop:20}}>
+          <SectionHead accent>Chat Reports ({chatReports.filter(r=>!r.resolved).length} open)</SectionHead>
+          {chatReports.filter(r=>!r.resolved).length===0 ? (
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 16px",textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:6}}>✅</div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid}}>All reports resolved</div>
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {chatReports.filter(r=>!r.resolved).map(r=>(
+                <div key={r.id} style={{background:`linear-gradient(135deg,#1a0808,${C.card})`,border:`1px solid ${C.red}40`,borderRadius:14,padding:"14px 16px",position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:C.red}}/>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                    <div style={{flex:1,minWidth:0,paddingLeft:6}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
+                        <Tag label={`🚩 ${r.reason}`} color={C.red}/>
+                        <span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:11,color:C.textDim,letterSpacing:0.5}}>{new Date(r.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</span>
+                      </div>
+                      <div style={{fontSize:12,color:C.textMid,marginBottom:4}}>
+                        <span style={{color:C.text,fontWeight:600}}>{r.reporterName}</span> reported <span style={{color:C.red,fontWeight:600}}>{r.reportedUserName}</span>
+                      </div>
+                      <div style={{fontSize:12,color:C.textDim,fontStyle:"italic",lineHeight:1.4,background:"#ffffff06",borderRadius:8,padding:"8px 10px",border:`1px solid ${C.border}`}}>
+                        "{r.messageText}"
+                      </div>
+                    </div>
+                    <button onClick={()=>{if(window.confirm("Mark this report as resolved?")){onResolveReport(r.id);}}} style={{padding:"8px 14px",borderRadius:10,background:`${C.teal||"#34d399"}20`,border:`1px solid ${C.teal||"#34d399"}50`,color:C.teal||"#34d399",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                      ✓ Resolve
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
