@@ -1891,7 +1891,7 @@ function AppInner() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName}/>
+          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
         }
       </div>
     );
@@ -4399,8 +4399,79 @@ function ProgressTab({player, assignments, skillSnapshots, setSkillSnapshots, ca
   );
 }
 
+// ─── PARENT DRILL LIBRARY (read-only browse) ────────────────────────────────
+function ParentDrillLibrary({customDrills=[]}) {
+  const [cat, setCat] = useState("All");
+  const [expanded, setExpanded] = useState(null);
+
+  const allDrills = [...DRILL_LIBRARY, ...customDrills];
+  const filteredDrills = allDrills.filter(d => cat==="All" || d.category===cat);
+  const drillCount = filteredDrills.length;
+
+  return (
+    <div className="fade-up">
+      <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:2,color:"#fff",marginBottom:4}}>Drill Library</div>
+        <div style={{fontSize:12,color:C.textDim}}>{drillCount} drill{drillCount!==1?"s":""} available · Browse & practice at home</div>
+      </div>
+
+      {/* Category filter */}
+      <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
+        <div style={{display:"flex",gap:6,paddingBottom:4,width:"max-content"}}>
+          {["All",...CATEGORIES].map(c=>{
+            const color = c==="All" ? C.red : catColor(c);
+            const active = cat===c;
+            return (
+              <button key={c} onClick={()=>setCat(c)} style={{padding:"7px 14px",borderRadius:18,cursor:"pointer",whiteSpace:"nowrap",minHeight:32,flexShrink:0,transition:"all 0.15s",border:`1px solid ${active?color:C.border}`,background:active?`${color}28`:"transparent",color:active?color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase"}}>
+                {c}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Drill list */}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filteredDrills.map(drill => {
+          const cc = catColor(drill.category);
+          const isOpen = expanded===drill.id;
+          return (
+            <div key={drill.id} style={{background:C.card,border:`1px solid ${isOpen?cc+"50":C.border}`,borderRadius:14,overflow:"hidden",transition:"all 0.2s"}}>
+              <button onClick={()=>setExpanded(isOpen?null:drill.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:"transparent",border:"none",textAlign:"left",cursor:"pointer",minHeight:50}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:cc,boxShadow:`0 0 6px ${cc}80`,flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.text,marginBottom:2,display:"flex",alignItems:"center",gap:6}}>
+                    {drill.name}
+                    {drill.isCustom&&<span style={{padding:"1px 5px",borderRadius:5,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,color:C.gold,textTransform:"uppercase"}}>Coach</span>}
+                  </div>
+                  <div style={{display:"flex",gap:5}}>
+                    <span style={{padding:"2px 8px",borderRadius:6,background:`${cc}20`,border:`1px solid ${cc}40`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:cc,textTransform:"uppercase"}}>{drill.category}</span>
+                    <span style={{padding:"2px 8px",borderRadius:6,background:`${C.textDim}15`,border:`1px solid ${C.border}`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase"}}>{drill.duration}</span>
+                  </div>
+                </div>
+                <div style={{fontSize:13,color:isOpen?cc:C.textDim,transition:"transform 0.2s",transform:isOpen?"rotate(90deg)":"none"}}>›</div>
+              </button>
+              {isOpen && (
+                <div style={{padding:"0 14px 14px"}}>
+                  <div style={{fontSize:13,color:C.textMid,lineHeight:1.65,marginBottom:8}}>{drill.desc}</div>
+                  {drill.results&&(
+                    <div style={{fontSize:12,color:`${C.teal}cc`,lineHeight:1.55,paddingLeft:10,borderLeft:`2px solid ${C.teal}40`}}>
+                      <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.teal,marginRight:6}}>Goal:</span>
+                      {drill.results}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,dmChannel="",drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName=""}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,dmChannel="",drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName="",canAccess=()=>true,customDrills=[]}) {
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
@@ -4442,6 +4513,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   const sections=[
     {id:"report",  icon:"📋", label:"Report"},
     {id:"drills",  icon:"⚾", label:"Drills"},
+    {id:"library", icon:"📚", label:"Library"},
     {id:"schedule",icon:"📅", label:"Schedule"},
     {id:"chat",    icon:"💬", label:"Chat", badge:unread},
   ];
@@ -4606,6 +4678,17 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             );
           })}
         </div>
+      )}
+
+      {/* Drill Library (browse all drills) */}
+      {section==="library"&&(
+        canAccess() ? <ParentDrillLibrary customDrills={customDrills}/> : (
+          <div className="fade-up" style={{textAlign:"center",padding:"40px 20px"}}>
+            <div style={{fontSize:48,marginBottom:16}}>🔒</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:2,color:C.textMid,marginBottom:8}}>Drill Library Locked</div>
+            <div style={{fontSize:13,color:C.textDim,lineHeight:1.6,maxWidth:320,margin:"0 auto"}}>Your coach's subscription has expired. Ask them to renew their CoachConnect Pro plan to unlock the full drill library.</div>
+          </div>
+        )
       )}
 
       {/* Schedule */}
