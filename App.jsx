@@ -777,9 +777,11 @@ const COACH_PAGE_TIPS = {
 };
 
 function NewCoachCard({page="home", setTab}) {
-  const [dismissed, setDismissed] = useState(false);
+  const storageKey = `ccp_tips_dismissed_${page}`;
+  const [dismissed, setDismissed] = useState(()=>{try{return localStorage.getItem(storageKey)==='true'}catch(e){return false}});
   const [expanded,  setExpanded]  = useState(false);
   const tip = COACH_PAGE_TIPS[page] || COACH_PAGE_TIPS.home;
+  const handleDismiss = () => { setDismissed(true); try{localStorage.setItem(storageKey,'true')}catch(e){} };
   if(dismissed) return null;
   return (
     <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1f12,${C.card})`,border:`1px solid ${C.teal}40`,borderRadius:16,marginBottom:16,overflow:"hidden",boxShadow:`0 4px 24px ${C.teal}15`}}>
@@ -800,7 +802,7 @@ function NewCoachCard({page="home", setTab}) {
             </div>
           ))}
           <div style={{padding:"10px 16px",borderTop:`1px solid ${C.border}30`}}>
-            <button onClick={()=>setDismissed(true)} style={{background:"none",border:"none",color:C.textDim,fontSize:12,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:1,cursor:"pointer",padding:0}}>Got it — dismiss this</button>
+            <button onClick={handleDismiss} style={{background:"none",border:"none",color:C.textDim,fontSize:12,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:1,cursor:"pointer",padding:0}}>Got it — dismiss this</button>
           </div>
         </div>
       )}
