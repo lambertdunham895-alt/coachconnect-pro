@@ -95,6 +95,10 @@ input, select, textarea { font-size: 16px !important; }
   0%   { background-color: rgba(245,197,24,0.15); }
   100% { background-color: transparent; }
 }
+@keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 .fade-up   { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
 .fade-up-1 { animation: fadeUp 0.35s 0.05s cubic-bezier(0.22,1,0.36,1) both; }
@@ -1248,7 +1252,7 @@ function AppInner() {
       let ch = m.channel;
       if(channelRemap[ch]) ch = channelRemap[ch];
       if(!msgMap[ch]) msgMap[ch]=[];
-      msgMap[ch].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()});
+      msgMap[ch].push({id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime(),attachment:m.payload?.attachment||null});
     });
     setMessages(msgMap);
 
@@ -1642,7 +1646,7 @@ function AppInner() {
     const realtimeCh = supabase.channel('msgs-'+profile.team_id)
       .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`team_id=eq.${profile.team_id}`},(payload)=>{
         const m = payload.new;
-        const msg = {id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime()};
+        const msg = {id:m.id,senderId:m.sender_id,senderName:m.sender_name,text:m.text,ts:new Date(m.created_at).getTime(),attachment:m.payload?.attachment||null};
         setMessages(prev=>{
           const existing = prev[m.channel]||[];
           if(existing.find(e=>e.id===m.id)) return prev;
@@ -1763,22 +1767,23 @@ function AppInner() {
 
   const totalUnread = Object.values(unread).reduce((a,b)=>a+(b||0),0);
 
-  const sendMsg = (channelId, text, senderInfo) => {
+  const sendMsg = (channelId, text, senderInfo, attachment=null) => {
     const realSenderId = session?.user?.id || senderInfo.id;
-    const msg = {id:uid(), senderId:realSenderId, senderName:senderInfo.name, text, ts:Date.now()};
+    const msg = {id:uid(), senderId:realSenderId, senderName:senderInfo.name, text, ts:Date.now(), attachment};
     setMessages(prev=>({...prev,[channelId]:[...(prev[channelId]||[]),msg]}));
     if(profile?.team_id) {
       supabase.from('messages').insert({
         id:msg.id, team_id:profile.team_id,
         sender_id:realSenderId, sender_name:senderInfo.name,
         channel:channelId, text,
+        payload: attachment ? { attachment } : null,
       }).then(({error})=>{
         if(error) console.error('Message insert',error);
         else {
-          // Send push notification for new message
           const isTeam = channelId === 'team';
+          const attachLabel = attachment ? (attachment.type==='image' ? ' 📷 Photo' : ` 📎 ${attachment.name}`) : '';
           const title = isTeam ? 'Team Chat' : `Message from ${senderInfo.name}`;
-          const body = isTeam ? `${senderInfo.name}: ${text.substring(0,100)}` : text.substring(0,100);
+          const body = isTeam ? `${senderInfo.name}: ${(text||attachLabel).substring(0,100)}` : (text||attachLabel).substring(0,100);
           sendPushNotification(profile.team_id, title, body, realSenderId);
         }
       });
@@ -1890,7 +1895,7 @@ function AppInner() {
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
         {activeChat
-          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"})} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName}/>
+          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id}/>
           : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
         }
       </div>
@@ -1972,7 +1977,7 @@ function AppInner() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"})} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName}/>
+        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave}/>}
@@ -2597,9 +2602,12 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
 }
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
-function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName}) {
+function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId}) {
   const [text,setText] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null); // {file, preview, type, name}
   const bottomRef = useRef(null);
+  const fileRef = useRef(null);
   const isTeam = channelId==="team";
   const isCoach = myId==="coach";
   const teamInitials = teamName
@@ -2623,10 +2631,32 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
     bottomRef.current?.scrollIntoView({behavior:"smooth"});
   },[messages.length]);
 
-  const send = () => {
-    if(!text.trim()) return;
-    onSend(text.trim());
+  const send = async () => {
+    if(!text.trim() && !pendingFile) return;
+    let attachment = null;
+    if(pendingFile) {
+      setUploading(true);
+      const ext = pendingFile.name.split('.').pop();
+      const path = `${teamId||'local'}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('chat-attachments').upload(path, pendingFile.file);
+      if(!error) {
+        const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(path);
+        attachment = { url: publicUrl, name: pendingFile.name, type: pendingFile.type, size: pendingFile.file.size };
+      }
+      setUploading(false);
+      setPendingFile(null);
+    }
+    onSend(text.trim(), attachment);
     setText("");
+  };
+
+  const handleFilePick = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    const isImage = file.type.startsWith('image/');
+    const preview = isImage ? URL.createObjectURL(file) : null;
+    setPendingFile({ file, preview, type: isImage ? 'image' : 'document', name: file.name });
+    e.target.value = '';
   };
 
   // Group messages into date buckets
@@ -2725,7 +2755,22 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
                   boxShadow: isMe?`0 2px 12px ${C.blue}20`:`0 2px 8px #00000030`,
                   position:"relative",
                 }}>
-                  <div style={{fontSize:14,color:C.text,lineHeight:1.55}}>{item.text}</div>
+                  {item.text&&<div style={{fontSize:14,color:C.text,lineHeight:1.55}}>{item.text}</div>}
+                  {item.attachment && item.attachment.type==='image' && (
+                    <a href={item.attachment.url} target="_blank" rel="noopener noreferrer" style={{display:"block",marginTop:item.text?6:0}}>
+                      <img src={item.attachment.url} alt={item.attachment.name||"Photo"} style={{maxWidth:"100%",maxHeight:240,borderRadius:10,objectFit:"cover",display:"block"}}/>
+                    </a>
+                  )}
+                  {item.attachment && item.attachment.type==='document' && (
+                    <a href={item.attachment.url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:item.text?6:0,padding:"8px 12px",borderRadius:10,background:`${C.blue}15`,border:`1px solid ${C.blue}30`,textDecoration:"none"}}>
+                      <span style={{fontSize:22}}>📄</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13,color:C.blue,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.attachment.name}</div>
+                        {item.attachment.size&&<div style={{fontSize:10,color:C.textDim}}>{(item.attachment.size/1024).toFixed(0)} KB</div>}
+                      </div>
+                      <span style={{fontSize:12,color:C.textDim}}>↓</span>
+                    </a>
+                  )}
                 </div>
                 {(!isSameAsNext)&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,color:C.textDim,marginTop:4,paddingLeft:4,paddingRight:4}}>{fmtTime(item.ts)}</div>}
               </div>
@@ -2742,8 +2787,30 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
         <div ref={bottomRef}/>
       </div>
 
+      {/* Pending file preview */}
+      {pendingFile && (
+        <div style={{padding:"8px 12px",background:C.card,borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:10}}>
+          {pendingFile.type==='image' ? (
+            <img src={pendingFile.preview} alt="Preview" style={{width:48,height:48,borderRadius:8,objectFit:"cover"}}/>
+          ) : (
+            <div style={{width:48,height:48,borderRadius:8,background:`${C.blue}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>📄</div>
+          )}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,color:C.text,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pendingFile.name}</div>
+            <div style={{fontSize:11,color:C.textDim}}>{pendingFile.type==='image'?'Photo':'Document'} ready to send</div>
+          </div>
+          <button onClick={()=>setPendingFile(null)} style={{background:`${C.red}20`,border:`1px solid ${C.red}40`,borderRadius:8,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,color:C.red,flexShrink:0}}>✕</button>
+        </div>
+      )}
+
       {/* Input bar */}
-      <div style={{padding:"10px 12px 10px",background:`${C.bg}`,borderTop:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"flex-end"}}>
+      <div style={{padding:"10px 12px 10px",background:`${C.bg}`,borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
+        {/* Attachment button */}
+        <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{width:40,height:40,borderRadius:"50%",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16,color:C.blue}}>
+          📎
+        </button>
+        <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" onChange={handleFilePick} style={{display:"none"}}/>
+
         <div style={{flex:1,background:"#0a1525",border:`1px solid ${C.border}`,borderRadius:22,padding:"10px 16px",display:"flex",alignItems:"center",minHeight:44,transition:"border-color 0.2s"}}
           onFocus={e=>e.currentTarget.style.borderColor=C.blue}
           onBlur={e=>e.currentTarget.style.borderColor=C.border}>
@@ -2751,16 +2818,21 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
             value={text}
             onChange={e=>setText(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
-            placeholder="Type a message..."
+            placeholder={uploading?"Uploading...":"Type a message..."}
             rows={1}
+            disabled={uploading}
             style={{flex:1,background:"transparent",border:"none",outline:"none",color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:14,lineHeight:1.5,resize:"none",padding:0,maxHeight:100,overflow:"auto"}}
           />
         </div>
-        <button onClick={send} disabled={!text.trim()} style={{width:44,height:44,borderRadius:"50%",background:text.trim()?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",cursor:text.trim()?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:text.trim()?`0 4px 16px ${C.red}50`:"none"}}>
-          <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13" stroke="#fff" strokeWidth={2} strokeLinecap="round"/>
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <button onClick={send} disabled={(!text.trim()&&!pendingFile)||uploading} style={{width:44,height:44,borderRadius:"50%",background:(text.trim()||pendingFile)&&!uploading?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",cursor:(text.trim()||pendingFile)&&!uploading?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:(text.trim()||pendingFile)&&!uploading?`0 4px 16px ${C.red}50`:"none"}}>
+          {uploading ? (
+            <div style={{width:16,height:16,border:"2px solid #fff",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+          ) : (
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13" stroke="#fff" strokeWidth={2} strokeLinecap="round"/>
+              <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </button>
       </div>
     </div>
