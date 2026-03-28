@@ -2240,6 +2240,13 @@ function ReviewsSection() {
 function LandingPage({onAuth}) {
   const [showLogin, setShowLogin] = useState(false);
 
+  // Capture referral code from URL
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if(ref) { try{localStorage.setItem('ccp_ref',ref)}catch(e){} }
+  },[]);
+
   if (showLogin) return <LoginScreen onAuth={onAuth} onBack={()=>setShowLogin(false)}/>;
 
   const Section = ({children, style={}}) => (
@@ -2495,6 +2502,21 @@ function LoginScreen({onAuth, onBack=null}) {
       }
     }
     const {data:profile} = await supabase.from("profiles").select("*").eq("id",userId).single();
+    // Track referral if present
+    try{
+      const refCode = localStorage.getItem('ccp_ref');
+      if(refCode){
+        await supabase.from("referrals").insert({
+          id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+          ref_code: refCode,
+          user_id: userId,
+          user_email: email,
+          signed_up: true,
+          signed_up_at: new Date().toISOString(),
+        });
+        localStorage.removeItem('ccp_ref');
+      }
+    }catch(e){}
     onAuth(data.user, profile);
     setLoading(false);
   };
