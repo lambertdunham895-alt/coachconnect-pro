@@ -2285,6 +2285,92 @@ function LandingPage({onAuth}) {
           <div style={{marginTop:16,fontSize:13,color:C.textDim}}>No credit card required · Set up in 2 minutes</div>
         </div>
       </div>
+      {/* ── SOUND FAMILIAR? PAIN POINTS (moved up for impact) ── */}
+      <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Sound Familiar?</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>We've Been There Too.</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:600,margin:"0 auto"}}>
+          {[
+            {emoji:"😓",story:"It's 9:30 PM. You're staring at a blank notebook trying to plan tomorrow's practice. You've got 14 kids, 3 skill levels, and 90 minutes. You just finished a 10-hour workday. Again.",solve:"CoachConnect Pro gives you 50+ ready-to-go practice segments. Drag, drop, done. Timer included."},
+            {emoji:"📱",story:"Your phone buzzes for the 47th time today. \"What time is the game?\" \"Is practice canceled?\" \"Can Tyler play shortstop?\" You're managing a baseball team through group texts — and it's chaos.",solve:"Built-in team chat, individual DMs, and a parent app that answers the questions before they're asked."},
+            {emoji:"😢",story:"Your best hitter just struck out for the third time and he's crying in the dugout. His dad is yelling from the bleachers. You want to say the right thing — but you're not sure what that is.",solve:"Emotional coaching scripts and mental skills drills built right into the app. Handle the hard moments with confidence."},
+            {emoji:"📋",story:"Season's over. A parent asks: \"How much did my kid improve?\" You know he got better — you watched it happen. But you have zero data, zero proof, and zero way to show them.",solve:"Player progress tracking, skill snapshots, and rubric evaluations. Show growth with real data, not guesswork."},
+          ].map((p,i)=>(
+            <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}60,${C.gold}60,transparent)`}}/>
+              <div style={{fontSize:32,marginBottom:12}}>{p.emoji}</div>
+              <div style={{fontSize:14,color:C.textMid,lineHeight:1.7,fontStyle:"italic",marginBottom:16}}>"{p.story}"</div>
+              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                <span style={{color:C.teal,fontSize:18,marginTop:1,flexShrink:0}}>→</span>
+                <div style={{fontSize:13,color:C.teal,lineHeight:1.6,fontWeight:600}}>{p.solve}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:"center",marginTop:32}}>
+          <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"14px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 6px 24px ${C.red}40`}}>Stop Winging It →</button>
+        </div>
+      </Section>
+
+      {/* ── APP PREVIEW ── */}
+      <Section>
+        <div style={{textAlign:"center",marginBottom:40}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.blue,textTransform:"uppercase",marginBottom:8}}>See It In Action</div>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Your Whole Season. One App.</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:24,maxWidth:380,margin:"0 auto"}}>
+          {[
+            {screen:"Coach Dashboard",icon:"🏠",items:[
+              {label:"Team Stats",detail:"12 Players · 67% Drills Complete"},
+              {label:"Next Game",detail:"vs. Cardinals · Sat 10:00 AM · Riverside Park"},
+              {label:"3 Drills Need Review",detail:"Tap to see player submissions"},
+            ]},
+            {screen:"Drill Library",icon:"⚾",items:[
+              {label:"69 Built-In Drills",detail:"Hitting · Fielding · Pitching · Mental Skills + more"},
+              {label:"Custom Drills",detail:"Create your own and assign to any player"},
+              {label:"Video Submissions",detail:"Parents upload practice videos for your review"},
+            ]},
+            {screen:"Parent App",icon:"👨‍👩‍👦",items:[
+              {label:"My Player Dashboard",detail:"See assigned drills, schedule, and progress"},
+              {label:"Team Chat & DMs",detail:"Message coach directly or join team chat"},
+              {label:"Report Card",detail:"Visual summary of the season's growth"},
+            ]},
+          ].map((phone,pi)=>(
+            <div key={pi} style={{background:"#000",borderRadius:28,border:"3px solid #333",padding:"12px 16px 20px",boxShadow:"0 12px 48px rgba(0,0,0,0.5)",position:"relative",overflow:"hidden"}}>
+              <div style={{width:80,height:6,borderRadius:3,background:"#222",margin:"0 auto 14px"}}/>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"0 4px"}}>
+                <div style={{width:36,height:36,borderRadius:10,background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,boxShadow:`0 4px 12px ${C.red}40`}}>{phone.icon}</div>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:"#fff",letterSpacing:0.5}}>{phone.screen}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:10,color:C.textDim,letterSpacing:1}}>CoachConnect Pro</div>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {phone.items.map((item,ii)=>(
+                  <div key={ii} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 14px",position:"relative",overflow:"hidden"}}>
+                    <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(180deg,${pi===0?C.red:pi===1?C.gold:C.blue},transparent)`}}/>
+                    <div style={{paddingLeft:8}}>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:"#fff",letterSpacing:0.3,marginBottom:3}}>{item.label}</div>
+                      <div style={{fontSize:11,color:C.textMid,lineHeight:1.4}}>{item.detail}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",justifyContent:"space-around",marginTop:14,padding:"10px 0 2px",borderTop:`1px solid ${C.border}`}}>
+                {["🏠","⚾","📅","💬","📊"].map((ic,ni)=>(
+                  <div key={ni} style={{fontSize:16,opacity:ni===pi%3?1:0.35}}>{ic}</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{textAlign:"center",marginTop:32}}>
+          <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"14px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 6px 24px ${C.red}40`}}>Try It Free for 14 Days →</button>
+        </div>
+      </Section>
+
       <Section>
         <div style={{textAlign:"center",maxWidth:600,margin:"0 auto",padding:"40px 24px",background:C.card,borderRadius:20,border:`1px solid ${C.border}`,position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
@@ -2341,34 +2427,6 @@ function LandingPage({onAuth}) {
         </div>
       </Section>
 
-      {/* ── SOUND FAMILIAR? PAIN POINTS ── */}
-      <Section>
-        <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:4,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Sound Familiar?</div>
-          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>We've Been There Too.</div>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:20,maxWidth:600,margin:"0 auto"}}>
-          {[
-            {emoji:"😓",story:"It's 9:30 PM. You're staring at a blank notebook trying to plan tomorrow's practice. You've got 14 kids, 3 skill levels, and 90 minutes. You just finished a 10-hour workday. Again.",solve:"CoachConnect Pro gives you 50+ ready-to-go practice segments. Drag, drop, done. Timer included."},
-            {emoji:"📱",story:"Your phone buzzes for the 47th time today. \"What time is the game?\" \"Is practice canceled?\" \"Can Tyler play shortstop?\" You're managing a baseball team through group texts — and it's chaos.",solve:"Built-in team chat, individual DMs, and a parent app that answers the questions before they're asked."},
-            {emoji:"😢",story:"Your best hitter just struck out for the third time and he's crying in the dugout. His dad is yelling from the bleachers. You want to say the right thing — but you're not sure what that is.",solve:"Emotional coaching scripts and mental skills drills built right into the app. Handle the hard moments with confidence."},
-            {emoji:"📋",story:"Season's over. A parent asks: \"How much did my kid improve?\" You know he got better — you watched it happen. But you have zero data, zero proof, and zero way to show them.",solve:"Player progress tracking, skill snapshots, and rubric evaluations. Show growth with real data, not guesswork."},
-          ].map((p,i)=>(
-            <div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"28px 24px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}60,${C.gold}60,transparent)`}}/>
-              <div style={{fontSize:32,marginBottom:12}}>{p.emoji}</div>
-              <div style={{fontSize:14,color:C.textMid,lineHeight:1.7,fontStyle:"italic",marginBottom:16}}>"{p.story}"</div>
-              <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                <span style={{color:C.teal,fontSize:18,marginTop:1,flexShrink:0}}>→</span>
-                <div style={{fontSize:13,color:C.teal,lineHeight:1.6,fontWeight:600}}>{p.solve}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{textAlign:"center",marginTop:32}}>
-          <button onClick={()=>setShowLogin(true)} className="btn-press" style={{padding:"14px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 6px 24px ${C.red}40`}}>Stop Winging It →</button>
-        </div>
-      </Section>
 
       {/* ── COACH REVIEWS ── */}
       <ReviewsSection />
