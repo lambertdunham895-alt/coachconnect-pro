@@ -2255,7 +2255,7 @@ function LandingPage({onAuth}) {
 
   const pricing = [
     {name:"Founding Coach",price:"$14.99",period:"/mo",desc:"Lock in this rate forever",badge:"🔥 Limited",color:C.gold,features:["Full drill library (69 drills)","Unlimited players","Parent app & messaging","Practice plan builder","Progress tracking","Priority support"]},
-    {name:"Pro Monthly",price:"$24.99",period:"/mo",desc:"Full access, cancel anytime",badge:null,color:C.red,features:["Everything in Founding Coach","Advanced analytics (coming)","Email notifications (coming)","Custom branding (coming)"]},
+    {name:"Pro Monthly",price:"$24.99",period:"/mo",desc:"Full access, cancel anytime",badge:null,color:C.red,features:["Everything in Founding Coach","Custom drills & practice plans","Video submissions from parents","Player skill snapshots"]},
     {name:"Pro Annual",price:"$249.99",period:"/yr",desc:"Save $49.89 per year",badge:"💰 Best Value",color:C.teal,features:["Everything in Pro Monthly","2 months free","Annual billing"]},
   ];
 
@@ -2420,7 +2420,7 @@ function LandingPage({onAuth}) {
       </Section>
       <div style={{borderTop:`1px solid ${C.border}`,padding:"28px 20px",textAlign:"center"}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:14,letterSpacing:3,color:C.textDim,marginBottom:8}}>CoachConnect Pro</div>
-        <div style={{display:"flex",gap:20,justifyContent:"center",marginBottom:8}}><a href="/terms.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Terms</a><a href="/privacy.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Privacy</a></div>
+        <div style={{display:"flex",gap:20,justifyContent:"center",marginBottom:8}}><a href="/terms.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Terms</a><a href="/privacy.html" target="_blank" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Privacy</a><a href="mailto:coachconnectpro@yahoo.com" style={{color:C.textDim,fontSize:11,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1,textTransform:"uppercase",textDecoration:"none"}}>Contact</a></div>
         <div style={{fontSize:11,color:C.textDim}}>© 2026 CoachConnect Pro. All rights reserved.</div>
       </div>
     </div>
