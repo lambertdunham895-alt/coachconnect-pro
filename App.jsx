@@ -2376,7 +2376,7 @@ function LandingPage({onAuth}) {
           <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:2,color:"#fff"}}>Download. Print. Use Today.</div>
           <div style={{fontSize:14,color:C.textDim,marginTop:8}}>No signup required. These are yours.</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,maxWidth:660,margin:"0 auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,maxWidth:900,margin:"0 auto"}}>
           <a href="/The_Emotional_Game_Plan.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
             <div style={{fontSize:36,marginBottom:12}}>📖</div>
@@ -2392,6 +2392,14 @@ function LandingPage({onAuth}) {
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.teal,textTransform:"uppercase",marginBottom:10}}>29-Page Visual Reference</div>
             <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Every position on every play. Fly balls to LF/CF/RF, grounders to 3B/SS/2B/1B/P. No runners, runner on 1st, runner on 2nd, runners on 1st & 2nd.</div>
             <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.teal}}>Download Free PDF ↓</div>
+          </a>
+          <a href="/Youth_Baseball_Parent_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red})`}}/>
+            <div style={{fontSize:36,marginBottom:12}}>👨‍👩‍👦</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>The Parent's Survival Guide</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.red,textTransform:"uppercase",marginBottom:10}}>4-Page Quick Read</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Before the game, during the game, after the game — what to do, what NOT to do, and why "I love watching you play" is the most powerful sentence in youth sports.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.red}}>Download Free PDF ↓</div>
           </a>
         </div>
       </Section>
