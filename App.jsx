@@ -1232,7 +1232,7 @@ function AppInner() {
       id:e.id, type:e.type, date:e.date, time:e.time||'',
       location:[e.field_name,e.address].filter(Boolean).join(' — '),
       fieldName:e.field_name||'', address:e.address||'',
-      notes:e.notes||'', opponent:e.opponent||'',
+      notes:e.notes||'', opponent:e.opponent||'', uniform:e.uniform||'',
     })));
 
     // Build channel ID mapping: old formats → new per-parent format
@@ -1456,7 +1456,7 @@ function AppInner() {
     type: e.type, date: e.date, time: e.time||'',
     field_name: e.fieldName||(e.location?e.location.split(' — ')[0]:''),
     address: e.address||(e.location?e.location.split(' — ')[1]:''),
-    notes: e.notes||'', opponent: e.opponent||'',
+    notes: e.notes||'', opponent: e.opponent||'', uniform: e.uniform||'',
   });
 
   // ── Explicit DB-aware setters ────────────────────────────────────────────
@@ -3638,7 +3638,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const [formTab,   setFormTab]   = useState("info"); // "info"|"lineup"|"pitching"|"situations"
   const [editId,    setEditId]    = useState(null);
   const [formEvId,  setFormEvId]  = useState(null);
-  const blank={type:"practice",date:"",time:"",fieldName:"",address:"",notes:"",opponent:""};
+  const blank={type:"practice",date:"",time:"",fieldName:"",address:"",notes:"",opponent:"",uniform:""};
   const [form, setForm] = useState(blank);
   const ff=(k,v)=>setForm(p=>({...p,[k]:v}));
 
@@ -3685,7 +3685,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const openEdit=ev=>{
     const parts=(ev.location||"").split(" — ");
     setFormEvId(ev.id); setEditId(ev.id);
-    setForm({type:ev.type,date:ev.date,time:ev.time,fieldName:parts[0]||"",address:parts[1]||"",notes:ev.notes,opponent:ev.opponent||""});
+    setForm({type:ev.type,date:ev.date,time:ev.time,fieldName:parts[0]||"",address:parts[1]||"",notes:ev.notes,opponent:ev.opponent||"",uniform:ev.uniform||""});
     setFormTab("info"); setSelectedPid(null); setSelectedFieldPid(null);
     setView("form");
   };
@@ -3693,7 +3693,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     if(!form.date||!form.fieldName)return;
     const location=[form.fieldName,form.address].filter(Boolean).join(" — ");
     const row = {id:formEvId, team_id:teamId, type:form.type, date:form.date, time:form.time||'',
-      field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||''};
+      field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||'', uniform:form.uniform||''};
     if(editId){
       setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
       if(teamId) {
@@ -3789,6 +3789,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           <Inp label="Field Name" value={form.fieldName} onChange={e=>ff("fieldName",e.target.value)} placeholder="e.g. Sam Field, Field 5"/>
           <Inp label="Address" value={form.address} onChange={e=>ff("address",e.target.value)} placeholder="e.g. 1234 Main St, Springfield"/>
           {isGame&&<Inp label="Opponent" value={form.opponent} onChange={e=>ff("opponent",e.target.value)} placeholder="East Side Eagles"/>}
+          {isGame&&<Inp label="Uniform Color" value={form.uniform} onChange={e=>ff("uniform",e.target.value)} placeholder="e.g. White home jersey, Gray away"/>}
           <div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Notes / Focus Areas</div>
             <textarea value={form.notes} onChange={e=>ff("notes",e.target.value)} rows={3} placeholder={isGame?"Game notes, matchup details…":"Today's practice focus…"} style={{...inp,resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif"}}/>
@@ -3946,6 +3947,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                     <MapLink location={ev.location} isGame={isG}/>
                     <div style={{fontSize:13,color:C.textMid}}>🕐 {ev.time}</div>
                     {ev.notes&&<div style={{fontSize:12,color:C.textMid,marginTop:6,fontStyle:"italic",opacity:0.8}}>{ev.notes}</div>}
+                    {ev.uniform&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}><span style={{fontSize:14}}>👕</span><div style={{fontSize:12,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:0.5}}>Wear: {ev.uniform}</div></div>}
                   </div>
                 </div>
               </div>
@@ -5083,6 +5085,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                   <MapLink location={ev.location} isGame={isGame}/>
                   <div style={{fontSize:12,color:C.textMid}}>🕐 {ev.time}</div>
                   {hasLineup&&<div style={{display:"inline-flex",alignItems:"center",gap:4,marginTop:5,padding:"3px 8px",borderRadius:6,background:`${C.teal}15`,border:`1px solid ${C.teal}40`}}><span style={{fontSize:9}}>📢</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>Lineup posted</span></div>}
+                  {ev.uniform&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:5}}><span style={{fontSize:12}}>👕</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold,letterSpacing:0.5}}>Wear: {ev.uniform}</span></div>}
                 </div>
                 <span style={{color:C.textDim,fontSize:20,flexShrink:0}}>›</span>
               </div>
