@@ -2721,13 +2721,58 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
   const [msgMenu, setMsgMenu] = useState(null); // {msg, x, y} for context menu
   const [reportModal, setReportModal] = useState(null); // msg being reported
   const [reportReason, setReportReason] = useState("");
+  const [reactions, setReactions] = useState({}); // {msgId: [{emoji,userId,userName}]}
+  const [reactionPicker, setReactionPicker] = useState(null); // msgId to show picker for
+  const [showQuickMsgs, setShowQuickMsgs] = useState(false);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const isTeam = channelId==="team";
   const isCoach = myId==="coach";
+  const BASEBALL_EMOJIS = ["⚾","🔥","💪","👏","🏆"];
+  const QUICK_MESSAGES = [
+    {icon:"🚫",label:"Practice Canceled",text:"Practice is canceled today. Stay safe and we'll see you next time!"},
+    {icon:"⏰",label:"Game Time Change",text:"Heads up — game time has changed. Check the schedule for updated details."},
+    {icon:"💧",label:"Bring Water",text:"Reminder: bring plenty of water tomorrow. It's going to be a hot one!"},
+    {icon:"⚾",label:"Great Job Today",text:"Great job out there today, team! Really proud of the effort. Keep it up! 🔥"},
+    {icon:"📋",label:"Check Schedule",text:"Make sure to check the schedule — we have some upcoming events you don't want to miss."},
+    {icon:"🧤",label:"Don't Forget Gear",text:"Reminder: make sure your player has all their gear ready for tomorrow. Glove, helmet, cleats!"},
+  ];
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
+
+  // Load reactions for this channel's messages
+  useEffect(()=>{
+    if(!teamId) return;
+    const msgIds = messages.map(m=>m.id);
+    if(msgIds.length===0) return;
+    supabase.from("message_reactions").select("*").eq("team_id",teamId).in("message_id",msgIds).then(({data})=>{
+      if(!data) return;
+      const grouped = {};
+      data.forEach(r=>{
+        if(!grouped[r.message_id]) grouped[r.message_id]=[];
+        grouped[r.message_id].push({emoji:r.emoji,userId:r.user_id,userName:r.user_name,id:r.id});
+      });
+      setReactions(grouped);
+    });
+  },[messages.length,teamId]);
+
+  const toggleReaction = async (msgId, emoji) => {
+    const myName = isCoach ? "Coach" : (players.find(p=>p.parent1email||p.parent2email)?.parent1||"Parent");
+    const existing = (reactions[msgId]||[]).find(r=>r.emoji===emoji && r.userId===myId);
+    if(existing) {
+      // Remove reaction
+      await supabase.from("message_reactions").delete().eq("id",existing.id);
+      setReactions(prev=>({...prev,[msgId]:(prev[msgId]||[]).filter(r=>r.id!==existing.id)}));
+    } else {
+      // Add reaction
+      const id = Date.now().toString(36)+Math.random().toString(36).slice(2);
+      const row = {id,message_id:msgId,user_id:myId,user_name:myName,emoji,team_id:teamId};
+      await supabase.from("message_reactions").insert(row);
+      setReactions(prev=>({...prev,[msgId]:[...(prev[msgId]||[]),{emoji,userId:myId,userName:myName,id}]}));
+    }
+    setReactionPicker(null);
+  };
 
   // Filter out messages from blocked users
   const myBlockedIds = blockedUsers.filter(b=>b.userId===myId).map(b=>b.blockedUserId);
@@ -2856,8 +2901,8 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 
           return (
             <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8}}
-              onContextMenu={(e)=>{if(!isMe){e.preventDefault();setMsgMenu({msg:item,x:e.clientX,y:e.clientY});}}}
-              onTouchStart={(e)=>{if(isMe)return;const t=setTimeout(()=>{const touch=e.touches[0];setMsgMenu({msg:item,x:touch.clientX,y:touch.clientY});},600);e.currentTarget._lpt=t;}}
+              onContextMenu={(e)=>{e.preventDefault();setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);}}
+              onTouchStart={(e)=>{const t=setTimeout(()=>{setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);},500);e.currentTarget._lpt=t;}}
               onTouchEnd={(e)=>{clearTimeout(e.currentTarget._lpt);}}
               onTouchMove={(e)=>{clearTimeout(e.currentTarget._lpt);}}
             >
@@ -2896,6 +2941,25 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
                     </a>
                   )}
                 </div>
+                {/* Reaction emoji picker */}
+                {reactionPicker===item.id&&(
+                  <div className="pop-in" style={{display:"flex",gap:4,padding:"6px 10px",background:C.card,border:`1px solid ${C.border}`,borderRadius:20,marginTop:4,boxShadow:`0 4px 20px #00000060`}}>
+                    {BASEBALL_EMOJIS.map(em=>{
+                      const myReaction = (reactions[item.id]||[]).find(r=>r.emoji===em&&r.userId===myId);
+                      return <button key={em} onClick={()=>toggleReaction(item.id,em)} style={{width:36,height:36,borderRadius:"50%",border:"none",background:myReaction?`${C.blue}30`:"transparent",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>{em}</button>;
+                    })}
+                    {!isMe&&<button onClick={()=>{setReactionPicker(null);setMsgMenu({msg:item,x:0,y:0});}} style={{width:36,height:36,borderRadius:"50%",border:"none",background:"transparent",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim}}>⋯</button>}
+                  </div>
+                )}
+                {/* Reaction display */}
+                {(reactions[item.id]||[]).length>0&&(
+                  <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:4,paddingLeft:4}}>
+                    {Object.entries((reactions[item.id]||[]).reduce((acc,r)=>{acc[r.emoji]=(acc[r.emoji]||0)+1;return acc;},{})).map(([emoji,count])=>{
+                      const iMine = (reactions[item.id]||[]).some(r=>r.emoji===emoji&&r.userId===myId);
+                      return <button key={emoji} onClick={()=>toggleReaction(item.id,emoji)} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 8px",borderRadius:12,background:iMine?`${C.blue}25`:`${C.card}`,border:`1px solid ${iMine?C.blue+"60":C.border}`,cursor:"pointer",fontSize:14,transition:"all 0.15s"}}><span>{emoji}</span><span style={{fontSize:11,color:iMine?C.blue:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700}}>{count}</span></button>;
+                    })}
+                  </div>
+                )}
                 {(!isSameAsNext)&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,color:C.textDim,marginTop:4,paddingLeft:4,paddingRight:4}}>{fmtTime(item.ts)}</div>}
               </div>
             </div>
@@ -2927,12 +2991,31 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
         </div>
       )}
 
+      {/* Quick Messages Menu */}
+      {showQuickMsgs&&isCoach&&(
+        <div style={{padding:"8px 12px",background:`${C.card}`,borderTop:`1px solid ${C.border}`,maxHeight:220,overflowY:"auto"}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",marginBottom:8,paddingLeft:4}}>Quick Messages</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {QUICK_MESSAGES.map((qm,i)=>(
+              <button key={i} onClick={()=>{onSend(channelId,qm.text,{senderId:myId,senderName:"Coach"});setShowQuickMsgs(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"10px 12px",background:`${C.bg}`,border:`1px solid ${C.border}`,borderRadius:12,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                <span style={{fontSize:18,flexShrink:0}}>{qm.icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,letterSpacing:0.5}}>{qm.label}</div>
+                  <div style={{fontSize:11,color:C.textDim,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{qm.text}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
       <div style={{padding:"10px 12px 10px",background:`${C.bg}`,borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
         {/* Attachment button */}
         <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{width:40,height:40,borderRadius:"50%",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16,color:C.blue}}>
           📎
         </button>
+        {isCoach&&<button onClick={()=>setShowQuickMsgs(q=>!q)} style={{width:40,height:40,borderRadius:"50%",background:showQuickMsgs?`${C.gold}25`:`${C.gold}15`,border:`1px solid ${showQuickMsgs?C.gold:C.gold+"40"}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>⚾</button>}
         <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" onChange={handleFilePick} style={{display:"none"}}/>
 
         <div style={{flex:1,background:"#0a1525",border:`1px solid ${C.border}`,borderRadius:22,padding:"10px 16px",display:"flex",alignItems:"center",minHeight:44,transition:"border-color 0.2s"}}
