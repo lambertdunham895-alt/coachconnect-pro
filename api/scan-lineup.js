@@ -1,23 +1,25 @@
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    });
+  }
+
   // Only allow POST
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   }
-
-  // Allow requests from your domain only
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigins = [
-    'https://coachconnectpro.net',
-    'https://www.coachconnectpro.net',
-    'http://localhost:5173',  // local dev
-    'http://localhost:3000'
-  ];
-  const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 
   try {
     const body = await req.json();
@@ -26,10 +28,7 @@ export default async function handler(req) {
     if (!imageBase64) {
       return new Response(JSON.stringify({ error: 'No image provided' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': corsOrigin
-        }
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
     }
 
@@ -57,10 +56,7 @@ export default async function handler(req) {
             },
             {
               type: 'text',
-              text: `This is a handwritten baseball lineup card. Extract every player from the batting order.
-Return ONLY a JSON array, no other text, no markdown, no backticks. Example:
-[{"num":"7","name":"Jake Smith"},{"num":"14","name":"Connor Lee"}]
-If no jersey number is visible for a player use "". Include every player you can read.`
+              text: 'This is a handwritten baseball lineup card. Extract every player from the batting order. Return ONLY a JSON array, no other text, no markdown, no backticks. Example: [{"num":"7","name":"Jake Smith"},{"num":"14","name":"Connor Lee"}] If no jersey number is visible for a player use "". Include every player you can read.'
             }
           ]
         }]
@@ -68,33 +64,34 @@ If no jersey number is visible for a player use "". Include every player you can
     });
 
     const data = await anthropicRes.json();
+
+    if (!anthropicRes.ok) {
+      return new Response(JSON.stringify({ error: data.error?.message || 'Anthropic error', detail: data }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
     const raw = data.content?.[0]?.text?.trim() || '';
 
-    // Parse the player list
     let players;
     try {
       players = JSON.parse(raw);
     } catch (e) {
       const match = raw.match(/\[[\s\S]*\]/);
       if (match) players = JSON.parse(match[0]);
-      else throw new Error('Could not parse player list from response');
+      else throw new Error('Could not parse: ' + raw.substring(0, 100));
     }
 
     return new Response(JSON.stringify({ players }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': corsOrigin
-      }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message || 'Scan failed' }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': corsOrigin
-      }
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
     });
   }
 }
