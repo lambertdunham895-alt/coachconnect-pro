@@ -5,7 +5,7 @@ export default async function handler(req) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
-      headers: {
+      headers: { 
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type'
