@@ -3208,40 +3208,40 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
       <NewCoachCard page="home" setTab={setTab}/>
 
       {/* ── Team Identity Banner ── */}
-      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:140}}>
+      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:180}}>
         {/* Deep layered background */}
         <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,#06111f 0%,#0b1a30 40%,#130818 100%)`}}/>
         {/* Diagonal slash accent */}
         <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
         {/* Top accent line */}
-        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
         {/* Bottom accent line */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
         {/* Faint diagonal stripes */}
         <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
         {/* Glow orb behind logo */}
-        <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",top:-30,left:-30,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}30 0%,transparent 70%)`,pointerEvents:"none"}}/>
         {/* Large watermark initials in background */}
         {!teamLogo && (
-          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:130,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
+          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:160,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
             {teamInitials}
           </div>
         )}
         {/* Large watermark logo in background */}
         {teamLogo && (
-          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:130,height:130,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
+          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:160,height:160,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
             <img src={teamLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
           </div>
         )}
 
         {/* Content */}
-        <div style={{position:"relative",padding:"20px 20px 20px 20px",display:"flex",alignItems:"center",gap:18}}>
+        <div style={{position:"relative",padding:"28px 22px 28px 22px",display:"flex",alignItems:"center",gap:20}}>
           {/* Logo — large, prominent */}
           <label style={{cursor:"pointer",flexShrink:0,position:"relative"}}>
-            <div style={{width:88,height:88,borderRadius:18,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 8px 32px ${C.red}50`:`0 0 0 4px #ffffff08, 0 8px 24px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,transition:"all 0.3s"}}>
+            <div style={{width:110,height:110,borderRadius:22,overflow:"hidden",border:`3px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 5px ${C.red}20, 0 8px 40px ${C.red}50`:`0 0 0 5px #ffffff08, 0 8px 32px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,transition:"all 0.3s"}}>
               {teamLogo
                 ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
+                : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:36,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
               }
             </div>
             {/* Camera badge */}
@@ -3251,19 +3251,19 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
           {/* Team name block */}
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:6}}>
               ⚾ 2026 Season
             </div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:34,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:48,letterSpacing:3,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:8}}>
               {teamName||"Your Team"}
             </div>
             {/* Decorative divider */}
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{height:2,width:28,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
-              <div style={{height:2,width:8,background:C.gold,opacity:0.4}}/>
-              <div style={{height:2,width:4,background:C.gold,opacity:0.2}}/>
+              <div style={{height:3,width:36,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+              <div style={{height:3,width:12,background:C.gold,opacity:0.4}}/>
+              <div style={{height:3,width:6,background:C.gold,opacity:0.2}}/>
             </div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:2,color:teamLogo?"#ffffff40":C.red,textTransform:"uppercase",marginTop:6}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:2,color:teamLogo?"#ffffff40":C.red,textTransform:"uppercase",marginTop:8}}>
               {teamLogo?"Tap logo to update":"Tap logo to add"}
             </div>
           </div>
