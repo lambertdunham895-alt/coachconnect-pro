@@ -1678,12 +1678,14 @@ function AppInner() {
       const res = await fetch(base64DataUrl);
       const blob = await res.blob();
       const ext = (blob.type.split('/')[1]||'jpg').replace('jpeg','jpg');
-      const path = `team-logos/${teamId}.${ext}`;
+      const path = `team-logos/${teamId}_${Date.now()}.${ext}`;
       const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
       if (!error) {
         const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
         await supabase.from('teams').update({logo_url:publicUrl}).eq('id',teamId);
         setTeamLogo(publicUrl);
+      } else {
+        console.error('Logo upload error:',error);
       }
     } catch(err) { console.error('Logo upload error:',err); }
   };
