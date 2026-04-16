@@ -3735,6 +3735,97 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const [form, setForm] = useState(blank);
   const ff=(k,v)=>setForm(p=>({...p,[k]:v}));
 
+  // ── Schedule scanner state ──
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [scannedEvents, setScannedEvents] = useState([]); // array of extracted events being reviewed
+  const scanFileRef = useRef(null);
+
+  const handleScanFile = async (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setScanError("");
+    setScanLoading(true);
+    setScannedEvents([]);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve,reject)=>{
+        reader.onload = ()=>{
+          const result = reader.result;
+          const b64 = result.split(',')[1];
+          resolve(b64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-schedule`, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: file.type || "image/jpeg",
+          currentYear: new Date().getFullYear(),
+        }),
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+      if(!data.events || data.events.length===0) {
+        setScanError("No events could be detected in this image. Try a clearer photo or a different section of the schedule.");
+      } else {
+        // Add local edit IDs to each event for tracking
+        setScannedEvents(data.events.map((ev,i)=>({...ev, _localId:`scan_${Date.now()}_${i}`, _include:true})));
+      }
+    } catch(err) {
+      setScanError("Scan failed: " + (err.message||String(err)));
+    } finally {
+      setScanLoading(false);
+      if(scanFileRef.current) scanFileRef.current.value = "";
+    }
+  };
+
+  const updateScannedEvent = (localId, field, value) => {
+    setScannedEvents(prev => prev.map(ev => ev._localId===localId ? {...ev, [field]:value} : ev));
+  };
+
+  const toggleScannedEvent = (localId) => {
+    setScannedEvents(prev => prev.map(ev => ev._localId===localId ? {...ev, _include:!ev._include} : ev));
+  };
+
+  const removeScannedEvent = (localId) => {
+    setScannedEvents(prev => prev.filter(ev => ev._localId!==localId));
+  };
+
+  const importScannedEvents = async () => {
+    const toAdd = scannedEvents.filter(ev => ev._include && ev.date);
+    if(toAdd.length===0) return;
+    const newEvents = toAdd.map(ev => ({
+      id: uid(),
+      type: ev.type==="game"?"game":"practice",
+      date: ev.date,
+      time: ev.time||"",
+      fieldName: ev.fieldName||"",
+      address: ev.address||"",
+      location: [ev.fieldName, ev.address].filter(Boolean).join(" — "),
+      opponent: ev.opponent||"",
+      uniform: "",
+      notes: "",
+    }));
+    setEvents(prev => [...prev, ...newEvents]);
+    // Save to DB
+    if(teamId) {
+      const rows = newEvents.map(e=>({
+        id: e.id, team_id: teamId, type: e.type, date: e.date, time: e.time||"",
+        field_name: e.fieldName||"", address: e.address||"",
+        notes: "", opponent: e.opponent||"", uniform: "",
+      }));
+      await supabase.from("events").insert(rows);
+    }
+    setShowScanner(false);
+    setScannedEvents([]);
+    setScanError("");
+  };
+
   // ── Lineup tap-to-select state ──
   const [selectedPid,      setSelectedPid]      = useState(null);
   const [selectedFieldPid, setSelectedFieldPid] = useState(null);
@@ -4012,9 +4103,12 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   return (
     <div>
       <NewCoachCard page="schedule"/>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,gap:8}}>
         <SectionHead accent>Schedule</SectionHead>
-        <PrimaryBtn onClick={openNew}>+ Event</PrimaryBtn>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setShowScanner(true)} style={{padding:"10px 14px",borderRadius:10,background:`linear-gradient(135deg,${C.teal},#0a8a72)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.teal}40`,display:"flex",alignItems:"center",gap:6}}>📸 Scan</button>
+          <PrimaryBtn onClick={openNew}>+ Event</PrimaryBtn>
+        </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {sorted.map((ev,i)=>{
@@ -4055,6 +4149,83 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
         })}
         {sorted.length===0&&<EmptyState icon="📅" title="No events scheduled" body="Add your first practice or game. Parents will automatically see upcoming events in their app." action="Add First Event" onAction={openNew}/>}
       </div>
+
+      {/* ── SCHEDULE SCANNER MODAL ───────────────────────────────────────── */}
+      {showScanner && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <div>
+                <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1}}>📸 Scan Schedule</div>
+                <div style={{fontSize:12,color:C.textDim,marginTop:4}}>Upload a photo, let AI extract the events</div>
+              </div>
+              <button onClick={()=>{setShowScanner(false);setScannedEvents([]);setScanError("");}} style={{width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,color:"#fff",fontSize:16,cursor:"pointer"}}>✕</button>
+            </div>
+
+            {/* Upload area (shown when no events scanned yet) */}
+            {scannedEvents.length===0 && !scanLoading && (
+              <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                <button onClick={()=>scanFileRef.current?.click()} style={{padding:"40px 20px",borderRadius:16,background:`${C.teal}10`,border:`2px dashed ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                  <div style={{fontSize:36}}>📷</div>
+                  <div>Tap to upload schedule photo</div>
+                  <div style={{fontSize:11,color:C.textDim,fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:400,letterSpacing:0,textTransform:"none"}}>PDF screenshot, photo, or email — anything readable works</div>
+                </button>
+                <input ref={scanFileRef} type="file" accept="image/*" onChange={handleScanFile} style={{display:"none"}}/>
+                {scanError && <div style={{padding:"12px 14px",borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontSize:13,lineHeight:1.5}}>⚠️ {scanError}</div>}
+                <div style={{padding:"14px 16px",background:C.card,borderRadius:12,border:`1px solid ${C.border}`,fontSize:12,color:C.textMid,lineHeight:1.6}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:6}}>💡 Tips</div>
+                  • Clear, well-lit photos work best<br/>
+                  • Make sure dates and times are readable<br/>
+                  • You can review and edit everything before adding
+                </div>
+              </div>
+            )}
+
+            {/* Loading state */}
+            {scanLoading && (
+              <div style={{padding:"60px 20px",textAlign:"center"}}>
+                <div style={{display:"inline-block",width:36,height:36,border:`3px solid ${C.teal}30`,borderTopColor:C.teal,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid,letterSpacing:2,textTransform:"uppercase",marginTop:14}}>Reading schedule...</div>
+                <div style={{fontSize:12,color:C.textDim,marginTop:6}}>This usually takes 5-10 seconds</div>
+              </div>
+            )}
+
+            {/* Review / edit scanned events */}
+            {scannedEvents.length>0 && !scanLoading && (
+              <div>
+                <div style={{padding:"12px 14px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.teal,fontSize:13,marginBottom:14,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1}}>✓ Found {scannedEvents.length} event{scannedEvents.length!==1?'s':''} — review and edit below</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                  {scannedEvents.map(ev=>(
+                    <div key={ev._localId} style={{background:ev._include?C.card:"#0a1525",border:`1px solid ${ev._include?(ev.type==="game"?C.red+"40":C.blue+"40"):C.border}`,borderRadius:12,padding:"12px 14px",opacity:ev._include?1:0.5,transition:"all 0.2s"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                        <button onClick={()=>toggleScannedEvent(ev._localId)} style={{width:22,height:22,borderRadius:6,background:ev._include?C.teal:"transparent",border:`1.5px solid ${ev._include?C.teal:C.border}`,cursor:"pointer",color:"#fff",fontSize:13,flexShrink:0}}>{ev._include?"✓":""}</button>
+                        <select value={ev.type} onChange={e=>updateScannedEvent(ev._localId,"type",e.target.value)} style={{padding:"5px 8px",borderRadius:8,background:ev.type==="game"?`${C.red}20`:`${C.blue}20`,border:`1px solid ${ev.type==="game"?C.red+"60":C.blue+"60"}`,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>
+                          <option value="game">🔴 Game</option>
+                          <option value="practice">🔵 Practice</option>
+                        </select>
+                        <button onClick={()=>removeScannedEvent(ev._localId)} style={{marginLeft:"auto",background:"transparent",border:"none",color:C.red+"99",fontSize:16,cursor:"pointer",padding:4}}>🗑</button>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                        <input type="date" value={ev.date} onChange={e=>updateScannedEvent(ev._localId,"date",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={ev.time} onChange={e=>updateScannedEvent(ev._localId,"time",e.target.value)} placeholder="5:30 PM" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                      </div>
+                      {ev.type==="game" && <input value={ev.opponent} onChange={e=>updateScannedEvent(ev._localId,"opponent",e.target.value)} placeholder="Opponent" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>}
+                      <input value={ev.fieldName} onChange={e=>updateScannedEvent(ev._localId,"fieldName",e.target.value)} placeholder="Field / Location" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:"flex",gap:10}}>
+                  <button onClick={importScannedEvents} disabled={scannedEvents.filter(e=>e._include && e.date).length===0} style={{flex:1,padding:"14px 0",borderRadius:12,background:scannedEvents.filter(e=>e._include && e.date).length>0?`linear-gradient(135deg,${C.teal},#0a8a72)`:"#1a2a2a",border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:scannedEvents.filter(e=>e._include && e.date).length>0?"pointer":"default",minHeight:50,boxShadow:scannedEvents.filter(e=>e._include && e.date).length>0?`0 4px 20px ${C.teal}40`:"none"}}>
+                    ✓ Add {scannedEvents.filter(e=>e._include && e.date).length} Event{scannedEvents.filter(e=>e._include && e.date).length!==1?'s':''}
+                  </button>
+                  <button onClick={()=>{setScannedEvents([]);setScanError("");}} style={{padding:"14px 20px",borderRadius:12,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,cursor:"pointer",minHeight:50}}>Start Over</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
