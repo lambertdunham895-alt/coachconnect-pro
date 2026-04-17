@@ -2730,7 +2730,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
   const fileRef = useRef(null);
   const isTeam = channelId==="team";
   const isCoach = myId==="coach";
-  const BASEBALL_EMOJIS = ["⚾","🔥","💪","👏","🏆"];
+  const BASEBALL_EMOJIS = ["⚾","🔥","💪","👏","🏆","👍","👎"];
   const QUICK_MESSAGES = [
     {icon:"🚫",label:"Practice Canceled",text:"Practice is canceled today. Stay safe and we'll see you next time!"},
     {icon:"⏰",label:"Game Time Change",text:"Heads up — game time has changed. Check the schedule for updated details."},
@@ -2902,9 +2902,9 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
           const showName   = !isMe && !isSameAsPrev;
 
           return (
-            <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8}}
+            <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8,userSelect:"none",WebkitUserSelect:"none",WebkitTouchCallout:"none",MozUserSelect:"none",msUserSelect:"none"}}
               onContextMenu={(e)=>{e.preventDefault();setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);}}
-              onTouchStart={(e)=>{const t=setTimeout(()=>{setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);},500);e.currentTarget._lpt=t;}}
+              onTouchStart={(e)=>{const t=setTimeout(()=>{setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);if(navigator.vibrate)navigator.vibrate(20);},500);e.currentTarget._lpt=t;}}
               onTouchEnd={(e)=>{clearTimeout(e.currentTarget._lpt);}}
               onTouchMove={(e)=>{clearTimeout(e.currentTarget._lpt);}}
             >
