@@ -4473,7 +4473,6 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                   );
                 })()}
               </div>
-              </div>
               <div style={{display:"flex"}}>
                 <button onClick={()=>openEdit(ev)} style={{flex:2,padding:"11px 0",background:hasGamePlan?`${C.gold}10`:"transparent",border:"none",borderRight:`1px solid ${C.border}`,color:hasGamePlan?C.gold:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:44}}>
                   ✏️ {isG?(hasGamePlan?"Edit Game Plan":"Edit / Add Plan"):"Edit"}
