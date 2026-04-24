@@ -3283,6 +3283,27 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
     : "TC";
   const [showSettings, setShowSettings] = useState(false);
 
+  // ── Season Playing Time ──
+  const [seasonPT, setSeasonPT] = useState([]); // array of {player_id, player_name, innings_played, innings_total, event_id}
+  useEffect(()=>{
+    if(!teamData?.id) return;
+    supabase.from("playing_time").select("*").eq("team_id",teamData.id).then(({data})=>{
+      setSeasonPT(data||[]);
+    });
+  },[teamData?.id, events.length]);
+
+  // Aggregate season playing time per player
+  const seasonStats = players.map(p=>{
+    const rows = seasonPT.filter(r=>r.player_id===p.id);
+    const innings = rows.reduce((sum,r)=>sum+(r.innings_played||0),0);
+    const total = rows.reduce((sum,r)=>sum+(r.innings_total||0),0);
+    return {player:p, innings, total, games:rows.length, pct: total?Math.round(innings/total*100):0};
+  });
+  const ptTotalsByPlayer = seasonStats.filter(s=>s.games>0).map(s=>s.innings);
+  const ptMin = ptTotalsByPlayer.length?Math.min(...ptTotalsByPlayer):0;
+  const ptMax = ptTotalsByPlayer.length?Math.max(...ptTotalsByPlayer):0;
+  const ptGap = ptMax - ptMin;
+
   // Needs Review: completed but not yet acknowledged
   const needsReview = assignments.filter(a=>a.completed && !a.acknowledged);
   // Group by player
@@ -3406,6 +3427,39 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:4,boxShadow:`0 0 10px ${C.gold}60`,transition:"width 0.8s ease"}}/>
         </div>
       </div>
+
+      {/* ── Playing Time Fairness Card ── */}
+      {seasonPT.length>0 && (
+        <div className="fade-up glass-card" style={{borderRadius:18,padding:"18px 18px 14px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.gold},${C.red})`}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+            <div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:4}}>⚖️ Playing Time</div>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:"#fff",letterSpacing:1.5,lineHeight:1}}>Fairness Across Season</div>
+            </div>
+            <div style={{padding:"4px 10px",borderRadius:8,background:ptGap<=2?`${C.teal}20`:ptGap<=4?`${C.gold}20`:`${C.red}20`,border:`1px solid ${ptGap<=2?C.teal+"60":ptGap<=4?C.gold+"60":C.red+"60"}`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:ptGap<=2?C.teal:ptGap<=4?C.gold:C.red,textTransform:"uppercase"}}>
+              {ptGap<=2?"✓ Fair":ptGap<=4?"⚠ Watch":"⚠ Unbalanced"}
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {seasonStats.filter(s=>s.games>0).sort((a,b)=>b.innings-a.innings).map(s=>{
+              const pct = ptMax>0 ? (s.innings/ptMax)*100 : 0;
+              return (
+                <div key={s.player.id} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{minWidth:120,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.player.name}</div>
+                  <div style={{flex:1,height:14,background:"#0a1525",borderRadius:7,overflow:"hidden",position:"relative"}}>
+                    <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.teal},${C.blue})`,borderRadius:7,transition:"width 0.6s ease"}}/>
+                  </div>
+                  <div style={{minWidth:60,textAlign:"right",fontFamily:"Bebas Neue, sans-serif",fontSize:16,color:C.text,letterSpacing:0.5}}>{s.innings}<span style={{fontSize:11,color:C.textDim,fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:400}}>/{s.total}</span></div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.border}`,fontSize:11,color:C.textDim,lineHeight:1.5}}>
+            Gap between most and least innings: <span style={{color:ptGap<=2?C.teal:ptGap<=4?C.gold:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:0.5}}>{ptGap} innings</span>. {ptGap<=2?"Great job keeping it balanced!":ptGap<=4?"Try to balance over next game.":"Some players need more time on the field."}
+          </div>
+        </div>
+      )}
 
       {/* ── Needs Review Alert ── */}
       {needsReview.length > 0 && (
@@ -4056,6 +4110,46 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     });
   },[teamId, events.length]);
 
+  // ── PLAYING TIME state ──
+  const [playingTime, setPlayingTime] = useState({}); // {event_id: {player_id: {innings_played, innings_total}}}
+
+  // Load playing time for all events
+  useEffect(()=>{
+    if(!teamId || events.length===0) return;
+    const eventIds = events.map(e=>e.id);
+    supabase.from("playing_time").select("*").eq("team_id",teamId).in("event_id",eventIds).then(({data})=>{
+      if(!data) return;
+      const grouped = {};
+      data.forEach(r=>{
+        if(!grouped[r.event_id]) grouped[r.event_id]={};
+        grouped[r.event_id][r.player_id]={innings_played:r.innings_played,innings_total:r.innings_total};
+      });
+      setPlayingTime(grouped);
+    });
+  },[teamId, events.length]);
+
+  const updatePlayingTime = async (eventId, playerId, playerName, innings_played, innings_total) => {
+    setPlayingTime(prev=>({
+      ...prev,
+      [eventId]: {
+        ...(prev[eventId]||{}),
+        [playerId]: {innings_played, innings_total}
+      }
+    }));
+    const id = `${eventId}_${playerId}`;
+    const row = {
+      id,
+      team_id: teamId,
+      event_id: eventId,
+      player_id: playerId,
+      player_name: playerName,
+      innings_played,
+      innings_total,
+      updated_at: new Date().toISOString(),
+    };
+    await supabase.from("playing_time").upsert(row, {onConflict:"event_id,player_id"});
+  };
+
   const handleScanFile = async (e) => {
     const file = e.target.files?.[0];
     if(!file) return;
@@ -4242,7 +4336,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const todayStr=new Date().toISOString().slice(0,10);
   const sorted=[...events].filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
   const isGame=form.type==="game";
-  const formTabs=isGame?[{id:"info",label:"🔴 Info"},{id:"batting",label:"🔴 Batting Order"},{id:"field",label:"🔴 Field Positions"}]:[];
+  const formTabs=isGame?[{id:"info",label:"🔴 Info"},{id:"batting",label:"🔴 Batting Order"},{id:"field",label:"🔴 Field Positions"},{id:"playtime",label:"🔴 Playing Time"}]:[];
 
   // ── FORM VIEW ────────────────────────────────────────────────────────────────
   if(view==="form") return (
@@ -4402,6 +4496,94 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           </div>
         </div>
       )}
+
+      {/* ── PLAYING TIME TAB ── */}
+      {isGame&&formTab==="playtime"&&(()=>{
+        const evId = formEvId || editId;
+        const evPT = playingTime[evId] || {};
+        const totalInnings = (() => {
+          const max = Math.max(6, ...Object.values(evPT).map(p=>p.innings_total||6));
+          return max;
+        })();
+        const allInnings = Object.values(evPT).map(p=>p.innings_played||0);
+        const minInnings = allInnings.length ? Math.min(...allInnings) : 0;
+        const maxInnings = allInnings.length ? Math.max(...allInnings) : 0;
+        const fairnessGap = maxInnings - minInnings;
+        return (
+          <div className="fade-up">
+            {/* Stat banner */}
+            <div className="glass-card" style={{borderRadius:14,padding:"14px 16px",marginBottom:14,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.gold},${C.red})`}}/>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",marginBottom:8}}>Playing Time This Game</div>
+              <div style={{display:"flex",gap:16}}>
+                <div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:C.text,lineHeight:1}}>{totalInnings}</div>
+                  <div style={{fontSize:10,color:C.textDim,letterSpacing:1,textTransform:"uppercase",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700}}>Innings</div>
+                </div>
+                <div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:fairnessGap<=1?C.teal:fairnessGap<=2?C.gold:C.red,lineHeight:1}}>{fairnessGap}</div>
+                  <div style={{fontSize:10,color:C.textDim,letterSpacing:1,textTransform:"uppercase",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700}}>Gap</div>
+                </div>
+                <div style={{flex:1,textAlign:"right"}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:fairnessGap<=1?C.teal:fairnessGap<=2?C.gold:C.red,letterSpacing:1.5,textTransform:"uppercase"}}>{fairnessGap<=1?"✓ Fair":fairnessGap<=2?"⚠ Watch":"⚠ Unbalanced"}</div>
+                  <div style={{fontSize:10,color:C.textDim,marginTop:2}}>{fairnessGap<=1?"Even playing time":"Difference between most and least"}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Player innings tracker */}
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>Tap innings each player plays</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {players.length===0 && <div style={{textAlign:"center",padding:"20px 0",color:C.textDim,fontSize:13}}>Add players to your roster first</div>}
+              {players.map(p=>{
+                const data = evPT[p.id] || {innings_played:0,innings_total:totalInnings};
+                const innings = data.innings_played;
+                return (
+                  <div key={p.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",gap:12}}>
+                    <Avatar name={p.name} size={36}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:C.text}}>{p.name}</div>
+                      <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{p.number?`#${p.number} · `:""}{innings} of {totalInnings} innings</div>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <button onClick={()=>updatePlayingTime(evId,p.id,p.name,Math.max(0,innings-1),totalInnings)} style={{width:32,height:32,borderRadius:"50%",background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>−</button>
+                      <div style={{minWidth:30,textAlign:"center",fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:innings===0?C.textDim:C.text}}>{innings}</div>
+                      <button onClick={()=>updatePlayingTime(evId,p.id,p.name,Math.min(totalInnings,innings+1),totalInnings)} style={{width:32,height:32,borderRadius:"50%",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.teal,fontSize:18,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Adjust total innings */}
+            {players.length>0&&(
+              <div style={{marginTop:14,padding:"12px 14px",background:C.card,border:`1px dashed ${C.border}`,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase"}}>Game Length</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Most youth games are 6 innings</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <button onClick={()=>{
+                    const newTotal = Math.max(1,totalInnings-1);
+                    players.forEach(p=>{
+                      const cur = evPT[p.id]||{innings_played:0};
+                      updatePlayingTime(evId,p.id,p.name,Math.min(cur.innings_played,newTotal),newTotal);
+                    });
+                  }} style={{width:28,height:28,borderRadius:"50%",background:`${C.bg}`,border:`1px solid ${C.border}`,color:C.textMid,fontSize:14,cursor:"pointer"}}>−</button>
+                  <div style={{minWidth:24,textAlign:"center",fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:C.text}}>{totalInnings}</div>
+                  <button onClick={()=>{
+                    const newTotal = totalInnings+1;
+                    players.forEach(p=>{
+                      const cur = evPT[p.id]||{innings_played:0};
+                      updatePlayingTime(evId,p.id,p.name,cur.innings_played,newTotal);
+                    });
+                  }} style={{width:28,height:28,borderRadius:"50%",background:`${C.bg}`,border:`1px solid ${C.border}`,color:C.textMid,fontSize:14,cursor:"pointer"}}>+</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Save button pinned at bottom of non-info game tabs */}
       {isGame&&formTab!=="info"&&(
@@ -5462,6 +5644,20 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     };
     await supabase.from("event_rsvps").upsert(row, {onConflict:"event_id,player_id"});
   };
+
+  // ── Playing Time for this player ──
+  const [myPT, setMyPT] = useState([]);
+  useEffect(()=>{
+    if(!player?.id) return;
+    supabase.from("playing_time").select("*").eq("player_id",player.id).then(({data})=>{
+      setMyPT(data||[]);
+    });
+  },[player?.id]);
+  const myPTInnings = myPT.reduce((sum,r)=>sum+(r.innings_played||0),0);
+  const myPTTotal = myPT.reduce((sum,r)=>sum+(r.innings_total||0),0);
+  const myPTPct = myPTTotal>0 ? Math.round(myPTInnings/myPTTotal*100) : 0;
+  const myPTGames = myPT.length;
+
   const done=assignments.filter(a=>a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
   const photo = playerPhotos[player.id] || null;
@@ -5747,6 +5943,31 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
       {section==="schedule"&&!selEvId&&(
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {/* Playing Time Stats Card */}
+          {myPTGames>0&&(
+            <div className="glass-card" style={{borderRadius:14,padding:"14px 16px",position:"relative",overflow:"hidden",marginBottom:4}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",marginBottom:2}}>⚾ {player.name.split(" ")[0]}'s Playing Time</div>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-end",marginTop:4}}>
+                    <div>
+                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.teal,lineHeight:1,textShadow:`0 0 16px ${C.teal}50`}}>{myPTInnings}</div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase"}}>Innings</div>
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.text,lineHeight:1}}>{myPTGames}</div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase"}}>Games</div>
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.gold,lineHeight:1}}>{myPTPct}%</div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase"}}>Of Game</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {upcoming.length===0&&<div style={{textAlign:"center",padding:"24px 0",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:2,textTransform:"uppercase",fontSize:13}}>No upcoming events</div>}
           {upcoming.map((ev,i)=>{
             const isGame=ev.type==="game";
