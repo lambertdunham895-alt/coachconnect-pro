@@ -2776,6 +2776,26 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
     setReactionPicker(null);
   };
 
+  // Close reaction picker when tapping outside
+  useEffect(()=>{
+    if(!reactionPicker) return;
+    const close = (e) => {
+      // Don't close if tapping inside the picker itself
+      if(e.target.closest && e.target.closest('[data-reaction-picker]')) return;
+      setReactionPicker(null);
+    };
+    // Delay so the long-press touchend doesn't immediately close it
+    const t = setTimeout(()=>{
+      document.addEventListener('click', close);
+      document.addEventListener('touchstart', close);
+    }, 100);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('click', close);
+      document.removeEventListener('touchstart', close);
+    };
+  },[reactionPicker]);
+
   // Filter out messages from blocked users
   const myBlockedIds = blockedUsers.filter(b=>b.userId===myId).map(b=>b.blockedUserId);
   const filteredMessages = messages.filter(m=>!myBlockedIds.includes(m.senderId));
@@ -2903,10 +2923,23 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
 
           return (
             <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8,userSelect:"none",WebkitUserSelect:"none",WebkitTouchCallout:"none",MozUserSelect:"none",msUserSelect:"none"}}
-              onContextMenu={(e)=>{e.preventDefault();setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);}}
-              onTouchStart={(e)=>{const t=setTimeout(()=>{setReactionPicker(reactionPicker===item.id?null:item.id);setMsgMenu(null);if(navigator.vibrate)navigator.vibrate(20);},500);e.currentTarget._lpt=t;}}
-              onTouchEnd={(e)=>{clearTimeout(e.currentTarget._lpt);}}
+              onContextMenu={(e)=>{e.preventDefault();setReactionPicker(item.id);setMsgMenu(null);}}
+              onTouchStart={(e)=>{
+                e.currentTarget._lpFired=false;
+                const t=setTimeout(()=>{
+                  e.currentTarget._lpFired=true;
+                  setReactionPicker(item.id);
+                  setMsgMenu(null);
+                  if(navigator.vibrate)navigator.vibrate(20);
+                },500);
+                e.currentTarget._lpt=t;
+              }}
+              onTouchEnd={(e)=>{
+                clearTimeout(e.currentTarget._lpt);
+                if(e.currentTarget._lpFired){e.preventDefault();}
+              }}
               onTouchMove={(e)=>{clearTimeout(e.currentTarget._lpt);}}
+              onTouchCancel={(e)=>{clearTimeout(e.currentTarget._lpt);}}
             >
               {/* Avatar placeholder to keep alignment */}
               {!isMe&&(
@@ -2945,12 +2978,12 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
                 </div>
                 {/* Reaction emoji picker */}
                 {reactionPicker===item.id&&(
-                  <div className="pop-in" style={{display:"flex",gap:4,padding:"6px 10px",background:C.card,border:`1px solid ${C.border}`,borderRadius:20,marginTop:4,boxShadow:`0 4px 20px #00000060`}}>
+                  <div data-reaction-picker className="pop-in" onClick={(e)=>e.stopPropagation()} onTouchStart={(e)=>e.stopPropagation()} style={{display:"flex",gap:4,padding:"6px 10px",background:C.card,border:`1px solid ${C.border}`,borderRadius:20,marginTop:4,boxShadow:`0 4px 20px #00000060`,zIndex:10,position:"relative"}}>
                     {BASEBALL_EMOJIS.map(em=>{
                       const myReaction = (reactions[item.id]||[]).find(r=>r.emoji===em&&r.userId===myId);
-                      return <button key={em} onClick={()=>toggleReaction(item.id,em)} style={{width:36,height:36,borderRadius:"50%",border:"none",background:myReaction?`${C.blue}30`:"transparent",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>{em}</button>;
+                      return <button key={em} onClick={(e)=>{e.stopPropagation();toggleReaction(item.id,em);}} style={{width:36,height:36,borderRadius:"50%",border:"none",background:myReaction?`${C.blue}30`:"transparent",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}>{em}</button>;
                     })}
-                    {!isMe&&<button onClick={()=>{setReactionPicker(null);setMsgMenu({msg:item,x:0,y:0});}} style={{width:36,height:36,borderRadius:"50%",border:"none",background:"transparent",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim}}>⋯</button>}
+                    {!isMe&&<button onClick={(e)=>{e.stopPropagation();setReactionPicker(null);setMsgMenu({msg:item,x:0,y:0});}} style={{width:36,height:36,borderRadius:"50%",border:"none",background:"transparent",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.textDim}}>⋯</button>}
                   </div>
                 )}
                 {/* Reaction display */}
