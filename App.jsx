@@ -109,9 +109,58 @@ input, select, textarea { font-size: 16px !important; }
 .pop-in    { animation: popIn  0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
 .slide-in  { animation: slideInRight 0.3s cubic-bezier(0.22,1,0.36,1) both; }
 
-.card-hover { transition:transform 0.18s cubic-bezier(0.22,1,0.36,1),box-shadow 0.18s ease; cursor:pointer; }
-.card-hover:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,0.4); }
-.card-hover:active { transform:scale(0.97) translateY(0); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+/* Enhanced card hover with smoother lift and gradient glow */
+.card-hover { transition:transform 0.22s cubic-bezier(0.22,1,0.36,1),box-shadow 0.22s ease,border-color 0.22s ease; cursor:pointer; }
+.card-hover:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04); }
+.card-hover:active { transform:scale(0.98) translateY(0); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+
+/* Glassmorphism — frosted glass cards */
+.glass {
+  background: rgba(20,30,50,0.55);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.glass-strong {
+  background: rgba(15,25,45,0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.glass-card {
+  background: linear-gradient(145deg, rgba(30,45,75,0.45), rgba(15,25,45,0.55));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+/* Skeleton loaders */
+@keyframes skeletonShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #1a2745 25%, #243558 50%, #1a2745 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Animated number / counter effect */
+@keyframes numberPop {
+  0% { transform:scale(1); }
+  40% { transform:scale(1.15); }
+  100% { transform:scale(1); }
+}
+.number-pop { animation: numberPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+/* Tap ripple effect */
+@keyframes ripple {
+  to { transform: scale(2.4); opacity: 0; }
+}
 
 .btn-press { transition:transform 0.1s cubic-bezier(0.22,1,0.36,1),box-shadow 0.1s ease; }
 .btn-press:active { transform:scale(0.95); }
@@ -135,6 +184,13 @@ input, select, textarea { font-size: 16px !important; }
 
 .tag-hover { transition: transform 0.12s ease, box-shadow 0.12s ease; }
 .tag-hover:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+
+/* Subtle floating animation for empty state icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.float-anim { animation: float 3s ease-in-out infinite; }
 
 ::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -604,17 +660,36 @@ const avatarColor  = name => avatarColors[name.charCodeAt(0) % avatarColors.leng
 // ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyState({icon, title, body, action, onAction}) {
   return (
-    <div className="fade-up" style={{textAlign:"center",padding:"36px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-      <div style={{fontSize:40,marginBottom:4}}>{icon}</div>
-      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.textMid,letterSpacing:0.5}}>{title}</div>
-      {body&&<div style={{fontSize:13,color:C.textDim,lineHeight:1.6,maxWidth:260}}>{body}</div>}
+    <div className="fade-up glass-card" style={{textAlign:"center",padding:"48px 24px 36px",display:"flex",flexDirection:"column",alignItems:"center",gap:12,borderRadius:20,position:"relative",overflow:"hidden"}}>
+      {/* Decorative gradient orbs */}
+      <div style={{position:"absolute",top:-40,left:-40,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}15 0%,transparent 70%)`,pointerEvents:"none"}}/>
+      <div style={{position:"absolute",bottom:-40,right:-40,width:140,height:140,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}10 0%,transparent 70%)`,pointerEvents:"none"}}/>
+      {/* Icon with circular backdrop */}
+      <div className="float-anim" style={{position:"relative",width:96,height:96,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6}}>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`}}/>
+        <div style={{position:"absolute",inset:8,borderRadius:"50%",border:`2px dashed ${C.border}`,opacity:0.6}}/>
+        <div style={{fontSize:48,position:"relative"}}>{icon}</div>
+      </div>
+      <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:"#fff",letterSpacing:1.5,marginTop:4}}>{title}</div>
+      {body&&<div style={{fontSize:13,color:C.textDim,lineHeight:1.6,maxWidth:280}}>{body}</div>}
       {action&&onAction&&(
-        <button onClick={onAction} style={{marginTop:6,padding:"10px 22px",borderRadius:10,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 4px 16px ${C.red}40`}}>
-          {action}
+        <button onClick={onAction} className="btn-press" style={{marginTop:10,padding:"12px 26px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",boxShadow:`0 6px 24px ${C.red}50, inset 0 1px 0 rgba(255,255,255,0.2)`,position:"relative"}}>
+          {action} →
         </button>
       )}
     </div>
   );
+}
+
+// Skeleton loader components for graceful loading states
+function SkeletonCard({height=80}) {
+  return <div className="skeleton" style={{width:"100%",height,borderRadius:14,marginBottom:10}}/>;
+}
+function SkeletonList({count=3, height=80}) {
+  return <div style={{display:"flex",flexDirection:"column",gap:10}}>{Array.from({length:count}).map((_,i)=><SkeletonCard key={i} height={height}/>)}</div>;
+}
+function SkeletonText({width="60%", height=14}) {
+  return <div className="skeleton" style={{width,height,borderRadius:6,marginBottom:6}}/>;
 }
 
 const MapLink = ({location, isGame}) => {
@@ -3309,9 +3384,9 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           )}
         </div>
       </div>
-      <div className="fade-up" style={{background:`linear-gradient(135deg,#0f1e38 0%,#0c1628 60%,#150b10 100%)`,borderRadius:18,border:`1px solid ${C.border}`,padding:"20px",marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 8px 32px #00000060`}}>
-        <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",top:-40,right:-40,width:180,height:180,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
+      <div className="fade-up glass-card" style={{borderRadius:20,padding:"22px 20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none",opacity:0.5}}/>
+        <div style={{position:"absolute",top:-40,right:-40,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,${C.gold}80,${C.red}80)`}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative"}}>
           <div>
@@ -3319,7 +3394,7 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
             <div style={{display:"flex",gap:24,alignItems:"flex-end"}}>
               {[{v:players.length,l:"Players",c:C.text},{v:done,l:"Done",c:C.gold},{v:pending,l:"Pending",c:C.red}].map(s=>(
                 <div key={s.l}>
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:48,color:s.c,lineHeight:1,textShadow:`0 0 30px ${s.c}60`}}>{s.v}</div>
+                  <div key={`${s.l}-${s.v}`} className="number-pop" style={{fontFamily:"Bebas Neue, sans-serif",fontSize:48,color:s.c,lineHeight:1,textShadow:`0 0 30px ${s.c}60`}}>{s.v}</div>
                   <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase"}}>{s.l}</div>
                 </div>
               ))}
