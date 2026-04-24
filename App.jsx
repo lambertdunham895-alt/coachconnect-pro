@@ -4037,6 +4037,25 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const [scannedEvents, setScannedEvents] = useState([]); // array of extracted events being reviewed
   const scanFileRef = useRef(null);
 
+  // ── RSVP state ──
+  const [rsvpsByEvent, setRsvpsByEvent] = useState({}); // {eventId: [{player_id, player_name, status}]}
+  const [rsvpDetail, setRsvpDetail] = useState(null); // event id whose RSVP detail is shown
+
+  // Load RSVPs for all events
+  useEffect(()=>{
+    if(!teamId || events.length===0) return;
+    const eventIds = events.map(e=>e.id);
+    supabase.from("event_rsvps").select("*").eq("team_id",teamId).in("event_id",eventIds).then(({data})=>{
+      if(!data) return;
+      const grouped = {};
+      data.forEach(r=>{
+        if(!grouped[r.event_id]) grouped[r.event_id]=[];
+        grouped[r.event_id].push({player_id:r.player_id,player_name:r.player_name,status:r.status});
+      });
+      setRsvpsByEvent(grouped);
+    });
+  },[teamId, events.length]);
+
   const handleScanFile = async (e) => {
     const file = e.target.files?.[0];
     if(!file) return;
@@ -4432,6 +4451,28 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                     {ev.uniform&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:6}}><span style={{fontSize:14}}>👕</span><div style={{fontSize:12,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:0.5}}>Wear: {ev.uniform}</div></div>}
                   </div>
                 </div>
+                {/* RSVP Summary Bar */}
+                {(()=>{
+                  const evRsvps = rsvpsByEvent[ev.id] || [];
+                  const going = evRsvps.filter(r=>r.status==="going").length;
+                  const out = evRsvps.filter(r=>r.status==="out").length;
+                  const maybe = evRsvps.filter(r=>r.status==="maybe").length;
+                  const noResponse = Math.max(0, players.length - evRsvps.length);
+                  if(players.length===0) return null;
+                  return (
+                    <button onClick={(e)=>{e.stopPropagation();setRsvpDetail(ev.id);}} style={{display:"flex",alignItems:"center",gap:10,marginTop:10,padding:"8px 12px",background:`${C.bg}`,border:`1px solid ${C.border}`,borderRadius:10,cursor:"pointer",width:"100%",textAlign:"left"}}>
+                      <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase"}}>RSVP</span>
+                      <div style={{display:"flex",gap:8,flex:1,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12}}>
+                        <span style={{color:C.teal}}>✓ {going}</span>
+                        <span style={{color:C.red}}>✗ {out}</span>
+                        <span style={{color:C.gold}}>? {maybe}</span>
+                        {noResponse>0&&<span style={{color:C.textDim}}>· {noResponse} pending</span>}
+                      </div>
+                      <span style={{color:C.textDim,fontSize:14}}>›</span>
+                    </button>
+                  );
+                })()}
+              </div>
               </div>
               <div style={{display:"flex"}}>
                 <button onClick={()=>openEdit(ev)} style={{flex:2,padding:"11px 0",background:hasGamePlan?`${C.gold}10`:"transparent",border:"none",borderRight:`1px solid ${C.border}`,color:hasGamePlan?C.gold:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:44}}>
@@ -4444,6 +4485,58 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
         })}
         {sorted.length===0&&<EmptyState icon="📅" title="No events scheduled" body="Add your first practice or game. Parents will automatically see upcoming events in their app." action="Add First Event" onAction={openNew}/>}
       </div>
+
+      {/* ── RSVP DETAIL MODAL ─────────────────────────────────────────────── */}
+      {rsvpDetail && (()=>{
+        const ev = events.find(e=>e.id===rsvpDetail);
+        if(!ev) return null;
+        const evRsvps = rsvpsByEvent[ev.id] || [];
+        const rsvpMap = {};
+        evRsvps.forEach(r=>{ rsvpMap[r.player_id]=r.status; });
+        const groupedPlayers = {
+          going: players.filter(p=>rsvpMap[p.id]==="going"),
+          maybe: players.filter(p=>rsvpMap[p.id]==="maybe"),
+          out: players.filter(p=>rsvpMap[p.id]==="out"),
+          pending: players.filter(p=>!rsvpMap[p.id]),
+        };
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setRsvpDetail(null)}>
+            <div onClick={(e)=>e.stopPropagation()} style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"85vh",overflowY:"auto"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+                <div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:2,color:"#fff",lineHeight:1}}>RSVP Status</div>
+                  <div style={{fontSize:12,color:C.textDim,marginTop:4}}>{ev.opponent?`vs. ${ev.opponent}`:"Practice"} · {new Date(ev.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}</div>
+                </div>
+                <button onClick={()=>setRsvpDetail(null)} style={{width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,color:"#fff",fontSize:16,cursor:"pointer"}}>✕</button>
+              </div>
+              {[
+                {key:"going", label:"Going", color:C.teal, icon:"✓"},
+                {key:"maybe", label:"Maybe", color:C.gold, icon:"?"},
+                {key:"out",   label:"Can't Make It", color:C.red, icon:"✗"},
+                {key:"pending", label:"No Response Yet", color:C.textDim, icon:"·"},
+              ].map(group=>{
+                const list = groupedPlayers[group.key];
+                if(list.length===0) return null;
+                return (
+                  <div key={group.key} style={{marginBottom:16}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",background:`${group.color}25`,border:`1px solid ${group.color}50`,display:"flex",alignItems:"center",justifyContent:"center",color:group.color,fontSize:13,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700}}>{group.icon}</div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:group.color,letterSpacing:1.5,textTransform:"uppercase"}}>{group.label} · {list.length}</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                      {list.map(p=>(
+                        <div key={p.id} style={{padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,fontSize:14,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif"}}>
+                          {p.name} {p.number?<span style={{color:C.textDim,fontSize:12}}>· #{p.number}</span>:null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── SCHEDULE SCANNER MODAL ───────────────────────────────────────── */}
       {showScanner && (
@@ -5338,6 +5431,38 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   const today=new Date().toISOString().slice(0,10);
   const upcoming=events.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
   const nextEvent=upcoming[0];
+
+  // ── RSVP STATE & HANDLERS ──
+  const [myRsvps, setMyRsvps] = useState({}); // {event_id: 'going'|'out'|'maybe'}
+
+  // Load RSVPs for this player
+  useEffect(()=>{
+    if(!player?.id) return;
+    supabase.from("event_rsvps").select("*").eq("player_id",player.id).then(({data})=>{
+      if(!data) return;
+      const map = {};
+      data.forEach(r=>{ map[r.event_id]=r.status; });
+      setMyRsvps(map);
+    });
+  },[player?.id]);
+
+  const setRsvp = async (eventId, status) => {
+    if(!player?.id) return;
+    setMyRsvps(prev=>({...prev,[eventId]:status}));
+    const id = `${eventId}_${player.id}`;
+    const teamId = player.teamId || (events.find(e=>e.id===eventId)?.teamId) || "";
+    const row = {
+      id,
+      event_id: eventId,
+      player_id: player.id,
+      player_name: player.name,
+      team_id: teamId,
+      status,
+      responded_by: parentUserId || "",
+      responded_at: new Date().toISOString(),
+    };
+    await supabase.from("event_rsvps").upsert(row, {onConflict:"event_id,player_id"});
+  };
   const done=assignments.filter(a=>a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
   const photo = playerPhotos[player.id] || null;
@@ -5629,24 +5754,41 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             const evDate=new Date(ev.date+"T12:00:00");
             const hasLineup=isGame&&gamePlans[ev.id]?.shared;
             const isNext=i===0;
+            const myStatus = myRsvps[ev.id];
             return (
-              <div key={ev.id} onClick={()=>setSelEvId(ev.id)}
+              <div key={ev.id}
                 style={{background:isNext?`linear-gradient(135deg,${isGame?"#1a0808":"#080f1a"},${C.card})`:C.card,
                   border:`1px solid ${isNext?(isGame?C.red+"60":C.blue+"60"):C.border}`,
-                  borderRadius:14,padding:"14px 16px",display:"flex",gap:14,alignItems:"center",cursor:"pointer"}}>
-                <div style={{textAlign:"center",minWidth:44,flexShrink:0}}>
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,color:isGame?C.red:C.blue,lineHeight:1}}>{evDate.getDate()}</div>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1}}>{evDate.toLocaleString("en-US",{month:"short"}).toUpperCase()}</div>
+                  borderRadius:14,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+                <div onClick={()=>setSelEvId(ev.id)} style={{display:"flex",gap:14,alignItems:"center",cursor:"pointer"}}>
+                  <div style={{textAlign:"center",minWidth:44,flexShrink:0}}>
+                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,color:isGame?C.red:C.blue,lineHeight:1}}>{evDate.getDate()}</div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1}}>{evDate.toLocaleString("en-US",{month:"short"}).toUpperCase()}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    {isNext&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:isGame?C.red:C.blue,textTransform:"uppercase",marginBottom:3}}>Next up</div>}
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{ev.opponent?`vs. ${ev.opponent}`:"Practice"}</div>
+                    <MapLink location={ev.location} isGame={isGame}/>
+                    <div style={{fontSize:12,color:C.textMid}}>🕐 {ev.time}</div>
+                    {hasLineup&&<div style={{display:"inline-flex",alignItems:"center",gap:4,marginTop:5,padding:"3px 8px",borderRadius:6,background:`${C.teal}15`,border:`1px solid ${C.teal}40`}}><span style={{fontSize:9}}>📢</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>Lineup posted</span></div>}
+                    {ev.uniform&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:5}}><span style={{fontSize:12}}>👕</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold,letterSpacing:0.5}}>Wear: {ev.uniform}</span></div>}
+                  </div>
+                  <span style={{color:C.textDim,fontSize:20,flexShrink:0}}>›</span>
                 </div>
-                <div style={{flex:1,minWidth:0}}>
-                  {isNext&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:2,color:isGame?C.red:C.blue,textTransform:"uppercase",marginBottom:3}}>Next up</div>}
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text,marginBottom:2}}>{ev.opponent?`vs. ${ev.opponent}`:"Practice"}</div>
-                  <MapLink location={ev.location} isGame={isGame}/>
-                  <div style={{fontSize:12,color:C.textMid}}>🕐 {ev.time}</div>
-                  {hasLineup&&<div style={{display:"inline-flex",alignItems:"center",gap:4,marginTop:5,padding:"3px 8px",borderRadius:6,background:`${C.teal}15`,border:`1px solid ${C.teal}40`}}><span style={{fontSize:9}}>📢</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.teal,letterSpacing:1,textTransform:"uppercase"}}>Lineup posted</span></div>}
-                  {ev.uniform&&<div style={{display:"flex",alignItems:"center",gap:4,marginTop:5}}><span style={{fontSize:12}}>👕</span><span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.gold,letterSpacing:0.5}}>Wear: {ev.uniform}</span></div>}
+                {/* RSVP Buttons */}
+                <div style={{display:"flex",gap:6,paddingTop:8,borderTop:`1px solid ${C.border}`}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",alignSelf:"center",marginRight:4}}>Going?</div>
+                  {[
+                    {key:"going",label:"✓ Yes",color:C.teal},
+                    {key:"out",label:"✗ No",color:C.red},
+                    {key:"maybe",label:"? Maybe",color:C.gold},
+                  ].map(opt=>{
+                    const active = myStatus===opt.key;
+                    return (
+                      <button key={opt.key} onClick={(e)=>{e.stopPropagation();setRsvp(ev.id,opt.key);}} style={{flex:1,padding:"7px 8px",borderRadius:8,background:active?`${opt.color}25`:`${C.bg}`,border:`1px solid ${active?opt.color:C.border}`,color:active?opt.color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,cursor:"pointer",transition:"all 0.15s",textTransform:"uppercase"}}>{opt.label}</button>
+                    );
+                  })}
                 </div>
-                <span style={{color:C.textDim,fontSize:20,flexShrink:0}}>›</span>
               </div>
             );
           })}
