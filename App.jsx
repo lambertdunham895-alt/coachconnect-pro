@@ -6047,9 +6047,10 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                     const dateStr = g.ev?.date ? new Date(g.ev.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "Game";
                     const oppStr = g.ev?.opponent ? `vs. ${g.ev.opponent}` : "Practice";
                     const hadAB = (g.at_bats||0)>0 || (g.walks||0)>0 || (g.hbp||0)>0;
+                    const score = parentGameScores[g.event_id];
                     return (
                       <div key={g.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px"}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:hadAB?10:0}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:hadAB||score?10:0}}>
                           <div>
                             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:C.text}}>{oppStr}</div>
                             <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{dateStr}</div>
@@ -6061,6 +6062,35 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
                             </div>
                           )}
                         </div>
+                        {/* Game Score */}
+                        {score&&score.game_status!=='not_started'&&(()=>{
+                          const isLive = score.game_status==='in_progress';
+                          const isFinal = score.game_status==='final';
+                          const homeWon = score.home_score > score.away_score;
+                          const awayWon = score.away_score > score.home_score;
+                          return (
+                            <div style={{padding:"10px 12px",background:`linear-gradient(135deg,#0a1525,${C.bg})`,border:`1px solid ${isLive?C.red:C.border}`,borderRadius:10,display:"flex",alignItems:"center",gap:10,marginBottom:hadAB?10:0}}>
+                              {isLive&&<div className="badge-pulse" style={{padding:"3px 8px",borderRadius:6,background:C.red,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>● LIVE</div>}
+                              {isFinal&&<div style={{padding:"3px 8px",borderRadius:6,background:homeWon?C.teal:awayWon?C.red:C.textDim,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>{homeWon?"W":awayWon?"L":"T"} · Final</div>}
+                              <div style={{flex:1,display:"flex",alignItems:"center",gap:10,justifyContent:"center"}}>
+                                <div style={{textAlign:"center"}}>
+                                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase"}}>{(score.home_team||"Home").slice(0,12)}</div>
+                                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:homeWon?C.gold:C.text,lineHeight:1}}>{score.home_score}</div>
+                                </div>
+                                <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:14,color:C.textDim}}>—</div>
+                                <div style={{textAlign:"center"}}>
+                                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase"}}>{(score.away_team||"Away").slice(0,12)}</div>
+                                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:awayWon?C.gold:C.text,lineHeight:1}}>{score.away_score}</div>
+                                </div>
+                              </div>
+                              {isLive&&(
+                                <div style={{textAlign:"right",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1}}>
+                                  <div>{score.is_top_inning?"TOP":"BOT"} {score.current_inning}</div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {hadAB&&(
                           <div style={{display:"flex",flexWrap:"wrap",gap:6,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
                             {(g.runs_scored||0)>0 && <div style={{padding:"3px 8px",background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.gold,letterSpacing:0.5}}>{g.runs_scored} R</div>}
