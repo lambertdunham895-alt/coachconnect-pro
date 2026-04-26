@@ -2481,6 +2481,17 @@ function LandingPage({onAuth}) {
             <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Before the game, during the game, after the game — what to do, what NOT to do, and why "I love watching you play" is the most powerful sentence in youth sports.</div>
             <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.red}}>Download Free PDF ↓</div>
           </a>
+          <a href="https://ccp-scorebook.vercel.app" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <div style={{fontSize:36}}>📋</div>
+              <div style={{padding:"3px 8px",borderRadius:6,background:`${C.teal}20`,border:`1px solid ${C.teal}60`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,color:C.teal,textTransform:"uppercase"}}>Free Tool</div>
+            </div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>CCP Scorebook</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.gold,textTransform:"uppercase",marginBottom:10}}>Live Game Scoring App</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Score every game, inning by inning. Track at-bats, runs, outs, and the count. Works on any phone. Save game history. No signup required — start scoring in seconds.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.gold}15`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.gold}}>Open Scorebook →</div>
+          </a>
         </div>
       </Section>
 
