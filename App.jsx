@@ -5763,16 +5763,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         </div>
       )}
 
-      {/* Drill Library (browse all drills) */}
-      {section==="library"&&(
-        canAccess() ? <ParentDrillLibrary customDrills={customDrills}/> : (
-          <div className="fade-up" style={{textAlign:"center",padding:"40px 20px"}}>
-            <div style={{fontSize:48,marginBottom:16}}>🔒</div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:2,color:C.textMid,marginBottom:8}}>Drill Library Locked</div>
-            <div style={{fontSize:13,color:C.textDim,lineHeight:1.6,maxWidth:320,margin:"0 auto"}}>Your coach's subscription has expired. Ask them to renew their CoachConnect Pro plan to unlock the full drill library.</div>
-          </div>
-        )
-      )}
+      {/* Drill Library (browse all drills) - free for all parents */}
+      {section==="library"&&<ParentDrillLibrary customDrills={customDrills}/>}
 
       {/* Schedule */}
       {section==="schedule"&&selEvId&&(()=>{
