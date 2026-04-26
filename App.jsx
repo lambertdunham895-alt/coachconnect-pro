@@ -3283,6 +3283,21 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
     : "TC";
   const [showSettings, setShowSettings] = useState(false);
 
+  // ── Live game score for next event (if game) ──
+  const [nextGameScore, setNextGameScore] = useState(null);
+  useEffect(()=>{
+    if(!nextEvent || nextEvent.type!=="game") { setNextGameScore(null); return; }
+    supabase.from("game_scores").select("*").eq("event_id", nextEvent.id).maybeSingle().then(({data})=>{
+      setNextGameScore(data||null);
+    });
+    const channel = supabase.channel('home-game-score-'+nextEvent.id)
+      .on('postgres_changes', {event:'*', schema:'public', table:'game_scores', filter:`event_id=eq.${nextEvent.id}`}, (payload)=>{
+        if(payload.eventType==='DELETE') setNextGameScore(null);
+        else setNextGameScore(payload.new);
+      }).subscribe();
+    return ()=>{ supabase.removeChannel(channel); };
+  },[nextEvent?.id]);
+
   // Needs Review: completed but not yet acknowledged
   const needsReview = assignments.filter(a=>a.completed && !a.acknowledged);
   // Group by player
@@ -3448,6 +3463,45 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid}}>{new Date(nextEvent.date+"T12:00:00").toLocaleString("en-US",{month:"short"}).toUpperCase()}</div>
             </div>
           </div>
+          {/* Live score (if game in progress or final) */}
+          {nextEvent.type==="game"&&nextGameScore&&nextGameScore.game_status!=='not_started'&&(
+            <div style={{position:"relative",marginTop:12,padding:"10px 14px",background:`linear-gradient(135deg,#0a1525,${C.card})`,border:`1px solid ${nextGameScore.game_status==='in_progress'?C.red:C.border}`,borderRadius:10,display:"flex",alignItems:"center",gap:10}}>
+              {nextGameScore.game_status==='in_progress'&&<div className="badge-pulse" style={{padding:"3px 8px",borderRadius:6,background:C.red,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>● LIVE</div>}
+              {nextGameScore.game_status==='final'&&<div style={{padding:"3px 8px",borderRadius:6,background:C.textDim,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>FINAL</div>}
+              <div style={{flex:1,display:"flex",alignItems:"center",gap:12,justifyContent:"center"}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase"}}>{(nextGameScore.home_team||"Home").slice(0,12)}</div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:C.text,lineHeight:1}}>{nextGameScore.home_score}</div>
+                </div>
+                <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:14,color:C.textDim}}>—</div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textDim,textTransform:"uppercase"}}>{(nextGameScore.away_team||"Away").slice(0,12)}</div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:C.text,lineHeight:1}}>{nextGameScore.away_score}</div>
+                </div>
+              </div>
+              {nextGameScore.game_status==='in_progress'&&(
+                <div style={{textAlign:"right",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1}}>
+                  <div>{nextGameScore.is_top_inning?"TOP":"BOT"} {nextGameScore.current_inning}</div>
+                  <div style={{color:C.gold,marginTop:1}}>{nextGameScore.outs} OUT</div>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Score Game button (games only) */}
+          {nextEvent.type==="game"&&(
+            <div style={{display:"flex",justifyContent:"flex-end",marginTop:10,position:"relative"}}>
+              <button onClick={(e)=>{
+                e.stopPropagation();
+                const tid = teamData?.id || '';
+                const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(tid)}&event_id=${encodeURIComponent(nextEvent.id)}`;
+                window.open(url, '_blank');
+              }} className="btn-press" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 12px",background:"transparent",border:`1px solid ${C.gold}80`,borderRadius:8,cursor:"pointer",color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase"}}>
+                <span style={{fontSize:12}}>⚾</span>
+                {nextGameScore&&nextGameScore.game_status==='in_progress'?'Continue Scoring':nextGameScore&&nextGameScore.game_status==='final'?'View Scorebook':'Score Game'}
+                <span>→</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
       <SectionHead accent>Roster</SectionHead>
@@ -4041,33 +4095,6 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const [rsvpsByEvent, setRsvpsByEvent] = useState({}); // {eventId: [{player_id, player_name, status}]}
   const [rsvpDetail, setRsvpDetail] = useState(null); // event id whose RSVP detail is shown
 
-  // ── Live game scores ──
-  const [gameScores, setGameScores] = useState({}); // {eventId: {home_score, away_score, current_inning, ...}}
-
-  useEffect(()=>{
-    if(!teamId || events.length===0) return;
-    const eventIds = events.filter(e=>e.type==="game").map(e=>e.id);
-    if(eventIds.length===0) return;
-    supabase.from("game_scores").select("*").in("event_id",eventIds).then(({data})=>{
-      if(!data) return;
-      const map = {};
-      data.forEach(r=>{ map[r.event_id]=r; });
-      setGameScores(map);
-    });
-    // Subscribe to realtime updates
-    const channel = supabase.channel('game-scores-coach')
-      .on('postgres_changes', {event:'*', schema:'public', table:'game_scores'}, (payload)=>{
-        const row = payload.new || payload.old;
-        if(!row || !eventIds.includes(row.event_id)) return;
-        if(payload.eventType==='DELETE') {
-          setGameScores(prev=>{const c={...prev}; delete c[row.event_id]; return c;});
-        } else {
-          setGameScores(prev=>({...prev, [row.event_id]:payload.new}));
-        }
-      }).subscribe();
-    return ()=>{ supabase.removeChannel(channel); };
-  },[teamId, events.length]);
-
   // Load RSVPs for all events
   useEffect(()=>{
     if(!teamId || events.length===0) return;
@@ -4501,49 +4528,6 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                     </button>
                   );
                 })()}
-                {/* Live Score Display (games only) */}
-                {isG&&gameScores[ev.id]&&gameScores[ev.id].game_status!=='not_started'&&(()=>{
-                  const sc = gameScores[ev.id];
-                  const isLive = sc.game_status==='in_progress';
-                  const isFinal = sc.game_status==='final';
-                  return (
-                    <div style={{marginTop:10,padding:"12px 14px",background:`linear-gradient(135deg,#0a1525,${C.card})`,border:`1px solid ${isLive?C.red:C.border}`,borderRadius:10,display:"flex",alignItems:"center",gap:12}}>
-                      {isLive&&<div className="badge-pulse" style={{padding:"3px 8px",borderRadius:6,background:C.red,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>● LIVE</div>}
-                      {isFinal&&<div style={{padding:"3px 8px",borderRadius:6,background:C.textDim,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,textTransform:"uppercase"}}>FINAL</div>}
-                      <div style={{flex:1,display:"flex",alignItems:"center",gap:14,justifyContent:"center"}}>
-                        <div style={{textAlign:"center",minWidth:60}}>
-                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sc.home_team||"Home"}</div>
-                          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:32,color:sc.home_score>=sc.away_score?C.text:C.textMid,lineHeight:1}}>{sc.home_score}</div>
-                        </div>
-                        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:C.textDim}}>—</div>
-                        <div style={{textAlign:"center",minWidth:60}}>
-                          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sc.away_team||"Away"}</div>
-                          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:32,color:sc.away_score>=sc.home_score?C.text:C.textMid,lineHeight:1}}>{sc.away_score}</div>
-                        </div>
-                      </div>
-                      {isLive&&(
-                        <div style={{textAlign:"right",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.textDim,letterSpacing:1}}>
-                          <div style={{textTransform:"uppercase"}}>{sc.is_top_inning?"Top":"Bot"} {sc.current_inning}</div>
-                          <div style={{color:C.gold,marginTop:2}}>{sc.outs} OUT{sc.outs!==1?'S':''}</div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-                {/* Score This Game button (games only) */}
-                {isG&&(
-                  <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
-                    <button onClick={(e)=>{
-                      e.stopPropagation();
-                      const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(teamId||'')}&event_id=${encodeURIComponent(ev.id)}`;
-                      window.open(url, '_blank');
-                    }} className="btn-press" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 12px",background:"transparent",border:`1px solid ${C.gold}80`,borderRadius:8,cursor:"pointer",color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase"}}>
-                      <span style={{fontSize:12}}>⚾</span>
-                      {gameScores[ev.id]&&gameScores[ev.id].game_status==='in_progress'?'Continue Scoring':gameScores[ev.id]&&gameScores[ev.id].game_status==='final'?'View Scorebook':'Score Game'}
-                      <span>→</span>
-                    </button>
-                  </div>
-                )}
               </div>
               <div style={{display:"flex"}}>
                 <button onClick={()=>openEdit(ev)} style={{flex:2,padding:"11px 0",background:hasGamePlan?`${C.gold}10`:"transparent",border:"none",borderRight:`1px solid ${C.border}`,color:hasGamePlan?C.gold:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:44}}>
