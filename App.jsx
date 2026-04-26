@@ -4532,15 +4532,17 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                 })()}
                 {/* Score This Game button (games only) */}
                 {isG&&(
-                  <button onClick={(e)=>{
-                    e.stopPropagation();
-                    const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(teamId||'')}&event_id=${encodeURIComponent(ev.id)}`;
-                    window.open(url, '_blank');
-                  }} className="btn-press" style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginTop:10,padding:"12px 14px",background:`linear-gradient(135deg,${C.gold},#c89500)`,border:"none",borderRadius:10,cursor:"pointer",width:"100%",color:"#1a1200",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:2,textTransform:"uppercase",boxShadow:`0 4px 16px ${C.gold}40`,minHeight:44}}>
-                    <span style={{fontSize:14}}>⚾</span>
-                    {gameScores[ev.id]&&gameScores[ev.id].game_status==='in_progress'?'Continue Scoring':gameScores[ev.id]&&gameScores[ev.id].game_status==='final'?'View Scorebook':'Score This Game'}
-                    <span>→</span>
-                  </button>
+                  <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+                    <button onClick={(e)=>{
+                      e.stopPropagation();
+                      const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(teamId||'')}&event_id=${encodeURIComponent(ev.id)}`;
+                      window.open(url, '_blank');
+                    }} className="btn-press" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 12px",background:"transparent",border:`1px solid ${C.gold}80`,borderRadius:8,cursor:"pointer",color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase"}}>
+                      <span style={{fontSize:12}}>⚾</span>
+                      {gameScores[ev.id]&&gameScores[ev.id].game_status==='in_progress'?'Continue Scoring':gameScores[ev.id]&&gameScores[ev.id].game_status==='final'?'View Scorebook':'Score Game'}
+                      <span>→</span>
+                    </button>
+                  </div>
                 )}
               </div>
               <div style={{display:"flex"}}>
