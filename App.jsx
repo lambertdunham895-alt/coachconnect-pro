@@ -2462,13 +2462,16 @@ function LandingPage({onAuth}) {
             <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Scripts for strikeouts, errors, angry players, scared batters, and parent conversations. Pre-game and post-game talk templates. 4-week practice plan framework.</div>
             <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.gold}15`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.gold}}>Download Free PDF ↓</div>
           </a>
-          <a href="/Defensive_Positioning_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
+          <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
-            <div style={{fontSize:36,marginBottom:12}}>🗺️</div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>Defensive Positioning Guide</div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.teal,textTransform:"uppercase",marginBottom:10}}>29-Page Visual Reference</div>
-            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>Every position on every play. Fly balls to LF/CF/RF, grounders to 3B/SS/2B/1B/P. No runners, runner on 1st, runner on 2nd, runners on 1st & 2nd.</div>
-            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.teal}}>Download Free PDF ↓</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <div style={{fontSize:36}}>🧠</div>
+              <div style={{padding:"3px 8px",borderRadius:6,background:`${C.gold}20`,border:`1px solid ${C.gold}60`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:9,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>NEW</div>
+            </div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1,color:"#fff",marginBottom:6}}>Diamond Minds</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,color:C.teal,textTransform:"uppercase",marginBottom:10}}>Free Baseball IQ Trainer</div>
+            <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:16}}>An interactive quiz app that teaches defensive positioning. Players learn where to throw on every play — fly balls, grounders, runners on base — by playing. Earn XP, level up, unlock badges.</div>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"10px 18px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",color:C.teal}}>Play Free Now →</div>
           </a>
           <a href="/Youth_Baseball_Parent_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:18,padding:"28px 22px",position:"relative",overflow:"hidden",display:"block",cursor:"pointer"}}>
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red})`}}/>
