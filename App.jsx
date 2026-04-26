@@ -5539,6 +5539,26 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     return ()=>{ supabase.removeChannel(channel); };
   },[events.length]);
 
+  // ── My player's game stats (for Stats tab) ──
+  const [myStats, setMyStats] = useState([]); // [{event_id, at_bats, hits, ...}]
+  useEffect(()=>{
+    if(!player?.id) return;
+    supabase.from("player_game_stats").select("*").eq("player_id",player.id).order("updated_at",{ascending:false}).then(({data})=>{
+      setMyStats(data||[]);
+    });
+    const channel = supabase.channel('player-stats-'+player.id)
+      .on('postgres_changes', {event:'*', schema:'public', table:'player_game_stats', filter:`player_id=eq.${player.id}`}, (payload)=>{
+        if(payload.eventType==='DELETE') {
+          setMyStats(prev=>prev.filter(s=>s.id!==payload.old.id));
+        } else if(payload.eventType==='INSERT') {
+          setMyStats(prev=>[payload.new,...prev]);
+        } else {
+          setMyStats(prev=>prev.map(s=>s.id===payload.new.id?payload.new:s));
+        }
+      }).subscribe();
+    return ()=>{ supabase.removeChannel(channel); };
+  },[player?.id]);
+
   const setRsvp = async (eventId, status) => {
     if(!player?.id) return;
     setMyRsvps(prev=>({...prev,[eventId]:status}));
@@ -5574,6 +5594,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
   const sections=[
     {id:"report",  icon:"📋", label:"Report"},
+    {id:"stats",   icon:"📊", label:"Stats"},
     {id:"drills",  icon:"⚾", label:"Drills"},
     {id:"library", icon:"📚", label:"Library"},
     {id:"schedule",icon:"📅", label:"Schedule"},
@@ -5928,6 +5949,142 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
       {/* Report Card */}
       {section==="report"&&<ParentReportCard player={player} assignments={assignments} skillSnapshots={skillSnapshots.filter(s=>s.playerId===player.id)} events={events}/>}
+
+      {/* Stats — game-by-game and season totals */}
+      {section==="stats"&&(()=>{
+        // Compute season totals
+        const totals = myStats.reduce((acc,g)=>({
+          at_bats: acc.at_bats + (g.at_bats||0),
+          hits: acc.hits + (g.hits||0),
+          singles: acc.singles + (g.singles||0),
+          doubles: acc.doubles + (g.doubles||0),
+          triples: acc.triples + (g.triples||0),
+          home_runs: acc.home_runs + (g.home_runs||0),
+          runs_scored: acc.runs_scored + (g.runs_scored||0),
+          rbis: acc.rbis + (g.rbis||0),
+          walks: acc.walks + (g.walks||0),
+          strikeouts: acc.strikeouts + (g.strikeouts||0),
+          hbp: acc.hbp + (g.hbp||0),
+          sac_fly: acc.sac_fly + (g.sac_fly||0),
+          stolen_bases: acc.stolen_bases + (g.stolen_bases||0),
+          games: acc.games + 1,
+        }),{at_bats:0,hits:0,singles:0,doubles:0,triples:0,home_runs:0,runs_scored:0,rbis:0,walks:0,strikeouts:0,hbp:0,sac_fly:0,stolen_bases:0,games:0});
+        const avg = totals.at_bats>0 ? (totals.hits/totals.at_bats).toFixed(3).replace(/^0/,"") : ".000";
+        const pa = totals.at_bats + totals.walks + totals.hbp + totals.sac_fly;
+        const obp = pa>0 ? ((totals.hits+totals.walks+totals.hbp)/pa).toFixed(3).replace(/^0/,"") : ".000";
+        const tb = totals.singles + (totals.doubles*2) + (totals.triples*3) + (totals.home_runs*4);
+        const slg = totals.at_bats>0 ? (tb/totals.at_bats).toFixed(3).replace(/^0/,"") : ".000";
+        const ops = (parseFloat(obp)+parseFloat(slg)).toFixed(3).replace(/^0/,"");
+
+        // Helper to compute per-game stats for display
+        const gameStats = myStats.map(g=>{
+          const ev = events.find(e=>e.id===g.event_id);
+          const gameAvg = (g.at_bats||0)>0 ? ((g.hits||0)/(g.at_bats||0)).toFixed(3).replace(/^0/,"") : ".000";
+          return {...g, ev, gameAvg};
+        });
+
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {/* Hero card with season AVG */}
+            <div className="glass-card" style={{borderRadius:20,padding:"22px 20px",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red},${C.gold})`}}/>
+              <div style={{position:"absolute",top:-50,right:-50,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.gold}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>{player.name.split(" ")[0]}'s Season</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:18,position:"relative"}}>
+                <div>
+                  <div className="number-pop" style={{fontFamily:"Bebas Neue, sans-serif",fontSize:64,color:C.gold,lineHeight:1,letterSpacing:1,textShadow:`0 0 30px ${C.gold}80`}}>{avg}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textDim,textTransform:"uppercase",marginTop:4}}>Batting Avg</div>
+                </div>
+                <div style={{flex:1,display:"flex",justifyContent:"flex-end",gap:14}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.text,lineHeight:1}}>{obp}</div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",marginTop:3}}>OBP</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.text,lineHeight:1}}>{slg}</div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",marginTop:3}}>SLG</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:C.gold,lineHeight:1}}>{ops}</div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.gold,textTransform:"uppercase",marginTop:3}}>OPS</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Season totals breakdown */}
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"18px 16px"}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:14}}>📊 Season Totals · {totals.games} Game{totals.games!==1?'s':''}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+                {[
+                  {label:"AB",   value:totals.at_bats,    color:C.text},
+                  {label:"H",    value:totals.hits,       color:C.teal},
+                  {label:"R",    value:totals.runs_scored,color:C.gold},
+                  {label:"RBI",  value:totals.rbis,       color:C.gold},
+                  {label:"1B",   value:totals.singles,    color:C.text},
+                  {label:"2B",   value:totals.doubles,    color:C.teal},
+                  {label:"3B",   value:totals.triples,    color:C.teal},
+                  {label:"HR",   value:totals.home_runs,  color:C.red},
+                  {label:"BB",   value:totals.walks,      color:C.blue},
+                  {label:"K",    value:totals.strikeouts, color:C.textMid},
+                  {label:"HBP",  value:totals.hbp,        color:C.textMid},
+                  {label:"SB",   value:totals.stolen_bases,color:C.teal},
+                ].map(s=>(
+                  <div key={s.label} style={{textAlign:"center",padding:"10px 0",background:`${C.bg}80`,borderRadius:10,border:`1px solid ${C.border}`}}>
+                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,color:s.color,lineHeight:1}}>{s.value}</div>
+                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",marginTop:3}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Game-by-game */}
+            {gameStats.length>0?(
+              <div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>Game by Game</div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {gameStats.map(g=>{
+                    const dateStr = g.ev?.date ? new Date(g.ev.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "Game";
+                    const oppStr = g.ev?.opponent ? `vs. ${g.ev.opponent}` : "Practice";
+                    const hadAB = (g.at_bats||0)>0 || (g.walks||0)>0 || (g.hbp||0)>0;
+                    return (
+                      <div key={g.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px"}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:hadAB?10:0}}>
+                          <div>
+                            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:C.text}}>{oppStr}</div>
+                            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{dateStr}</div>
+                          </div>
+                          {hadAB&&(
+                            <div style={{textAlign:"right"}}>
+                              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,color:C.gold,lineHeight:1}}>{g.hits}-{g.at_bats}</div>
+                              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.textDim,textTransform:"uppercase",marginTop:3}}>{g.gameAvg}</div>
+                            </div>
+                          )}
+                        </div>
+                        {hadAB&&(
+                          <div style={{display:"flex",flexWrap:"wrap",gap:6,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
+                            {(g.runs_scored||0)>0 && <div style={{padding:"3px 8px",background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.gold,letterSpacing:0.5}}>{g.runs_scored} R</div>}
+                            {(g.rbis||0)>0 && <div style={{padding:"3px 8px",background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.gold,letterSpacing:0.5}}>{g.rbis} RBI</div>}
+                            {(g.home_runs||0)>0 && <div style={{padding:"3px 8px",background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.red,letterSpacing:0.5}}>{g.home_runs} HR</div>}
+                            {(g.triples||0)>0 && <div style={{padding:"3px 8px",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:0.5}}>{g.triples} 3B</div>}
+                            {(g.doubles||0)>0 && <div style={{padding:"3px 8px",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:0.5}}>{g.doubles} 2B</div>}
+                            {(g.walks||0)>0 && <div style={{padding:"3px 8px",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.blue,letterSpacing:0.5}}>{g.walks} BB</div>}
+                            {(g.strikeouts||0)>0 && <div style={{padding:"3px 8px",background:"#ffffff08",border:`1px solid ${C.border}`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.textMid,letterSpacing:0.5}}>{g.strikeouts} K</div>}
+                            {(g.stolen_bases||0)>0 && <div style={{padding:"3px 8px",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,borderRadius:6,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,color:C.teal,letterSpacing:0.5}}>{g.stolen_bases} SB</div>}
+                          </div>
+                        )}
+                        {!hadAB&&<div style={{fontSize:11,color:C.textDim,fontStyle:"italic"}}>Did not bat</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ):(
+              <EmptyState icon="📊" title="No stats yet" body={`${player.name.split(" ")[0]}'s game stats will appear here as soon as the coach starts scoring games.`}/>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Chat shortcuts */}
       {section==="chat"&&(
