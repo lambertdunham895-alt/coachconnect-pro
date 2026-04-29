@@ -1982,6 +1982,18 @@ function AppInner() {
     // If no parentUserId yet, show player picker
     if(!parentUserId) {
       const linkedPlayers = players.flatMap(p=>(p.parents||[]).map(par=>({player:p, parentId:par.id, parentName:par.name})));
+      // Show full hub UI if not linked to any team
+      if(!parentPlayerLink && linkedPlayers.length === 0) {
+        return (
+          <UnlinkedParentHub
+            parentName={profile?.full_name || ""}
+            parentEmail={session?.user?.email || ""}
+            parentId={session?.user?.id || ""}
+            onSignOut={handleSignOut}
+            customDrills={customDrills}
+          />
+        );
+      }
       return (
         <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
           <style>{FONTS}</style>
@@ -1989,20 +2001,12 @@ function AppInner() {
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textDim,textTransform:"uppercase",marginBottom:16,textAlign:"center"}}>SELECT YOUR PLAYER</div>
             {parentPlayerLink
               ? <div style={{textAlign:"center",padding:"16px 0",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13}}>Loading your player…</div>
-              : linkedPlayers.length > 0
-              ? linkedPlayers.map(({player:p, parentId})=>(
+              : linkedPlayers.map(({player:p, parentId})=>(
                 <button key={p.id} onClick={()=>setPUID(parentId)}
                   style={{display:"block",width:"100%",padding:"14px 18px",marginBottom:10,background:"transparent",border:`2px solid ${C.gold}60`,borderRadius:12,color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,letterSpacing:1,cursor:"pointer",textAlign:"left"}}>
                   ⚾ {p.name} <span style={{color:C.textDim,fontSize:12}}>({p.position})</span>
                 </button>
               ))
-              : (
-                <div style={{textAlign:"center",padding:"16px 0"}}>
-                  <div style={{fontSize:32,marginBottom:12}}>⏳</div>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid,marginBottom:8}}>Not linked yet</div>
-                  <div style={{fontSize:13,color:C.textDim,lineHeight:1.6}}>Your coach needs to send you an invite from your player's profile. Ask them to tap the 📨 Invite button next to your email.</div>
-                </div>
-              )
             }
             <button onClick={handleSignOut} style={{display:"block",width:"100%",marginTop:8,background:"none",border:"none",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontSize:13,cursor:"pointer",padding:"8px 0"}}>← Sign out</button>
           </div>
@@ -2314,6 +2318,209 @@ function ReviewsSection() {
 }
 
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
+// ─── UNLINKED PARENT HUB ───
+// Shown when a parent signs up but hasn't been invited to a team yet.
+// Gives them value (free resources, drill library, Diamond Minds) AND a way
+// to invite their coach to sign up.
+function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOut, customDrills=[]}) {
+  const [view, setView] = useState("home"); // "home" | "drills" | "invite"
+  const [coachEmail, setCoachEmail] = useState("");
+  const [coachName, setCoachName] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const sendInvite = async () => {
+    if(!coachEmail.trim() || !coachEmail.includes("@")) {
+      setError("Please enter a valid email address for your coach.");
+      return;
+    }
+    setError("");
+    setSending(true);
+    try {
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      const {error:dbErr} = await supabase.from("coach_invites").insert({
+        id,
+        invited_by_parent_id: parentId,
+        invited_by_parent_name: parentName,
+        invited_by_parent_email: parentEmail,
+        coach_email: coachEmail.toLowerCase().trim(),
+        coach_name: coachName.trim(),
+        team_name: teamName.trim(),
+        message: message.trim(),
+        status: "pending",
+      });
+      if(dbErr) throw dbErr;
+      // Try to send email via edge function (won't fail the flow if it errors)
+      try {
+        await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/send-coach-invite", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({
+            invite_id: id,
+            coach_email: coachEmail.toLowerCase().trim(),
+            coach_name: coachName.trim(),
+            parent_name: parentName,
+            parent_email: parentEmail,
+            team_name: teamName.trim(),
+            message: message.trim(),
+          })
+        });
+      } catch(emailErr) { /* email failure shouldn't break flow */ }
+      setSent(true);
+    } catch(err) {
+      setError("Could not send invite right now. Try again in a moment.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Header (shared across views)
+  const Header = () => (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {view!=="home" && <button onClick={()=>{setView("home");setSent(false);setError("");}} style={{background:"none",border:"none",color:C.gold,fontSize:18,cursor:"pointer",padding:4}}>‹</button>}
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1.5,color:"#fff"}}>{view==="home"?"Welcome":view==="drills"?"Drill Library":"Invite Your Coach"}</div>
+      </div>
+      <button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:8,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,padding:"6px 10px",cursor:"pointer",textTransform:"uppercase"}}>Sign Out</button>
+    </div>
+  );
+
+  // ─── DRILLS VIEW ───
+  if(view==="drills") {
+    return (
+      <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:60}}>
+        <style>{FONTS}</style>
+        <Header/>
+        <div style={{padding:"12px 14px",background:`${C.teal}15`,border:`1px solid ${C.teal}40`,borderRadius:10,color:C.teal,fontSize:12,marginBottom:14,lineHeight:1.5}}>
+          💡 Browse our full drill library. Work on these at home with your kid!
+        </div>
+        <ParentDrillLibrary customDrills={customDrills}/>
+      </div>
+    );
+  }
+
+  // ─── INVITE COACH VIEW ───
+  if(view==="invite") {
+    return (
+      <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:60}}>
+        <style>{FONTS}</style>
+        <Header/>
+        {sent ? (
+          <div className="fade-up" style={{textAlign:"center",padding:"40px 20px"}}>
+            <div style={{fontSize:64,marginBottom:16}}>✉️</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,letterSpacing:1.5,color:"#fff",marginBottom:10}}>Invite Sent!</div>
+            <div style={{fontSize:14,color:C.textMid,lineHeight:1.6,marginBottom:24,maxWidth:340,margin:"0 auto 24px"}}>We let your coach know you'd love them to sign up for CoachConnect Pro. Once they create an account and add you as a parent, your team will appear here automatically.</div>
+            <button onClick={()=>setView("home")} style={{padding:"12px 24px",borderRadius:10,background:`linear-gradient(135deg,${C.gold},#c89500)`,border:"none",color:"#1a1200",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>Back to Home</button>
+          </div>
+        ) : (
+          <div className="fade-up">
+            <div style={{padding:"14px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,marginBottom:16,fontSize:13,color:C.textMid,lineHeight:1.6}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:6}}>How it works</div>
+              We'll send your coach an email letting them know you'd love them to use CoachConnect Pro for your team. They get a free trial — no credit card required.
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach's Email *</div>
+                <input value={coachEmail} onChange={e=>setCoachEmail(e.target.value)} type="email" placeholder="coach@example.com" style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:C.text,fontSize:14,outline:"none"}}/>
+              </div>
+              <div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Coach's Name (optional)</div>
+                <input value={coachName} onChange={e=>setCoachName(e.target.value)} placeholder="Coach Smith" style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:C.text,fontSize:14,outline:"none"}}/>
+              </div>
+              <div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Team Name (optional)</div>
+                <input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="The Bulldogs" style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:C.text,fontSize:14,outline:"none"}}/>
+              </div>
+              <div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Personal Note (optional)</div>
+                <textarea value={message} onChange={e=>setMessage(e.target.value)} rows={3} placeholder="Hey Coach! I think you'd love this app for our team..." style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:10,background:C.bg,border:`1px solid ${C.border}`,color:C.text,fontSize:14,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
+              </div>
+              {error && <div style={{padding:"10px 12px",background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,color:C.red,fontSize:12}}>⚠️ {error}</div>}
+              <button onClick={sendInvite} disabled={sending||!coachEmail.trim()} style={{padding:"14px 0",borderRadius:12,background:sending||!coachEmail.trim()?"#1a2a2a":`linear-gradient(135deg,${C.gold},#c89500)`,border:"none",color:"#1a1200",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:sending||!coachEmail.trim()?"default":"pointer",minHeight:50,marginTop:6}}>
+                {sending?"Sending...":"📨 Send Invite to Coach"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ─── HOME VIEW ───
+  return (
+    <div style={{maxWidth:560,margin:"0 auto",padding:"18px 14px",paddingBottom:60}}>
+      <style>{FONTS}</style>
+      <Header/>
+      {/* Welcome banner */}
+      <div className="glass-card fade-up" style={{padding:"22px 20px",borderRadius:18,marginBottom:18,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,letterSpacing:1.5,color:"#fff",lineHeight:1.1,marginBottom:8}}>
+          Welcome{parentName?`, ${parentName.split(" ")[0]}`:""}! ⚾
+        </div>
+        <div style={{fontSize:13,color:C.textMid,lineHeight:1.6}}>You're not connected to a team yet. Either ask your coach to invite you, <strong style={{color:C.gold}}>OR</strong> use the free tools below to start working with your kid right now.</div>
+      </div>
+
+      {/* Action cards */}
+      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:18}}>
+        <button onClick={()=>setView("invite")} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px",background:`linear-gradient(135deg,${C.gold}25,${C.gold}10)`,border:`1px solid ${C.gold}60`,borderRadius:14,cursor:"pointer",textAlign:"left",width:"100%"}}>
+          <div style={{fontSize:32}}>📨</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:"#fff",letterSpacing:0.5,marginBottom:2}}>Invite Your Coach</div>
+            <div style={{fontSize:12,color:C.textMid,lineHeight:1.5}}>Let them know you'd love this for the team. Free trial.</div>
+          </div>
+          <div style={{color:C.gold,fontSize:18}}>›</div>
+        </button>
+        <button onClick={()=>setView("drills")} style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px",background:`linear-gradient(135deg,${C.teal}25,${C.teal}10)`,border:`1px solid ${C.teal}60`,borderRadius:14,cursor:"pointer",textAlign:"left",width:"100%"}}>
+          <div style={{fontSize:32}}>⚾</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:"#fff",letterSpacing:0.5,marginBottom:2}}>Browse Drill Library</div>
+            <div style={{fontSize:12,color:C.textMid,lineHeight:1.5}}>Hitting, fielding, baserunning. Work at home with your kid.</div>
+          </div>
+          <div style={{color:C.teal,fontSize:18}}>›</div>
+        </button>
+      </div>
+
+      {/* Free Resources */}
+      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>📚 Free Resources</div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>
+        <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
+          <div style={{fontSize:24}}>🧠</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>Diamond Minds</div>
+            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Interactive baseball IQ trainer</div>
+          </div>
+          <div style={{color:C.teal,fontSize:14}}>↗</div>
+        </a>
+        <a href="/Youth_Baseball_Parent_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.red}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
+          <div style={{fontSize:24}}>👨‍👩‍👦</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>The Parent's Survival Guide</div>
+            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>What to say after a strikeout (and what NOT to say)</div>
+          </div>
+          <div style={{color:C.red,fontSize:14}}>↓</div>
+        </a>
+        <a href="https://ccp-scorebook.vercel.app" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
+          <div style={{fontSize:24}}>📋</div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>CCP Scorebook</div>
+            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Score any game on your phone — free, no signup</div>
+          </div>
+          <div style={{color:C.gold,fontSize:14}}>↗</div>
+        </a>
+      </div>
+
+      {/* Refresh hint */}
+      <div style={{padding:"14px 16px",background:`${C.bg}`,border:`1px dashed ${C.border}`,borderRadius:12,textAlign:"center",fontSize:12,color:C.textDim,lineHeight:1.5}}>
+        Already invited by your coach? <strong style={{color:C.gold}}>Refresh the page</strong> to load your team.
+      </div>
+    </div>
+  );
+}
+
+
 function LandingPage({onAuth}) {
   const [showLogin, setShowLogin] = useState(false);
 
