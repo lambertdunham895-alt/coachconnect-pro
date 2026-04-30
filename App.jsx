@@ -2574,22 +2574,22 @@ function LandingPage({onAuth}) {
       "Full access to everything",
       "Up to 30 players",
       "Live game scoring",
-      "All AI features",
+      "All AI features included",
       "No credit card required",
     ]},
-    { name:"Founding Coach", price:"$59", period:"one-time", best:true, color:C.gold, features:[
-      "Lifetime access",
+    { name:"Founding Coach", price:"$14.99", period:"per month", best:true, color:C.gold, features:[
       "Limited to first 100 founders",
       "Locked-in price forever",
       "All future features included",
       "Direct line to the founder",
+      "Cancel anytime",
     ]},
-    { name:"Pro Annual", price:"$99", period:"per year", best:false, color:C.red, features:[
+    { name:"Pro Annual", price:"$249.99", period:"per year", best:false, color:C.red, features:[
       "Save vs. monthly billing",
       "Full feature access",
-      "Up to 30 players",
-      "Cancel anytime",
-      "Renews yearly",
+      "AI practice plan generator",
+      "AI schedule + roster scanner",
+      "Or $24.99/mo if preferred",
     ]},
   ];
 
