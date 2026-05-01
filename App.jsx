@@ -2751,6 +2751,13 @@ function LandingPage({onAuth}) {
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Score any game on your phone. Inning-by-inning, at-bat tracking, runner advancement, full play-by-play. No signup required.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>Open Scorebook →</div>
             </a>
+            <a href="/Coach_Connect_Pro_Sign_Up_Sheet.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.blue}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.blue},${C.teal})`}}/>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.blue,textTransform:"uppercase",marginBottom:8}}>Printable PDF</div>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>Team Sign-Up Sheet</div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Print and bring to your first practice. Collect player and parent contact info on one clean page — then scan it back into the app with our AI roster scanner to build your team in seconds.</div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.blue,textTransform:"uppercase"}}>Download Free →</div>
+            </a>
           </div>
         </Section>
       </div>
