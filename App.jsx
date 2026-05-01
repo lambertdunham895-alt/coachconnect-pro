@@ -2494,7 +2494,7 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
           </div>
           <div style={{color:C.teal,fontSize:14}}>↗</div>
         </a>
-        <a href="/Youth_Baseball_Parent_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.red}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
+        <a href="/Youth_Baseball_Parent_Guide.pdf" download="" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.red}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
           <div style={{fontSize:24}}>👨‍👩‍👦</div>
           <div style={{flex:1}}>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>The Parent's Survival Guide</div>
@@ -2720,7 +2720,7 @@ function LandingPage({onAuth}) {
             <div style={{fontSize:14,color:C.textMid,maxWidth:520,margin:"0 auto",lineHeight:1.6}}>Even if you never sign up, these are yours.</div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:14}}>
-            <a href="/The_Emotional_Game_Plan.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
+            <a href="/The_Emotional_Game_Plan.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.gold},#f7d672)`}}/>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Free PDF</div>
               <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>The Emotional Game Plan</div>
@@ -2737,7 +2737,7 @@ function LandingPage({onAuth}) {
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Interactive baseball IQ trainer. Quiz mode for defensive positioning. Earn XP, level up, unlock badges. Built for players ages 8-14.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.teal,textTransform:"uppercase"}}>Play Free →</div>
             </a>
-            <a href="/Youth_Baseball_Parent_Guide.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
+            <a href="/Youth_Baseball_Parent_Guide.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.red,textTransform:"uppercase",marginBottom:8}}>Free PDF</div>
               <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>The Parent's Survival Guide</div>
@@ -2751,7 +2751,7 @@ function LandingPage({onAuth}) {
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Score any game on your phone. Inning-by-inning, at-bat tracking, runner advancement, full play-by-play. No signup required.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>Open Scorebook →</div>
             </a>
-            <a href="/Coach_Connect_Pro_Sign_Up_Sheet.pdf" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.blue}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
+            <a href="/Coach_Connect_Pro_Sign_Up_Sheet.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.blue}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.blue},${C.teal})`}}/>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.blue,textTransform:"uppercase",marginBottom:8}}>Printable PDF</div>
               <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>Team Sign-Up Sheet</div>
