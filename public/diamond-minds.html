@@ -1047,21 +1047,6 @@ var PLBL = { P:"P", C:"C", B1:"1B", B2:"2B", SS:"SS", B3:"3B", LF:"LF", CF:"CF",
 var PORD = ["P","C","B1","B2","SS","B3","LF","CF","RF"];
 
 // Browse state (kept for bypos compatibility)
-var bSit  = "No Runners";
-var bType = "Fly ball";
-
-// Bypos state
-var bpPos  = null;
-var bpSit  = null;
-var bpType = null;
-
-function fixLayout() {
-  var ch = document.getElementById('chrome');
-  document.getElementById('content-area').style.top = ch.offsetHeight + 'px';
-}
-window.onload = fixLayout;
-window.onresize = fixLayout;
-
 var ARROWS = {
   "Fly ball|LF|No Runners": [[21.5, 32.2, 50.5, 38.9, "throw"], [45.2, 43.3, 30, 37, "move"], [50.1, 50.9, 50.5, 44, "move"], [49.5, 71.9, 67.0, 54.1, "move"], [50.0, 20.5, 21.5, 30, "move"], [78.1, 32.2, 65, 42, "move"]],
   "Fly ball|CF|No Runners": [[50.0, 20.5, 50.5, 38.9, "throw"], [50.1, 50.9, 50.5, 44, "move"], [49.5, 71.9, 67.0, 54.1, "move"], [21.5, 32.2, 35, 25, "move"], [78.1, 32.2, 65, 25, "move"]],
@@ -1162,10 +1147,13 @@ function makeSVG(play, hlPos, noArrows) {
   var on1 = r==="Runner on First"||r==="Runners on 1st & 2nd"||r==="Runners on 1st & 3rd"||r==="Bases Loaded";
   var on2 = r==="Runner on Second"||r==="Runners on 1st & 2nd"||r==="Runners on 2nd & 3rd"||r==="Bases Loaded";
   var on3 = r==="Runner on Third"||r==="Runners on 1st & 3rd"||r==="Runners on 2nd & 3rd"||r==="Bases Loaded";
+  var uid = 'm' + Math.floor(Math.random()*1000000) + Date.now();
+  var idB = 'arrowB_' + uid;
+  var idR = 'arrowR_' + uid;
   var s = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;" overflow="visible">'
     + '<defs>'
-    + '<marker id="arrowB" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="rgba(20,20,20,0.9)"/></marker>'
-    + '<marker id="arrowR" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#e24b4a"/></marker>'
+    + '<marker id="'+idB+'" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="rgba(20,20,20,0.9)"/></marker>'
+    + '<marker id="'+idR+'" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#e24b4a"/></marker>'
     + '</defs>';
   if (on1) { var b=BASES["1B"]; s+='<circle cx="'+b.x+'" cy="'+b.y+'" r="2.8" fill="#e24b4a" stroke="#fff" stroke-width="0.5"/>'; }
   if (on2) { var b=BASES["2B"]; s+='<circle cx="'+b.x+'" cy="'+b.y+'" r="2.8" fill="#e24b4a" stroke="#fff" stroke-width="0.5"/>'; }
@@ -1174,8 +1162,8 @@ function makeSVG(play, hlPos, noArrows) {
   if (bp) s+='<circle cx="'+bp.x+'" cy="'+bp.y+'" r="2.2" fill="#f5c518" stroke="#9a7a00" stroke-width="0.5"/>';
   for (var i=0; i<PORD.length; i++) {
     var pos=PORD[i], pt=PC[pos], col=PCOL[pos], isHL=(pos===hlPos);
-    var op=(hlPos&&!isHL)?0.5:1, r=isHL?5.0:3.5, sw=isHL?1.0:0.5, stk=isHL?"#ffffff":"rgba(0,0,0,0.6)";
-    s+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+r+'" fill="'+col+'" opacity="'+op+'" stroke="'+stk+'" stroke-width="'+sw+'"/>';
+    var op=(hlPos&&!isHL)?0.5:1, rad=isHL?5.0:3.5, sw=isHL?1.0:0.5, stk=isHL?"#ffffff":"rgba(0,0,0,0.6)";
+    s+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+rad+'" fill="'+col+'" opacity="'+op+'" stroke="'+stk+'" stroke-width="'+sw+'"/>';
     s+='<text x="'+pt.x+'" y="'+(pt.y+1.2)+'" text-anchor="middle" dominant-baseline="middle" font-size="'+(isHL?3.2:2.6)+'" font-weight="bold" fill="#ffffff" opacity="'+op+'" font-family="Oswald,Arial,sans-serif">'+PLBL[pos]+'</text>';
   }
   // Draw arrows for this play
@@ -1186,9 +1174,9 @@ function makeSVG(play, hlPos, noArrows) {
       var ar = playArrows[a];
       var x1=ar[0], y1=ar[1], x2=ar[2], y2=ar[3], atype=ar[4];
       if (atype==='throw') {
-        s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="2,1.5" marker-end="url(#arrowR)" opacity="0.9"/>';
+        s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="2,1.5" marker-end="url(#'+idR+')" opacity="0.9"/>';
       } else {
-        s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="rgba(0,0,0,0.85)" stroke-width="0.8" marker-end="url(#arrowB)" opacity="0.85"/>';
+        s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="rgba(0,0,0,0.85)" stroke-width="0.8" marker-end="url(#'+idB+')" opacity="0.85"/>';
       }
     }
   }
@@ -1229,7 +1217,6 @@ function buildBrowseGrid() {
   var html = '<div class="play-grid">';
   for (var s=0; s<sits.length; s++) {
     var sit = sits[s];
-    html += '<div class="play-grid-sit">' + sitLabels[sit] + '</div>';
     // Get all plays for this sit, pair them into rows of 2
     var sitPlays = [];
     for (var i=0; i<PLAYS.length; i++) { if (PLAYS[i] && PLAYS[i].r===sit) sitPlays.push(i); }
