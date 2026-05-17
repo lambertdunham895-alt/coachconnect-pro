@@ -2584,12 +2584,19 @@ function LandingPage({onAuth}) {
       "Direct line to the founder",
       "Cancel anytime",
     ]},
-    { name:"Pro Annual", price:"$249.99", period:"per year", best:false, color:C.red, features:[
-      "Save vs. monthly billing",
+    { name:"Pro Monthly", price:"$24.99", period:"per month", best:false, color:C.teal, features:[
       "Full feature access",
       "AI practice plan generator",
       "AI schedule + roster scanner",
-      "Or $24.99/mo if preferred",
+      "Billed monthly — cancel anytime",
+      "No long-term commitment",
+    ]},
+    { name:"Pro Annual", price:"$249.99", period:"per year", best:false, color:C.red, features:[
+      "Save $50/year vs. monthly",
+      "Works out to $20.83/month",
+      "Full feature access",
+      "AI practice plan generator",
+      "AI schedule + roster scanner",
     ]},
   ];
 
@@ -2686,7 +2693,7 @@ function LandingPage({onAuth}) {
           <SectionTitle>Simple. No surprises.</SectionTitle>
           <div style={{fontSize:14,color:C.textMid,maxWidth:520,margin:"0 auto",lineHeight:1.6}}>Try everything free for 14 days. Pick a plan that fits when you're ready.</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,maxWidth:900,margin:"0 auto"}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:16,maxWidth:1100,margin:"0 auto"}}>
           {tiers.map((t,i)=>(
             <div key={i} style={{padding:"28px 22px 26px",background:t.best?`linear-gradient(160deg,${C.gold}12,${C.card})`:C.card,border:`${t.best?2:1}px solid ${t.best?C.gold:C.border}`,borderRadius:18,position:"relative",overflow:"hidden",transform:t.best?"scale(1.02)":"none"}}>
               {t.best && <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.gold},${C.red},${C.gold})`}}/>}
