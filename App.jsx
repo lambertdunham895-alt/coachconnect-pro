@@ -2784,9 +2784,6 @@ function LandingPage({onAuth}) {
             </a>
             <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
-              <div style={{borderRadius:10,overflow:"hidden",marginBottom:14,marginTop:6,aspectRatio:"16/9",background:"#000"}}>
-                <img src="/diamond-minds-screen.jpg" alt="Diamond Minds field positioning screen" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",display:"block"}}/>
-              </div>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                 <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.teal,textTransform:"uppercase"}}>Free Tool</div>
                 <div style={{padding:"2px 7px",borderRadius:5,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>New</div>
