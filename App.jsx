@@ -2612,28 +2612,41 @@ function LandingPage({onAuth}) {
       </div>
 
       {/* HERO */}
-      <Section style={{paddingTop:80,paddingBottom:60,textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <Section style={{paddingTop:60,paddingBottom:60,position:"relative",overflow:"hidden",maxWidth:1100}}>
         {/* Decorative top bar */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`}}/>
-        <Eyebrow color={C.red}>Built for Youth Baseball Coaches</Eyebrow>
-        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:64,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20}}>
-          One App.<br/>
-          <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:40,alignItems:"center"}}>
+          {/* LEFT: Coach photo */}
+          <div style={{position:"relative",borderRadius:18,overflow:"hidden",boxShadow:`0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px ${C.border}`}}>
+            <img src="/coach-with-phone.jpg" alt="Coach using CoachConnect Pro on the field" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+            <div style={{position:"absolute",bottom:0,left:0,right:0,height:"40%",background:"linear-gradient(180deg,transparent,rgba(0,0,0,0.4))",pointerEvents:"none"}}/>
+          </div>
+          {/* RIGHT: Headline + CTAs */}
+          <div style={{textAlign:"left"}}>
+            <Eyebrow color={C.red}>Built for Youth Baseball Coaches</Eyebrow>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:58,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20}}>
+              One App.<br/>
+              <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
+            </div>
+            <div style={{fontSize:17,color:C.textMid,lineHeight:1.6,marginBottom:28}}>
+              Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
+            </div>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+              <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}50`,minWidth:200}}>Start Free Trial</button>
+              <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"transparent",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
+            </div>
+            <div style={{fontSize:12,color:C.textDim,marginTop:18,letterSpacing:0.5}}>14-day free trial · No credit card required</div>
+          </div>
         </div>
-        <div style={{fontSize:17,color:C.textMid,lineHeight:1.6,maxWidth:560,margin:"0 auto 32px"}}>
-          Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
-        </div>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}50`,minWidth:200}}>Start Free Trial</button>
-          <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"transparent",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
-        </div>
-        <div style={{fontSize:12,color:C.textDim,marginTop:18,letterSpacing:0.5}}>14-day free trial · No credit card required</div>
       </Section>
 
       {/* PAIN POINTS — "Sound Familiar?" */}
       <div style={{background:`${C.card}80`,borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
         <Section narrow>
           <div style={{textAlign:"center",marginBottom:36}}>
+            <div style={{maxWidth:480,margin:"0 auto 28px",borderRadius:14,overflow:"hidden",boxShadow:`0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${C.border}`}}>
+              <img src="/batter.jpg" alt="Young baseball player at the plate" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+            </div>
             <Eyebrow color={C.red}>Sound Familiar?</Eyebrow>
             <SectionTitle>Coaching shouldn't feel like a second job.</SectionTitle>
           </div>
@@ -2656,6 +2669,21 @@ function LandingPage({onAuth}) {
           <SectionTitle>Everything a coach actually needs.</SectionTitle>
           <div style={{fontSize:14,color:C.textMid,maxWidth:520,margin:"0 auto",lineHeight:1.6}}>No half-baked features. No paywalls hiding the basics. Every tool below is included from day one.</div>
         </div>
+        {/* Action shots — every play, every position */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:36,maxWidth:900,marginLeft:"auto",marginRight:"auto"}}>
+          <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1/1",boxShadow:`0 6px 20px rgba(0,0,0,0.4)`}}>
+            <img src="/pitcher.jpg" alt="Pitcher in motion" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          </div>
+          <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1/1",boxShadow:`0 6px 20px rgba(0,0,0,0.4)`}}>
+            <img src="/fielder.jpg" alt="Fielder in ready position" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          </div>
+          <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1/1",boxShadow:`0 6px 20px rgba(0,0,0,0.4)`}}>
+            <img src="/catch.jpg" alt="Outfielder catching fly ball" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          </div>
+          <div style={{borderRadius:10,overflow:"hidden",aspectRatio:"1/1",boxShadow:`0 6px 20px rgba(0,0,0,0.4)`}}>
+            <img src="/diving.jpg" alt="Player diving back to base" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          </div>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:14}}>
           {features.map((f,i)=>(
             <div key={i} style={{padding:"22px 22px 24px",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,position:"relative",overflow:"hidden"}}>
@@ -2673,6 +2701,9 @@ function LandingPage({onAuth}) {
         <div style={{position:"absolute",top:0,bottom:0,left:0,width:"35%",background:`radial-gradient(circle at left,${C.red}15,transparent 60%)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:0,bottom:0,right:0,width:"35%",background:`radial-gradient(circle at right,${C.gold}10,transparent 60%)`,pointerEvents:"none"}}/>
         <Section narrow style={{position:"relative"}}>
+          <div style={{maxWidth:560,margin:"0 auto 32px",borderRadius:14,overflow:"hidden",boxShadow:`0 16px 50px rgba(0,0,0,0.5), 0 0 0 1px ${C.border}`}}>
+            <img src="/team-dugout.jpg" alt="Team watching the game from the dugout" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+          </div>
           <div style={{textAlign:"center"}}>
             <Eyebrow color={C.gold}>Our Differentiator</Eyebrow>
             <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:38,letterSpacing:1.5,color:"#fff",lineHeight:1.1,marginBottom:22,maxWidth:600,margin:"0 auto 22px"}}>
@@ -2685,6 +2716,24 @@ function LandingPage({onAuth}) {
           </div>
         </Section>
       </div>
+
+      {/* KIDS USE IT TOO — bridge between mental game and pricing */}
+      <Section narrow style={{paddingTop:64,paddingBottom:64}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:36,alignItems:"center"}}>
+          <div style={{borderRadius:14,overflow:"hidden",boxShadow:`0 16px 50px rgba(0,0,0,0.5), 0 0 0 1px ${C.border}`}}>
+            <img src="/boy-using-app.jpg" alt="Young player using Diamond Minds at home on couch" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+          </div>
+          <div>
+            <Eyebrow color={C.teal}>For Players, Too</Eyebrow>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:34,letterSpacing:1.2,color:"#fff",lineHeight:1.1,marginBottom:16}}>
+              Training that follows them <span style={{color:C.gold}}>home.</span>
+            </div>
+            <div style={{fontSize:15,color:C.textMid,lineHeight:1.6}}>
+              While you plan practices and run games, your players sharpen their baseball IQ on the couch. Diamond Minds turns 10 minutes of screen time into smarter defensive instincts — quiz mode, real game situations, badges to earn. Parents love it. Kids actually use it.
+            </div>
+          </div>
+        </div>
+      </Section>
 
       {/* PRICING */}
       <Section>
@@ -2736,6 +2785,9 @@ function LandingPage({onAuth}) {
             </a>
             <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
+              <div style={{borderRadius:10,overflow:"hidden",marginBottom:14,marginTop:6,aspectRatio:"16/9",background:"#000"}}>
+                <img src="/diamond-minds-screen.jpg" alt="Diamond Minds field positioning screen" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",display:"block"}}/>
+              </div>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                 <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.teal,textTransform:"uppercase"}}>Free Tool</div>
                 <div style={{padding:"2px 7px",borderRadius:5,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>New</div>
@@ -2753,6 +2805,9 @@ function LandingPage({onAuth}) {
             </a>
             <a href="https://ccp-scorebook.vercel.app" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
+              <div style={{borderRadius:10,overflow:"hidden",marginBottom:14,marginTop:6,aspectRatio:"16/9",background:"#000"}}>
+                <img src="/parent-in-stands.jpg" alt="Parent in stands watching game on phone with live scorebook" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}}/>
+              </div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Free Tool</div>
               <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>CCP Scorebook</div>
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Score any game on your phone. Inning-by-inning, at-bat tracking, runner advancement, full play-by-play. No signup required.</div>
