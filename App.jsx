@@ -2611,34 +2611,33 @@ function LandingPage({onAuth}) {
         <button onClick={()=>setShowLogin(true)} style={{padding:"8px 18px",borderRadius:8,background:"transparent",border:`1px solid ${C.gold}80`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:1.5,cursor:"pointer",textTransform:"uppercase"}}>Sign In</button>
       </div>
 
-      {/* HERO */}
-      <Section style={{paddingTop:60,paddingBottom:60,position:"relative",overflow:"hidden",maxWidth:1100}}>
+      {/* HERO — image with text overlay */}
+      <div style={{position:"relative",overflow:"hidden",borderBottom:`1px solid ${C.border}`}}>
         {/* Decorative top bar */}
-        <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`}}/>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:40,alignItems:"center"}}>
-          {/* LEFT: Coach photo */}
-          <div style={{position:"relative",borderRadius:18,overflow:"hidden",boxShadow:`0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px ${C.border}`}}>
-            <img src="/coach-with-phone.jpg" alt="Coach using CoachConnect Pro on the field" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
-            <div style={{position:"absolute",bottom:0,left:0,right:0,height:"40%",background:"linear-gradient(180deg,transparent,rgba(0,0,0,0.4))",pointerEvents:"none"}}/>
-          </div>
-          {/* RIGHT: Headline + CTAs */}
-          <div style={{textAlign:"left"}}>
-            <Eyebrow color={C.red}>Built for Youth Baseball Coaches</Eyebrow>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:58,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20}}>
-              One App.<br/>
-              <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
-            </div>
-            <div style={{fontSize:17,color:C.textMid,lineHeight:1.6,marginBottom:28}}>
-              Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
-            </div>
-            <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-              <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}50`,minWidth:200}}>Start Free Trial</button>
-              <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"transparent",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
-            </div>
-            <div style={{fontSize:12,color:C.textDim,marginTop:18,letterSpacing:0.5}}>14-day free trial · No credit card required</div>
-          </div>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`,zIndex:3}}/>
+        {/* Background image */}
+        <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:0}}>
+          <img src="/coach-with-phone.jpg" alt="Coach using CoachConnect Pro on the field" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
+          {/* Dark overlay for text legibility */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg, rgba(8,15,30,0.45) 0%, rgba(8,15,30,0.55) 40%, rgba(8,15,30,0.92) 85%, ${C.bg} 100%)`}}/>
         </div>
-      </Section>
+        {/* Content overlay */}
+        <div style={{position:"relative",zIndex:2,padding:"60px 20px 56px",maxWidth:880,margin:"0 auto",minHeight:520,display:"flex",flexDirection:"column",justifyContent:"flex-end",textAlign:"center"}}>
+          <Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow>
+          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
+            One App.<br/>
+            <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
+          </div>
+          <div style={{fontSize:16,color:"#e8edf5",lineHeight:1.6,maxWidth:560,margin:"0 auto 28px",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>
+            Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
+          </div>
+          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
+            <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(8px)",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
+          </div>
+          <div style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
+        </div>
+      </div>
 
       {/* PAIN POINTS — "Sound Familiar?" */}
       <div style={{background:`${C.card}80`,borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
