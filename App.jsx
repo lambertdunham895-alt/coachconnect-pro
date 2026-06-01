@@ -2617,7 +2617,7 @@ function LandingPage({onAuth}) {
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`,zIndex:3}}/>
         {/* Background image */}
         <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:0}}>
-          <img src="/coach-with-phone.jpg" alt="Coach using CoachConnect Pro on the field" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
+          <img src="/batter.jpg" alt="Young baseball player at the plate" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
           {/* Dark overlay for text legibility */}
           <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg, rgba(8,15,30,0.45) 0%, rgba(8,15,30,0.55) 40%, rgba(8,15,30,0.92) 85%, ${C.bg} 100%)`}}/>
         </div>
@@ -2644,7 +2644,7 @@ function LandingPage({onAuth}) {
         <Section narrow>
           <div style={{textAlign:"center",marginBottom:36}}>
             <div style={{maxWidth:480,margin:"0 auto 28px",borderRadius:14,overflow:"hidden",boxShadow:`0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${C.border}`}}>
-              <img src="/batter.jpg" alt="Young baseball player at the plate" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+              <img src="/coach-with-phone.jpg" alt="Coach using CoachConnect Pro on the field" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
             </div>
             <Eyebrow color={C.red}>Sound Familiar?</Eyebrow>
             <SectionTitle>Coaching shouldn't feel like a second job.</SectionTitle>
