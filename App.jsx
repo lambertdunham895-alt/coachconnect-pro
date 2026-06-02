@@ -4611,8 +4611,21 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||'', uniform:form.uniform||''};
     const isNew = !editId;
     const isDup = (e) => e && (e.code==='23505' || /duplicate key|already exists/i.test(e.message||''));
+    // Snapshot form values now — we switch the view immediately, so don't rely on form state later.
+    const snapForm = {...form};
+    const evId = formEvId;
+    const curLu = lineups[evId];
+    const curGp = gamePlans[evId];
 
-    // ── Step 1: persist the event row (awaited so FK-dependent upserts below are safe) ──
+    // ── Update UI immediately so the form closes right away ──
+    if(editId){
+      setEvents(prev=>prev.map(e=>e.id===editId?{...e,...snapForm,location}:e));
+    } else {
+      setEvents(prev=>[...prev,{id:evId,...snapForm,location}]);
+    }
+    setView("list");
+
+    // ── Persist in the background (doesn't block the UI) ──
     if(teamId){
       try {
         const {error} = editId
@@ -4621,7 +4634,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
         if(error && !isDup(error)){
           console.error('Event save failed:', error.message);
           toast.error("Couldn't save the event. Please try again.");
-          return; // genuine failure — keep form open so they don't lose input
+          return;
         }
       } catch(err) {
         if(!isDup(err)){
@@ -4629,34 +4642,23 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           toast.error("Couldn't save the event. Please try again.");
           return;
         }
-        // duplicate — event already exists, treat as success and continue
       }
-    }
 
-    // ── Step 2: update on-screen list ──
-    if(editId){
-      setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
-    } else {
-      setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
-      // parent push (best-effort; never blocks the save)
-      if(teamId){
-        const dateStr = form.date ? new Date(form.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
-        const typeLabel = form.type==='game' ? 'Game' : 'Practice';
-        sendPushNotification(teamId, `New ${typeLabel} Scheduled`, `${typeLabel} on ${dateStr}${form.time?' at '+form.time:''}${form.opponent?' vs '+form.opponent:''}`, session?.user?.id);
+      // Parent push for new events (best-effort)
+      if(isNew){
+        const dateStr = snapForm.date ? new Date(snapForm.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
+        const typeLabel = snapForm.type==='game' ? 'Game' : 'Practice';
+        sendPushNotification(teamId, `New ${typeLabel} Scheduled`, `${typeLabel} on ${dateStr}${snapForm.time?' at '+snapForm.time:''}${snapForm.opponent?' vs '+snapForm.opponent:''}`, session?.user?.id);
       }
-    }
 
-    // ── Step 3: lineup + game plan (best-effort; failures here don't block the event) ──
-    if(teamId){
+      // Lineup + game plan (event now exists, so FK is satisfied)
       try {
-        const curLu=lineups[formEvId];
         if(curLu && ((curLu.batting||[]).some(Boolean)||Object.keys(curLu.positions||{}).length>0)){
-          const {error}=await supabase.from('lineups').upsert({event_id:formEvId,team_id:teamId,batting:curLu.batting||[],positions:curLu.positions||{},shared:curLu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
+          const {error}=await supabase.from('lineups').upsert({event_id:evId,team_id:teamId,batting:curLu.batting||[],positions:curLu.positions||{},shared:curLu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
           if(error) console.error('Lineup save failed:',error.message);
         }
-        const curGp=gamePlans[formEvId];
         if(curGp && Object.keys(curGp).length>0){
-          const {error}=await supabase.from('game_plans').upsert({event_id:formEvId,team_id:teamId,pitcher:curGp.pitcher||'',defense:curGp.defense||'',offense:curGp.offense||'',notes:curGp.notes||'',shared:curGp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
+          const {error}=await supabase.from('game_plans').upsert({event_id:evId,team_id:teamId,pitcher:curGp.pitcher||'',defense:curGp.defense||'',offense:curGp.offense||'',notes:curGp.notes||'',shared:curGp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
           if(error) console.error('GamePlan save failed:',error.message);
         }
       } catch(err) {
@@ -4665,7 +4667,6 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     }
 
     toast.success(isNew ? "Event created." : "Event updated.");
-    setView("list");
   };
   const cancel=()=>{
     if(!editId){
