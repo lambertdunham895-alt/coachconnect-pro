@@ -8124,9 +8124,35 @@ function PlanBuilder({plan, onSave, onCancel}) {
   const [editBlockIdx, setEditBlockIdx] = useState(null);
   const [browsing, setBrowsing] = useState(false); // NEW: browse pre-made segments
   const [browseFilter, setBrowseFilter] = useState("All"); // NEW: filter by plan
-  const blankBlock = {type:"drill",name:"",duration:10,coachingPoints:"",activity:"",result:""};
+  const blankBlock = {type:"drill",name:"",duration:10,coachingPoints:"",activity:"",result:"",stations:null,rotateEvery:10};
   const [blockForm, setBlockForm] = useState(blankBlock);
   const bf = (k,v) => setBlockForm(p=>({...p,[k]:v}));
+
+  // ─── STATION HELPERS ───
+  const useStations = Array.isArray(blockForm.stations);
+  const toggleStations = () => {
+    if(useStations){
+      setBlockForm(p=>({...p,stations:null}));
+    } else {
+      // Default to 3 stations
+      setBlockForm(p=>({...p,stations:[
+        {name:"Station 1",activity:"",coachingPoints:""},
+        {name:"Station 2",activity:"",coachingPoints:""},
+        {name:"Station 3",activity:"",coachingPoints:""},
+      ],rotateEvery:Math.max(1,Math.floor(p.duration/3))}));
+    }
+  };
+  const addStation = () => {
+    if(blockForm.stations.length>=4) return;
+    setBlockForm(p=>({...p,stations:[...p.stations,{name:`Station ${p.stations.length+1}`,activity:"",coachingPoints:""}]}));
+  };
+  const removeStation = (i) => {
+    if(blockForm.stations.length<=2) return;
+    setBlockForm(p=>({...p,stations:p.stations.filter((_,j)=>j!==i)}));
+  };
+  const updateStation = (i,k,v) => {
+    setBlockForm(p=>({...p,stations:p.stations.map((s,j)=>j===i?{...s,[k]:v}:s)}));
+  };
 
   const totalMins = blocks.reduce((a,b)=>a+b.duration,0);
 
@@ -8224,6 +8250,60 @@ function PlanBuilder({plan, onSave, onCancel}) {
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Duration (minutes)</div>
               <input type="number" min="1" max="90" value={blockForm.duration} onChange={e=>bf("duration",Math.max(1,parseInt(e.target.value)||1))} style={{...inp,width:"100px"}}/>
             </div>
+
+            {/* ─── STATION TOGGLE ─── */}
+            <div style={{background:useStations?`${C.teal}10`:"transparent",border:`1px solid ${useStations?C.teal+"40":C.border}`,borderRadius:10,padding:"12px 14px",transition:"all 0.15s"}}>
+              <button onClick={toggleStations} style={{display:"flex",alignItems:"center",gap:10,background:"none",border:"none",cursor:"pointer",padding:0,width:"100%",textAlign:"left"}}>
+                <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${useStations?C.teal:C.border}`,background:useStations?C.teal:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.15s"}}>
+                  {useStations&&<div style={{color:"#fff",fontSize:14,fontWeight:800,lineHeight:1}}>✓</div>}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:useStations?C.teal:C.text,letterSpacing:0.5}}>Use Stations (Parallel Groups)</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:2,lineHeight:1.4}}>Split team into groups doing different drills, with a rotation timer.</div>
+                </div>
+              </button>
+
+              {useStations&&(
+                <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.teal}20`}}>
+                  {/* Rotation timing */}
+                  <div style={{display:"flex",gap:14,alignItems:"flex-end",marginBottom:14,flexWrap:"wrap"}}>
+                    <div>
+                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Rotate Every (min)</div>
+                      <input type="number" min="1" max={blockForm.duration} value={blockForm.rotateEvery||10} onChange={e=>bf("rotateEvery",Math.max(1,Math.min(blockForm.duration,parseInt(e.target.value)||1)))} style={{...inp,width:90}}/>
+                    </div>
+                    <div style={{fontSize:11,color:C.textDim,paddingBottom:8,lineHeight:1.4}}>
+                      ≈ {Math.max(1,Math.floor(blockForm.duration/(blockForm.rotateEvery||10)))} rotation{Math.floor(blockForm.duration/(blockForm.rotateEvery||10))===1?"":"s"} in {blockForm.duration} min
+                    </div>
+                  </div>
+
+                  {/* Station list */}
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.teal,textTransform:"uppercase",marginBottom:8}}>Stations ({blockForm.stations.length})</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:10}}>
+                    {blockForm.stations.map((st,i)=>(
+                      <div key={i} style={{background:"#0f1e38",border:`1px solid ${C.teal}25`,borderRadius:10,padding:"12px 12px 10px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                          <div style={{width:24,height:24,borderRadius:6,background:`${C.teal}25`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Bebas Neue, sans-serif",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
+                          <input value={st.name} onChange={e=>updateStation(i,"name",e.target.value)} placeholder={`Station ${i+1} name`} style={{...inp,flex:1,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,padding:"6px 10px"}}/>
+                          {blockForm.stations.length>2&&(
+                            <button onClick={()=>removeStation(i)} style={{background:`${C.red}12`,border:`1px solid ${C.red}30`,borderRadius:6,color:C.red,cursor:"pointer",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>✕</button>
+                          )}
+                        </div>
+                        <textarea value={st.activity} onChange={e=>updateStation(i,"activity",e.target.value)} rows={2} placeholder="What happens at this station..." style={{...inp,resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,marginBottom:6}}/>
+                        <input value={st.coachingPoints} onChange={e=>updateStation(i,"coachingPoints",e.target.value)} placeholder="Coaching cue (optional)" style={{...inp,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12}}/>
+                      </div>
+                    ))}
+                  </div>
+                  {blockForm.stations.length<4&&(
+                    <button onClick={addStation} style={{width:"100%",padding:"8px 0",borderRadius:8,background:"transparent",border:`1px dashed ${C.teal}50`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer"}}>
+                      + Add Station
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Standard fields — hidden when using stations */}
+            {!useStations&&<>
             <div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Activity / Description</div>
               <textarea value={blockForm.activity} onChange={e=>bf("activity",e.target.value)} rows={2} placeholder="What players will be doing..." style={{...inp,resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13}}/>
@@ -8236,6 +8316,7 @@ function PlanBuilder({plan, onSave, onCancel}) {
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Desired Result</div>
               <textarea value={blockForm.result} onChange={e=>bf("result",e.target.value)} rows={2} placeholder="What should players achieve..." style={{...inp,resize:"vertical",fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13}}/>
             </div>
+            </>}
           </div>
           <div style={{display:"flex",gap:8,marginTop:14}}>
             <PrimaryBtn onClick={saveBlock} disabled={!blockForm.name.trim()}>{editBlockIdx!==null?"Update Block":"Add Block"}</PrimaryBtn>
@@ -8265,7 +8346,11 @@ function PlanBuilder({plan, onSave, onCancel}) {
                   <div style={{width:3,height:30,borderRadius:2,background:bc.color,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:2}}>{block.name}</div>
-                    <div style={{display:"flex",gap:4}}><Tag label={bc.label} color={bc.color} small/><Tag label={`${block.duration} min`} color={C.textDim} small/></div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                      <Tag label={bc.label} color={bc.color} small/>
+                      <Tag label={`${block.duration} min`} color={C.textDim} small/>
+                      {Array.isArray(block.stations)&&<Tag label={`🔀 ${block.stations.length} stations`} color={C.teal} small/>}
+                    </div>
                   </div>
                   {/* Controls */}
                   <div style={{display:"flex",gap:4,flexShrink:0}}>
@@ -8465,7 +8550,11 @@ function PlanDetailWithTimer({plan, onBack}) {
   const [secsLeft,      setSecsLeft]      = useState(0);
   const [timerDone,     setTimerDone]     = useState(false);
   const [isWaterBreak,  setIsWaterBreak]  = useState(false);
+  // ─── STATION ROTATION ───
+  const [rotationIdx,   setRotationIdx]   = useState(0);   // which rotation we're on (0-indexed)
+  const [rotationFlash, setRotationFlash] = useState(false); // brief visual flash on rotation
   const iref = React.useRef(null);
+  const lastRotationRef = React.useRef(0); // tracks last rotation index that fired beep
 
   const launchBlock = (idx) => {
     clearInterval(iref.current);
@@ -8475,20 +8564,28 @@ function PlanDetailWithTimer({plan, onBack}) {
     setTimerRunning(true);
     setTimerStarted(true);
     setTimerDone(false);
+    setRotationIdx(0);
+    lastRotationRef.current = 0;
   };
 
   const playBeep = (type="block") => {
     try {
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const beeps = type==="water"
-        ? [{f:523,t:0,d:0.15},{f:659,t:0.18,d:0.15},{f:784,t:0.36,d:0.25}]   // ascending chirp — water break
-        : [{f:880,t:0,d:0.12},{f:880,t:0.15,d:0.12},{f:1100,t:0.3,d:0.3}];   // double-beep + high — block done
+      let beeps;
+      if(type==="water"){
+        beeps = [{f:523,t:0,d:0.15},{f:659,t:0.18,d:0.15},{f:784,t:0.36,d:0.25}];   // ascending chirp — water break
+      } else if(type==="rotate"){
+        // Loud triple-beep rotation alert — distinct from block-done
+        beeps = [{f:1320,t:0,d:0.2},{f:1320,t:0.25,d:0.2},{f:1760,t:0.5,d:0.5}];
+      } else {
+        beeps = [{f:880,t:0,d:0.12},{f:880,t:0.15,d:0.12},{f:1100,t:0.3,d:0.3}];   // double-beep + high — block done
+      }
       beeps.forEach(({f,t,d})=>{
         const osc=ctx.createOscillator(); const gain=ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
         osc.frequency.value=f; osc.type="sine";
         gain.gain.setValueAtTime(0,ctx.currentTime+t);
-        gain.gain.linearRampToValueAtTime(0.4,ctx.currentTime+t+0.01);
+        gain.gain.linearRampToValueAtTime(type==="rotate"?0.6:0.4,ctx.currentTime+t+0.01);
         gain.gain.linearRampToValueAtTime(0,ctx.currentTime+t+d);
         osc.start(ctx.currentTime+t); osc.stop(ctx.currentTime+t+d+0.05);
       });
@@ -8518,6 +8615,21 @@ function PlanDetailWithTimer({plan, onBack}) {
             else { playBeep("block"); setTimerRunning(false); setTimerDone(true); }
           }
           return 0;
+        }
+        // ─── ROTATION CHECK (station blocks only) ───
+        const cur = plan.blocks[timerBlock];
+        if(!isWaterBreak && cur && Array.isArray(cur.stations) && cur.rotateEvery){
+          const totalSecs = cur.duration*60;
+          const rotSecs = cur.rotateEvery*60;
+          const elapsedSecs = totalSecs - (s-1);
+          const newRotIdx = Math.floor(elapsedSecs / rotSecs);
+          if(newRotIdx > lastRotationRef.current && newRotIdx < Math.ceil(totalSecs/rotSecs)){
+            lastRotationRef.current = newRotIdx;
+            setRotationIdx(newRotIdx);
+            playBeep("rotate");
+            setRotationFlash(true);
+            setTimeout(()=>setRotationFlash(false), 1800);
+          }
         }
         return s-1;
       });
@@ -8560,7 +8672,15 @@ function PlanDetailWithTimer({plan, onBack}) {
 
       {/* ── ACTIVE TIMER WIDGET ── */}
       {timerStarted && !timerDone && (
-        <div style={{background:`${bc.color}12`,border:`2px solid ${bc.color}50`,borderRadius:18,padding:"20px",marginBottom:16,textAlign:"center",boxShadow:`0 0 32px ${bc.color}20`}}>
+        <div style={{background:`${bc.color}12`,border:`2px solid ${bc.color}50`,borderRadius:18,padding:"20px",marginBottom:16,textAlign:"center",boxShadow:`0 0 32px ${bc.color}20`,position:"relative",overflow:"hidden"}}>
+          {/* Rotation flash overlay */}
+          {rotationFlash && (
+            <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg,${C.teal}cc,${C.gold}cc)`,zIndex:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"fade-up 0.3s ease-out"}}>
+              <div style={{fontSize:72,marginBottom:8}}>🔄</div>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:48,color:"#fff",letterSpacing:4,textShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>ROTATE!</div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:16,color:"#fff",letterSpacing:3,marginTop:6,textShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>Rotation {rotationIdx+1}</div>
+            </div>
+          )}
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:bc.color,textTransform:"uppercase",marginBottom:4}}>
             {isWaterBreak ? "💧 Water Break" : `Block ${timerBlock+1} of ${plan.blocks.length}`}
           </div>
@@ -8584,6 +8704,39 @@ function PlanDetailWithTimer({plan, onBack}) {
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:9,letterSpacing:2,color:C.textDim,textTransform:"uppercase"}}>remaining</div>
             </div>
           </div>
+
+          {/* ─── STATION ROTATION SUB-WIDGET ─── */}
+          {!isWaterBreak && activeBlock && Array.isArray(activeBlock.stations) && (() => {
+            const rotSecs = (activeBlock.rotateEvery||10)*60;
+            const totalSecs = activeBlock.duration*60;
+            const elapsedSecs = totalSecs - secsLeft;
+            const secsIntoRotation = elapsedSecs % rotSecs;
+            const secsToNextRotation = rotSecs - secsIntoRotation;
+            const totalRotations = Math.ceil(totalSecs / rotSecs);
+            return (
+              <div style={{background:`${C.teal}10`,border:`1px solid ${C.teal}40`,borderRadius:12,padding:"12px 14px",marginBottom:14,textAlign:"left"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:6}}>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,color:C.teal,textTransform:"uppercase"}}>🔀 Rotation {Math.min(rotationIdx+1,totalRotations)} of {totalRotations}</div>
+                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:C.gold,lineHeight:1}}>{fmt(secsToNextRotation)}</div>
+                </div>
+                <div style={{height:4,borderRadius:2,background:`${C.teal}20`,overflow:"hidden",marginBottom:12}}>
+                  <div style={{height:"100%",width:`${(secsIntoRotation/rotSecs)*100}%`,background:`linear-gradient(90deg,${C.teal},${C.gold})`,transition:"width 0.9s linear"}}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fit,minmax(${activeBlock.stations.length>=3?140:180}px,1fr))`,gap:6}}>
+                  {activeBlock.stations.map((st,si)=>(
+                    <div key={si} style={{background:"#0a1929",border:`1px solid ${C.teal}25`,borderRadius:8,padding:"8px 10px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                        <div style={{width:18,height:18,borderRadius:5,background:`${C.teal}25`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Bebas Neue, sans-serif",fontSize:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{si+1}</div>
+                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.text,lineHeight:1.1}}>{st.name}</div>
+                      </div>
+                      {st.activity&&<div style={{fontSize:10,color:C.textMid,lineHeight:1.4}}>{st.activity}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:10,color:C.textDim,marginTop:8,letterSpacing:0.5,textAlign:"center"}}>Loud beep + flash when it's time to rotate groups</div>
+              </div>
+            );
+          })()}
 
           {/* Controls */}
           <div style={{display:"flex",gap:8,justifyContent:"center"}}>
@@ -8649,6 +8802,7 @@ function PlanDetailWithTimer({plan, onBack}) {
                       <div style={{display:"flex",gap:6,marginBottom:3,flexWrap:"wrap"}}>
                         <Tag label={bcc.label} color={bcc.color} small/>
                         <Tag label={`${block.duration} min`} color={C.textDim} small/>
+                        {Array.isArray(block.stations)&&<Tag label={`🔀 ${block.stations.length} stations`} color={C.teal} small/>}
                         {isCurrent&&<Tag label="▶ Active" color={bcc.color} small/>}
                       </div>
                       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:isCurrent?bcc.color:C.text,lineHeight:1.2}}>{block.name}</div>
@@ -8658,11 +8812,31 @@ function PlanDetailWithTimer({plan, onBack}) {
                 </button>
                 {isOpen && (
                   <div style={{padding:"0 16px 16px",borderTop:`1px solid ${bcc.color}20`}}>
-                    {block.setup&&<DetailRow icon="📐" label="Setup" text={block.setup} color={bcc.color}/>}
-                    {block.activity&&<DetailRow icon="⚡" label="Activity" text={block.activity} color={bcc.color}/>}
-                    {block.coachingPoints&&<DetailRow icon="🗣" label="Coaching Points" text={block.coachingPoints} color={bcc.color}/>}
-                    {block.competition&&<DetailRow icon="🏆" label="Competition" text={block.competition} color={bcc.color}/>}
-                    {block.result&&<DetailRow icon="✅" label="Desired Result" text={block.result} color={bcc.color}/>}
+                    {Array.isArray(block.stations)?(
+                      <div style={{marginTop:12}}>
+                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.teal,textTransform:"uppercase",marginBottom:8}}>🔀 {block.stations.length} Stations · Rotate every {block.rotateEvery||10} min</div>
+                        <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fit,minmax(${block.stations.length>=3?180:220}px,1fr))`,gap:8}}>
+                          {block.stations.map((st,si)=>(
+                            <div key={si} style={{background:`${C.teal}08`,border:`1px solid ${C.teal}30`,borderRadius:10,padding:"10px 12px"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                                <div style={{width:22,height:22,borderRadius:6,background:`${C.teal}25`,border:`1px solid ${C.teal}60`,color:C.teal,fontFamily:"Bebas Neue, sans-serif",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{si+1}</div>
+                                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,lineHeight:1.2}}>{st.name}</div>
+                              </div>
+                              {st.activity&&<div style={{fontSize:12,color:C.textMid,lineHeight:1.5,marginBottom:st.coachingPoints?6:0}}>{st.activity}</div>}
+                              {st.coachingPoints&&<div style={{fontSize:11,color:C.gold,lineHeight:1.5,fontStyle:"italic"}}>🗣 {st.coachingPoints}</div>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ):(
+                      <>
+                        {block.setup&&<DetailRow icon="📐" label="Setup" text={block.setup} color={bcc.color}/>}
+                        {block.activity&&<DetailRow icon="⚡" label="Activity" text={block.activity} color={bcc.color}/>}
+                        {block.coachingPoints&&<DetailRow icon="🗣" label="Coaching Points" text={block.coachingPoints} color={bcc.color}/>}
+                        {block.competition&&<DetailRow icon="🏆" label="Competition" text={block.competition} color={bcc.color}/>}
+                        {block.result&&<DetailRow icon="✅" label="Desired Result" text={block.result} color={bcc.color}/>}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
