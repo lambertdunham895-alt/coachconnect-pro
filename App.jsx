@@ -657,6 +657,72 @@ const avatarColor  = name => avatarColors[name.charCodeAt(0) % avatarColors.leng
 
 // ─── SHARED UI ───────────────────────────────────────────────────────────────
 
+// ── Toast System ──────────────────────────────────────────────────────────────
+// Module-level emitter so ANY function (helpers, async Supabase calls, deep
+// components) can fire a toast without prop-drilling. Mount <ToastHost/> once.
+const _toastListeners = new Set();
+let _toastId = 0;
+const toast = {
+  show(message, type="info", duration=4000) {
+    if(!message) return;
+    const id = ++_toastId;
+    _toastListeners.forEach(fn => fn({id, message, type, duration}));
+    return id;
+  },
+  success(message, duration=4000){ return toast.show(message, "success", duration); },
+  error(message, duration=6000){ return toast.show(message, "error", duration); },   // errors linger longer
+  info(message, duration=4000){ return toast.show(message, "info", duration); },
+};
+
+// Throttled save-failure notice. A burst of failed background writes (e.g. lost
+// connection mid-session) collapses into ONE message instead of spamming the user.
+let _lastSaveErrAt = 0;
+function notifySaveError() {
+  const now = Date.now();
+  if(now - _lastSaveErrAt < 5000) return;  // at most one every 5s
+  _lastSaveErrAt = now;
+  toast.error("Some changes didn't save — check your connection.");
+}
+
+function ToastHost() {
+  const [toasts, setToasts] = useState([]);
+  useEffect(()=>{
+    const onToast = (t) => {
+      setToasts(prev => [...prev, t]);
+      if(t.duration > 0){
+        setTimeout(()=> setToasts(prev => prev.filter(x => x.id !== t.id)), t.duration);
+      }
+    };
+    _toastListeners.add(onToast);
+    return ()=> _toastListeners.delete(onToast);
+  },[]);
+
+  const dismiss = (id) => setToasts(prev => prev.filter(x => x.id !== id));
+
+  const styles = {
+    success:{ bg:"#0c2a1f", border:"#10b981", icon:"✓", iconColor:"#10b981" },
+    error:  { bg:"#2a0f12", border:C.red||"#e8192c", icon:"✕", iconColor:C.red||"#e8192c" },
+    info:   { bg:"#0f1e38", border:C.blue||"#1e7bd4", icon:"ℹ", iconColor:C.blue||"#1e7bd4" },
+  };
+
+  return (
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"12px 12px 0",pointerEvents:"none"}}>
+      {toasts.map(t=>{
+        const s = styles[t.type]||styles.info;
+        return (
+          <div key={t.id} onClick={()=>dismiss(t.id)}
+            className="fade-up"
+            style={{pointerEvents:"auto",cursor:"pointer",width:"100%",maxWidth:440,background:s.bg,border:`1px solid ${s.border}80`,borderLeft:`4px solid ${s.border}`,borderRadius:12,padding:"13px 16px",display:"flex",alignItems:"flex-start",gap:12,boxShadow:`0 8px 32px rgba(0,0,0,0.45)`,backdropFilter:"blur(8px)"}}>
+            <div style={{width:22,height:22,borderRadius:"50%",background:`${s.iconColor}25`,color:s.iconColor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,flexShrink:0,marginTop:1}}>{s.icon}</div>
+            <div style={{flex:1,fontSize:14,color:"#e8edf5",lineHeight:1.45,fontFamily:"Plus Jakarta Sans, sans-serif"}}>{t.message}</div>
+            <div style={{color:"#6b7a90",fontSize:16,lineHeight:1,flexShrink:0,marginTop:1}}>×</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyState({icon, title, body, action, onAction}) {
   return (
@@ -1547,20 +1613,20 @@ function AppInner() {
         const row = toDbPlayer(p);
         console.log('Inserting player:', row);
         supabase.from('players').insert(row).then(({error,data})=>{
-          if(error) console.error('Player insert FAILED:',error.code,error.message,error.details);
+          if(error){ console.error('Player insert FAILED:',error.code,error.message,error.details); notifySaveError(); }
           else console.log('Player insert OK');
         });
       });
       // Updates
       next.filter(p=>prevIds.has(p.id)&&JSON.stringify(prev.find(x=>x.id===p.id))!==JSON.stringify(p)).forEach(p=>{
         supabase.from('players').update(toDbPlayer(p)).eq('id',p.id).then(({error})=>{
-          if(error) console.error('Player update FAILED:',error.code,error.message);
+          if(error){ console.error('Player update FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       // Deletes
       prev.filter(p=>!nextIds.has(p.id)).forEach(p=>{
         supabase.from('players').delete().eq('id',p.id).then(({error})=>{
-          if(error) console.error('Player delete FAILED:',error.code,error.message);
+          if(error){ console.error('Player delete FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       return next;
@@ -1576,7 +1642,7 @@ function AppInner() {
       const nextIds = new Set(next.map(a=>a.id));
       next.filter(a=>!prevIds.has(a.id)).forEach(a=>{
         supabase.from('assignments').insert(toDbAsgn(a)).then(({error})=>{
-          if(error) console.error('Asgn insert FAILED:',error.code,error.message);
+          if(error){ console.error('Asgn insert FAILED:',error.code,error.message); notifySaveError(); }
           else {
             // Send push notification for new drill assignment
             const drill = findDrill(a.drillId);
@@ -1589,12 +1655,12 @@ function AppInner() {
       });
       next.filter(a=>prevIds.has(a.id)&&JSON.stringify(prev.find(x=>x.id===a.id))!==JSON.stringify(a)).forEach(a=>{
         supabase.from('assignments').update(toDbAsgn(a)).eq('id',a.id).then(({error})=>{
-          if(error) console.error('Asgn update FAILED:',error.code,error.message);
+          if(error){ console.error('Asgn update FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       prev.filter(a=>!nextIds.has(a.id)).forEach(a=>{
         supabase.from('assignments').delete().eq('id',a.id).then(({error})=>{
-          if(error) console.error('Asgn delete FAILED:',error.code,error.message);
+          if(error){ console.error('Asgn delete FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       return next;
@@ -1610,7 +1676,7 @@ function AppInner() {
       const nextIds = new Set(next.map(e=>e.id));
       next.filter(e=>!prevIds.has(e.id)).forEach(e=>{
         supabase.from('events').insert(toDbEvent(e)).then(({error})=>{
-          if(error) console.error('Event insert FAILED:',error.code,error.message);
+          if(error){ console.error('Event insert FAILED:',error.code,error.message); notifySaveError(); }
           else {
             // Send push notification for new event
             const dateStr = e.date ? new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
@@ -1621,12 +1687,12 @@ function AppInner() {
       });
       next.filter(e=>prevIds.has(e.id)&&JSON.stringify(prev.find(x=>x.id===e.id))!==JSON.stringify(e)).forEach(e=>{
         supabase.from('events').update(toDbEvent(e)).eq('id',e.id).then(({error})=>{
-          if(error) console.error('Event update FAILED:',error.code,error.message);
+          if(error){ console.error('Event update FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       prev.filter(e=>!nextIds.has(e.id)).forEach(e=>{
         supabase.from('events').delete().eq('id',e.id).then(({error})=>{
-          if(error) console.error('Event delete FAILED:',error.code,error.message);
+          if(error){ console.error('Event delete FAILED:',error.code,error.message); notifySaveError(); }
         });
       });
       return next;
@@ -1643,7 +1709,7 @@ function AppInner() {
         supabase.from('skill_snapshots').insert({
           id:s.id, team_id:tid(), player_id:s.playerId,
           date:s.date, rubric:s.rubric||{}, notes:s.notes||'',
-        }).then(({error})=>{ if(error) console.error('Snapshot FAILED:',error.message); });
+        }).then(({error})=>{ if(error){ console.error('Snapshot FAILED:',error.message); notifySaveError(); } });
       });
       return next;
     });
@@ -1657,7 +1723,7 @@ function AppInner() {
       Object.entries(next).forEach(([eventId,lu])=>{
         if(JSON.stringify(prev[eventId])!==JSON.stringify(lu))
           supabase.from('lineups').upsert({event_id:eventId,team_id:tid(),batting:lu.batting||[],positions:lu.positions||{},shared:lu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
-            .then(({error})=>{ if(error) console.error('Lineup FAILED:',error.message); });
+            .then(({error})=>{ if(error){ console.error('Lineup FAILED:',error.message); notifySaveError(); } });
       });
       return next;
     });
@@ -1671,7 +1737,7 @@ function AppInner() {
       Object.entries(next).forEach(([eventId,gp])=>{
         if(JSON.stringify(prev[eventId])!==JSON.stringify(gp))
           supabase.from('game_plans').upsert({event_id:eventId,team_id:tid(),pitcher:gp.pitcher||'',defense:gp.defense||'',offense:gp.offense||'',notes:gp.notes||'',shared:gp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
-            .then(({error})=>{ if(error) console.error('GamePlan FAILED:',error.message); });
+            .then(({error})=>{ if(error){ console.error('GamePlan FAILED:',error.message); notifySaveError(); } });
       });
       return next;
     });
@@ -1689,19 +1755,19 @@ function AppInner() {
         supabase.from('custom_plans').insert({
           id:p.id, team_id:tid(), title:p.title||'', focus:p.focus||'',
           age_group:p.ageGroup||'', duration:p.duration||'', blocks:p.blocks||[],
-        }).then(({error})=>{ if(error) console.error('Plan insert FAILED:',error.message); });
+        }).then(({error})=>{ if(error){ console.error('Plan insert FAILED:',error.message); notifySaveError(); } });
       });
       // Updates
       next.filter(p=>prevIds.has(p.id)&&JSON.stringify(prev.find(x=>x.id===p.id))!==JSON.stringify(p)).forEach(p=>{
         supabase.from('custom_plans').update({
           title:p.title||'', focus:p.focus||'', age_group:p.ageGroup||'',
           duration:p.duration||'', blocks:p.blocks||[], updated_at:new Date().toISOString(),
-        }).eq('id',p.id).then(({error})=>{ if(error) console.error('Plan update FAILED:',error.message); });
+        }).eq('id',p.id).then(({error})=>{ if(error){ console.error('Plan update FAILED:',error.message); notifySaveError(); } });
       });
       // Deletes
       prev.filter(p=>!nextIds.has(p.id)).forEach(p=>{
         supabase.from('custom_plans').delete().eq('id',p.id).then(({error})=>{
-          if(error) console.error('Plan delete FAILED:',error.message);
+          if(error){ console.error('Plan delete FAILED:',error.message); notifySaveError(); }
         });
       });
       return next;
@@ -1780,12 +1846,13 @@ function AppInner() {
     }).eq('id', teamId);
     if (error) {
       console.error('Team settings save failed:', error.message);
-      alert('Failed to save team settings: ' + error.message);
+      toast.error('Couldn\'t save team settings. Please try again.');
       return;
     }
     // Update local state
     if (formData.name) setTeamDisplayName(formData.name);
     setTeamData(prev => ({...prev, ...formData}));
+    toast.success('Team settings saved.');
   };
 
   // ── Subscription ─────────────────────────────────────────────────────────
@@ -2132,6 +2199,7 @@ function AppInner() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <ToastHost/>
       <AppInner/>
     </ErrorBoundary>
   );
@@ -3526,7 +3594,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
             ))}
             <div style={{display:"flex",gap:10,marginTop:16}}>
               <button onClick={()=>setReportModal(null)} style={{flex:1,padding:"12px 0",borderRadius:10,border:`1px solid ${C.border}`,background:"none",color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,cursor:"pointer"}}>Cancel</button>
-              <button onClick={()=>{if(reportReason){onReport(reportModal,reportReason);setReportModal(null);alert("Report submitted. Thank you.");}}} disabled={!reportReason} style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:reportReason?`linear-gradient(135deg,${C.red},${C.redDim})`:"#333",color:reportReason?"#fff":"#666",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,cursor:reportReason?"pointer":"default",boxShadow:reportReason?`0 4px 16px ${C.red}40`:"none"}}>Submit Report</button>
+              <button onClick={()=>{if(reportReason){onReport(reportModal,reportReason);setReportModal(null);toast.success("Report submitted. Thank you.");}}} disabled={!reportReason} style={{flex:1,padding:"12px 0",borderRadius:10,border:"none",background:reportReason?`linear-gradient(135deg,${C.red},${C.redDim})`:"#333",color:reportReason?"#fff":"#666",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:1,cursor:reportReason?"pointer":"default",boxShadow:reportReason?`0 4px 16px ${C.red}40`:"none"}}>Submit Report</button>
             </div>
           </div>
         </div>
@@ -4018,13 +4086,14 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
         goals:[], parents_info:parents,
       });
       if(error) {
-        alert('Failed to save player: ' + error.message);
+        toast.error('Couldn\'t save player. Please try again.');
         return;
       }
     }
     setPlayers(prev=>[...prev,newPlayer]);
     setForm({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
     setShowForm(false);
+    toast.success(`${newPlayer.name} added to roster.`);
   };
   return (
     <div>
@@ -7282,23 +7351,23 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert('Video must be under 50MB'); return; }
+    if (file.size > 50 * 1024 * 1024) { toast.error('Video must be under 50MB.'); return; }
     setLoading(true);
     setUploadProgress('Uploading...');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { alert('Please sign in again'); setLoading(false); return; }
+      if (!session) { toast.error('Your session expired — please sign in again.'); setLoading(false); return; }
       const userId = session.user.id;
       const { data: prof } = await supabase.from('profiles').select('team_id').eq('id', userId).single();
       const teamId = prof?.team_id;
-      if (!teamId) { alert('No team found'); setLoading(false); return; }
+      if (!teamId) { toast.error('No team found on your account.'); setLoading(false); return; }
 
       const ext = file.name.split('.').pop() || 'mp4';
       const storagePath = `${teamId}/${playerId}/${drillId}_${Date.now()}.${ext}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage.from('player-videos').upload(storagePath, file, { cacheControl: '3600', upsert: true });
-      if (uploadError) { console.error('Upload error:', uploadError); alert('Upload failed: ' + uploadError.message); setLoading(false); return; }
+      if (uploadError) { console.error('Upload error:', uploadError); toast.error('Upload failed. Check your connection and try again.'); setLoading(false); return; }
 
       // Get public URL
       const { data: urlData } = supabase.storage.from('player-videos').getPublicUrl(storagePath);
@@ -7310,16 +7379,22 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
         team_id: teamId, player_id: playerId, drill_id: drillId,
         storage_path: storagePath, uploaded_by: userId,
       });
-      if (dbError) console.error('DB save error:', dbError);
+      if (dbError) {
+        console.error('DB save error:', dbError);
+        toast.error('Video uploaded but couldn\'t be saved. Please try again.');
+        setLoading(false); setUploadProgress('');
+        return;
+      }
 
       // Update local state
       setPlayerVideos(prev => ({
         ...prev,
         [key]: { url: publicUrl, storagePath, name: file.name, uploadedAt: Date.now(), feedback: prev[key]?.feedback || [] }
       }));
+      toast.success('Video uploaded! Your coach will review it.');
     } catch(err) {
       console.error('Video upload failed:', err);
-      alert('Video upload failed. Please try again.');
+      toast.error('Video upload failed. Please try again.');
     }
     setLoading(false);
     setUploadProgress('');
