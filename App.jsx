@@ -1572,6 +1572,11 @@ function AppInner() {
   const profileRef = useRef(null);
   useEffect(()=>{ profileRef.current = profile; }, [profile]);
 
+  // Keep a ref of the current events list so DB setters can tell whether an
+  // event row already exists before writing FK-dependent lineup/game-plan rows.
+  const eventsRef = useRef([]);
+  useEffect(()=>{ eventsRef.current = events; }, [events]);
+
   // Sync custom drills to global ref so getAllDrills()/findDrill() work everywhere
   useEffect(()=>{ _customDrillsRef = customDrills; }, [customDrills]);
 
@@ -1719,11 +1724,16 @@ function AppInner() {
     setLineups(prev => {
       const next = typeof updater==='function' ? updater(prev) : updater;
       if (!tid()) return next;
-      
+
+      const savedEventIds = new Set(eventsRef.current.map(e=>e.id));
       Object.entries(next).forEach(([eventId,lu])=>{
-        if(JSON.stringify(prev[eventId])!==JSON.stringify(lu))
+        if(JSON.stringify(prev[eventId])!==JSON.stringify(lu)){
+          // Skip persistence if the event row doesn't exist yet (new event still being
+          // built in the form). The event's save() will write the lineup once it exists.
+          if(!savedEventIds.has(eventId)) return;
           supabase.from('lineups').upsert({event_id:eventId,team_id:tid(),batting:lu.batting||[],positions:lu.positions||{},shared:lu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
             .then(({error})=>{ if(error){ console.error('Lineup FAILED:',error.message); notifySaveError(); } });
+        }
       });
       return next;
     });
@@ -1733,11 +1743,15 @@ function AppInner() {
     setGamePlans(prev => {
       const next = typeof updater==='function' ? updater(prev) : updater;
       if (!tid()) return next;
-      
+
+      const savedEventIds = new Set(eventsRef.current.map(e=>e.id));
       Object.entries(next).forEach(([eventId,gp])=>{
-        if(JSON.stringify(prev[eventId])!==JSON.stringify(gp))
+        if(JSON.stringify(prev[eventId])!==JSON.stringify(gp)){
+          // Skip persistence if the event row doesn't exist yet — save() handles it later.
+          if(!savedEventIds.has(eventId)) return;
           supabase.from('game_plans').upsert({event_id:eventId,team_id:tid(),pitcher:gp.pitcher||'',defense:gp.defense||'',offense:gp.offense||'',notes:gp.notes||'',shared:gp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'})
             .then(({error})=>{ if(error){ console.error('GamePlan FAILED:',error.message); notifySaveError(); } });
+        }
       });
       return next;
     });
