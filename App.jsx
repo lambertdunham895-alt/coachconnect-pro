@@ -1613,7 +1613,7 @@ function AppInner() {
         const row = toDbPlayer(p);
         console.log('Inserting player:', row);
         supabase.from('players').insert(row).then(({error,data})=>{
-          if(error){ console.error('Player insert FAILED:',error.code,error.message,error.details); notifySaveError(); }
+          if(error){ if(error.code!=='23505'){ console.error('Player insert FAILED:',error.code,error.message,error.details); notifySaveError(); } }
           else console.log('Player insert OK');
         });
       });
@@ -1642,7 +1642,7 @@ function AppInner() {
       const nextIds = new Set(next.map(a=>a.id));
       next.filter(a=>!prevIds.has(a.id)).forEach(a=>{
         supabase.from('assignments').insert(toDbAsgn(a)).then(({error})=>{
-          if(error){ console.error('Asgn insert FAILED:',error.code,error.message); notifySaveError(); }
+          if(error){ if(error.code!=='23505'){ console.error('Asgn insert FAILED:',error.code,error.message); notifySaveError(); } }
           else {
             // Send push notification for new drill assignment
             const drill = findDrill(a.drillId);
@@ -1676,7 +1676,7 @@ function AppInner() {
       const nextIds = new Set(next.map(e=>e.id));
       next.filter(e=>!prevIds.has(e.id)).forEach(e=>{
         supabase.from('events').insert(toDbEvent(e)).then(({error})=>{
-          if(error){ console.error('Event insert FAILED:',error.code,error.message); notifySaveError(); }
+          if(error){ if(error.code!=='23505'){ console.error('Event insert FAILED:',error.code,error.message); notifySaveError(); } }
           else {
             // Send push notification for new event
             const dateStr = e.date ? new Date(e.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
@@ -4054,17 +4054,8 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
         goals: [],
       };
     });
+    // setPlayers is the DB-aware setter — it persists each new player and surfaces save errors itself.
     setPlayers(prev => [...prev, ...newPlayers]);
-    if(teamId) {
-      const rows = newPlayers.map(p=>({
-        id: p.id, team_id: teamId,
-        name: p.name, age: String(p.age),
-        age_group: p.ageGroup, position: p.position,
-        number: p.number, bats: p.bats, throws: p.throws,
-        goals: [], parents_info: p.parents,
-      }));
-      await supabase.from("players").insert(rows);
-    }
     setShowScanner(false);
     setScannedPlayers([]);
     setScanError("");
@@ -4076,20 +4067,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
     if(form.parent1.trim()) parents.push({id:pid+"a",name:form.parent1.trim(),phone:form.parent1phone.trim(),email:form.parent1email.trim()});
     if(form.parent2.trim()) parents.push({id:pid+"b",name:form.parent2.trim(),phone:form.parent2phone.trim(),email:form.parent2email.trim()});
     const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:form.goals.split("\n").filter(Boolean)};
-    // Save to DB first, then update UI
-    if(teamId) {
-      const {error} = await supabase.from('players').insert({
-        id:pid, team_id:teamId,
-        name:form.name, age:String(parseInt(form.age)||0),
-        age_group:form.ageGroup, position:form.position,
-        number:form.number, bats:form.bats, throws:form.throws,
-        goals:[], parents_info:parents,
-      });
-      if(error) {
-        toast.error('Couldn\'t save player. Please try again.');
-        return;
-      }
-    }
+    // setPlayers is the DB-aware setter — it persists the insert and surfaces any save error itself.
     setPlayers(prev=>[...prev,newPlayer]);
     setForm({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
     setShowForm(false);
@@ -4304,25 +4282,12 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
   const togglePlayer = (pid) => {
     if(!selectedDrill) return;
     if(isAssigned(pid, selectedDrill.id)){
-      const toRemove = assignments.find(a => a.playerId===pid && a.drillId===selectedDrill.id);
+      // setAsgn is the DB-aware setter — it persists the delete itself.
       setAsgn(prev => prev.filter(a => !(a.playerId===pid && a.drillId===selectedDrill.id)));
-      if(teamId && toRemove) supabase.from('assignments').delete().eq('id',toRemove.id)
-        .then(({error})=>{ if(error) console.error('Asgn delete failed:',error.message); });
     } else {
       const newA = {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false};
+      // setAsgn is the DB-aware setter — it persists the insert AND sends the parent push notification itself.
       setAsgn(prev => [...prev, newA]);
-      if(teamId) supabase.from('assignments').insert({
-        id:newA.id, team_id:teamId, player_id:pid, drill_id:selectedDrill.id,
-        assigned_date:newA.assignedDate, completed:false, notes:'', acknowledged:false, coach_rating:null,
-      }).then(({error})=>{ 
-        if(error) console.error('Asgn insert failed:',error.message);
-        else {
-          const player = players.find(p=>p.id===pid);
-          if(selectedDrill && player) {
-            sendPushNotification(teamId, `New Drill: ${selectedDrill.name}`, `Coach assigned "${selectedDrill.name}" to ${player.name}`, session?.user?.id);
-          }
-        }
-      });
     }
   };
 
@@ -4571,16 +4536,8 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       uniform: "",
       notes: "",
     }));
+    // setEvents is the DB-aware setter — it persists each new event itself.
     setEvents(prev => [...prev, ...newEvents]);
-    // Save to DB
-    if(teamId) {
-      const rows = newEvents.map(e=>({
-        id: e.id, team_id: teamId, type: e.type, date: e.date, time: e.time||"",
-        field_name: e.fieldName||"", address: e.address||"",
-        notes: "", opponent: e.opponent||"", uniform: "",
-      }));
-      await supabase.from("events").insert(rows);
-    }
     setShowScanner(false);
     setScannedEvents([]);
     setScanError("");
@@ -4647,8 +4604,11 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     } else {
       setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
       if(teamId) {
+        // Insert is awaited here so the lineup/game-plan upserts below (which FK to event_id) don't race.
+        // The DB-aware setEvents setter sees a duplicate id and skips re-inserting (its push won't fire
+        // on the duplicate), so we send the push from here — the reliable path.
         const {error}=await supabase.from('events').insert(row);
-        if(error) console.error('Event insert failed:',error.message);
+        if(error && error.code!=='23505') console.error('Event insert failed:',error.message);
         else {
           const dateStr = form.date ? new Date(form.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
           const typeLabel = form.type==='game' ? 'Game' : 'Practice';
@@ -6975,14 +6935,7 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
     const parents = [];
     if(form.parent1.trim()) parents.push({id:pid+"a",name:form.parent1.trim(),phone:"",email:form.parent1email.trim()});
     const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:[]};
-    if(teamId) {
-      const {error} = await supabase.from('players').insert({
-        id:pid, team_id:teamId, name:form.name, age:String(parseInt(form.age)||0),
-        age_group:form.ageGroup, position:form.position, number:form.number,
-        bats:form.bats, throws:form.throws, goals:[], parents_info:parents,
-      });
-      if(error) { console.error('Player save failed:', error.message); return; }
-    }
+    // setPlayers is the DB-aware setter — it persists and surfaces errors itself.
     setPlayers(prev=>[...prev,newPlayer]);
     setAddedPlayer(newPlayer);
     setStep(2);
