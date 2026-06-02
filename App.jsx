@@ -4596,36 +4596,45 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     const row = {id:formEvId, team_id:teamId, type:form.type, date:form.date, time:form.time||'',
       field_name:form.fieldName, address:form.address||'', notes:form.notes||'', opponent:form.opponent||'', uniform:form.uniform||''};
     const isNew = !editId;
-    try {
-      if(editId){
-        setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
-        if(teamId){
-          const {error}=await supabase.from('events').update(row).eq('id',editId);
-          if(error) console.error('Event update failed:',error.message);
+    const isDup = (e) => e && (e.code==='23505' || /duplicate key|already exists/i.test(e.message||''));
+
+    // ── Step 1: persist the event row (awaited so FK-dependent upserts below are safe) ──
+    if(teamId){
+      try {
+        const {error} = editId
+          ? await supabase.from('events').update(row).eq('id',editId)
+          : await supabase.from('events').insert(row);
+        if(error && !isDup(error)){
+          console.error('Event save failed:', error.message);
+          toast.error("Couldn't save the event. Please try again.");
+          return; // genuine failure — keep form open so they don't lose input
         }
-      } else {
-        // Persist the event FIRST (awaited) so the lineup/game-plan upserts below — which
-        // reference event_id as a foreign key — can't race ahead of the event existing.
-        if(teamId){
-          const {error}=await supabase.from('events').insert(row);
-          if(error && error.code!=='23505'){
-            console.error('Event insert failed:',error.message);
-            toast.error("Couldn't create the event. Please try again.");
-            return;
-          }
+      } catch(err) {
+        if(!isDup(err)){
+          console.error('Event save threw:', err);
+          toast.error("Couldn't save the event. Please try again.");
+          return;
         }
-        // Update local UI state. setEvents is the DB-aware setter; it sees the now-existing id
-        // and skips re-inserting (duplicate guard), so this won't double-write.
-        setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
-        // Send the parent push from here (the reliable path).
-        if(teamId){
-          const dateStr = form.date ? new Date(form.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
-          const typeLabel = form.type==='game' ? 'Game' : 'Practice';
-          sendPushNotification(teamId, `New ${typeLabel} Scheduled`, `${typeLabel} on ${dateStr}${form.time?' at '+form.time:''}${form.opponent?' vs '+form.opponent:''}`, session?.user?.id);
-        }
+        // duplicate — event already exists, treat as success and continue
       }
-      // Now that the event exists in DB, explicitly save lineup & game plan
+    }
+
+    // ── Step 2: update on-screen list ──
+    if(editId){
+      setEvents(prev=>prev.map(e=>e.id===editId?{...e,...form,location}:e));
+    } else {
+      setEvents(prev=>[...prev,{id:formEvId,...form,location}]);
+      // parent push (best-effort; never blocks the save)
       if(teamId){
+        const dateStr = form.date ? new Date(form.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
+        const typeLabel = form.type==='game' ? 'Game' : 'Practice';
+        sendPushNotification(teamId, `New ${typeLabel} Scheduled`, `${typeLabel} on ${dateStr}${form.time?' at '+form.time:''}${form.opponent?' vs '+form.opponent:''}`, session?.user?.id);
+      }
+    }
+
+    // ── Step 3: lineup + game plan (best-effort; failures here don't block the event) ──
+    if(teamId){
+      try {
         const curLu=lineups[formEvId];
         if(curLu && ((curLu.batting||[]).some(Boolean)||Object.keys(curLu.positions||{}).length>0)){
           const {error}=await supabase.from('lineups').upsert({event_id:formEvId,team_id:teamId,batting:curLu.batting||[],positions:curLu.positions||{},shared:curLu.shared!==false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
@@ -4636,12 +4645,12 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           const {error}=await supabase.from('game_plans').upsert({event_id:formEvId,team_id:teamId,pitcher:curGp.pitcher||'',defense:curGp.defense||'',offense:curGp.offense||'',notes:curGp.notes||'',shared:curGp.shared||false,updated_at:new Date().toISOString()},{onConflict:'event_id'});
           if(error) console.error('GamePlan save failed:',error.message);
         }
+      } catch(err) {
+        console.error('Lineup/GamePlan save threw (event still saved):', err);
       }
-      toast.success(isNew ? "Event created." : "Event updated.");
-    } catch(err) {
-      console.error('Event save threw:', err);
-      toast.error("Something went wrong saving the event. Please try again.");
     }
+
+    toast.success(isNew ? "Event created." : "Event updated.");
     setView("list");
   };
   const cancel=()=>{
