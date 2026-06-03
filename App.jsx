@@ -1533,6 +1533,28 @@ function AppInner() {
     setDataLoaded(false);
   };
 
+  // Open the Stripe billing portal (cancel, update card, invoices)
+  const openBillingPortal = async () => {
+    try {
+      const {data:{session:authSession}} = await supabase.auth.getSession();
+      const token = authSession?.access_token;
+      if(!token){ toast.error("Please sign in again."); return; }
+      const res = await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/stripe-checkout", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},
+        body: JSON.stringify({action:"portal"}),
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+      if(data.url) window.location.href = data.url;
+      else throw new Error("Couldn't open billing.");
+    } catch(err) {
+      const msg = String(err.message||err);
+      if(/no subscription/i.test(msg)) toast.error("No active subscription yet. Start a plan first to manage billing.");
+      else toast.error("Couldn't open billing. Please try again.");
+    }
+  };
+
   // derive player and parent object from parentUserId
   const getParentContext = (uid) => {
     if(parentPlayerLink) {
@@ -2173,6 +2195,7 @@ function AppInner() {
           <div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:1.5,color:C.red,textTransform:"uppercase"}}>🔒 Trial Ended</div>
             <div style={{fontSize:12,color:C.textMid,marginTop:1}}>Drills & Progress are locked. Upgrade to restore access.</div>
+            <button onClick={openBillingPortal} style={{background:"none",border:"none",color:C.textDim,fontSize:11,textDecoration:"underline",cursor:"pointer",padding:"4px 0 0",fontFamily:"Plus Jakarta Sans, sans-serif"}}>Manage subscription</button>
           </div>
           <button onClick={()=>setShowUpgrade(true)} style={{padding:"8px 16px",borderRadius:9,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",boxShadow:`0 4px 12px ${C.red}40`}}>Unlock Now</button>
         </div>
@@ -3627,6 +3650,31 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
     coach_email: teamData.coach_email || "",
   });
   const f = (k,v) => setForm(p=>({...p,[k]:v}));
+  const [billingLoading, setBillingLoading] = useState(false);
+
+  const manageSubscription = async () => {
+    setBillingLoading(true);
+    try {
+      const {data:{session:authSession}} = await supabase.auth.getSession();
+      const token = authSession?.access_token;
+      if(!token){ toast.error("Please sign in again."); setBillingLoading(false); return; }
+      const res = await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/stripe-checkout", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},
+        body: JSON.stringify({action:"portal"}),
+      });
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+      if(data.url) window.location.href = data.url;
+      else throw new Error("Couldn't open the billing portal.");
+    } catch(err) {
+      const msg = String(err.message||err);
+      // Friendly message for the common "no subscription yet" case
+      if(/no subscription/i.test(msg)) toast.error("No active subscription yet. Start a plan first to manage billing.");
+      else toast.error("Couldn't open billing. Please try again.");
+      setBillingLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -3660,6 +3708,15 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
               <Inp label="Email" value={form.coach_email} onChange={e=>f("coach_email",e.target.value)} placeholder="coach@email.com" type="email"/>
             </div>
           </div>
+        </div>
+
+        {/* Subscription & Billing */}
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:C.gold,textTransform:"uppercase",marginBottom:10}}>💳 Subscription & Billing</div>
+          <div style={{fontSize:12,color:C.textDim,marginBottom:14,lineHeight:1.5}}>Update your card, view invoices, or cancel your subscription anytime through our secure billing portal.</div>
+          <button onClick={manageSubscription} disabled={billingLoading} style={{width:"100%",padding:"13px 0",borderRadius:11,background:billingLoading?"#1a2f52":"transparent",border:`1px solid ${C.gold}`,color:billingLoading?C.textDim:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:billingLoading?"default":"pointer",minHeight:48}}>
+            {billingLoading ? "Opening…" : "Manage Subscription"}
+          </button>
         </div>
       </div>
 
