@@ -3738,13 +3738,13 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
       <NewCoachCard page="home" setTab={setTab}/>
 
-      {/* ── Stadium Header ── */}
-      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`}}>
+      {/* ── Stadium Header (full-bleed) ── */}
+      <div className="fade-up" style={{position:"relative",overflow:"hidden",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",width:"100vw",marginTop:-20,marginBottom:16,boxShadow:`0 12px 48px #00000080`}}>
         {/* Stadium background photo */}
         <div style={{position:"absolute",inset:0}}>
           <img src="/stadium-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
-          {/* Dark gradient overlay for text legibility */}
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, rgba(6,17,31,0.92) 0%, rgba(11,26,48,0.82) 45%, rgba(6,17,31,0.70) 100%)`}}/>
+          {/* Lighter gradient overlay — lets the photo bleed through more */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, rgba(6,17,31,0.78) 0%, rgba(11,26,48,0.55) 45%, rgba(6,17,31,0.38) 100%)`}}/>
         </div>
         {/* Top accent line */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`,zIndex:2}}/>
@@ -3756,8 +3756,8 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           <button onClick={()=>setShowSettings(true)} style={{position:"absolute",top:14,right:14,width:36,height:36,borderRadius:10,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(6px)",border:`1px solid #ffffff25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",zIndex:4,color:"#fff"}}>⚙️</button>
         )}
 
-        {/* Content */}
-        <div style={{position:"relative",zIndex:3,padding:"24px 20px 22px"}}>
+        {/* Content — constrained to the same 640 column so it lines up with the rest of the page */}
+        <div style={{position:"relative",zIndex:3,maxWidth:640,margin:"0 auto",padding:"24px 20px 22px"}}>
           {/* Top row: logo + greeting + team name */}
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
             {/* Logo */}
@@ -3774,34 +3774,34 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
             {/* Greeting + name */}
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:700,fontSize:15,color:"#fff",marginBottom:2,textShadow:"0 2px 8px rgba(0,0,0,0.6)"}}>
-                {greeting}, Coach! 👋
+              <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:700,fontSize:15,color:"#fff",marginBottom:2,textShadow:"0 2px 8px rgba(0,0,0,0.7)"}}>
+                {greeting}, Coach!
               </div>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:40,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 16px rgba(0,0,0,0.7)`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:40,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 16px rgba(0,0,0,0.8)`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
                 {teamName||"Your Team"}
               </div>
               {/* Accent divider */}
               <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
                 <div style={{height:3,width:32,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:2}}/>
                 <div style={{height:3,width:14,background:C.gold,opacity:0.5,borderRadius:2}}/>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:"#ffffffcc",textTransform:"uppercase",marginLeft:4}}>2026 Season</div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:"#ffffffe0",textTransform:"uppercase",marginLeft:4,textShadow:"0 1px 6px rgba(0,0,0,0.7)"}}>2026 Season</div>
               </div>
             </div>
           </div>
 
           {/* Stats strip — real data */}
-          <div style={{display:"flex",alignItems:"stretch",background:"rgba(8,18,35,0.55)",backdropFilter:"blur(8px)",border:`1px solid #ffffff15`,borderRadius:14,overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"stretch",background:"rgba(8,18,35,0.5)",backdropFilter:"blur(8px)",border:`1px solid #ffffff20`,borderRadius:14,overflow:"hidden"}}>
             {[
               {icon:"👥",v:players.length,l:"Players",c:C.blue},
               {icon:"✅",v:done,l:"Drills Done",c:C.teal},
               {icon:"📋",v:needsReview.length,l:"Needs Review",c:C.gold},
             ].map((s,i)=>(
-              <div key={s.l} style={{flex:1,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,borderLeft:i>0?`1px solid #ffffff12`:"none"}}>
+              <div key={s.l} style={{flex:1,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,borderLeft:i>0?`1px solid #ffffff15`:"none"}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:15}}>{s.icon}</span>
-                  <span className={`number-pop`} style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:"#fff",lineHeight:1,textShadow:`0 0 16px ${s.c}50`}}>{s.v}</span>
+                  <span className={`number-pop`} style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:"#fff",lineHeight:1,textShadow:`0 0 16px ${s.c}60`}}>{s.v}</span>
                 </div>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:9,letterSpacing:1.5,color:"#ffffff99",textTransform:"uppercase"}}>{s.l}</div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:9,letterSpacing:1.5,color:"#ffffffcc",textTransform:"uppercase",textShadow:"0 1px 4px rgba(0,0,0,0.6)"}}>{s.l}</div>
               </div>
             ))}
           </div>
