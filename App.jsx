@@ -2195,7 +2195,7 @@ function AppInner() {
         ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} customPlans={customPlans} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id} customDrills={customDrills} setCustomDrills={setCustomDrills}/>}
             {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
@@ -3676,7 +3676,7 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
 }
 
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null,chatReports=[],onResolveReport=()=>{}}) {
+function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null,chatReports=[],onResolveReport=()=>{}}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
@@ -3711,6 +3711,40 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
     player:p,
     items: needsReview.filter(a=>a.playerId===p.id)
   })).filter(x=>x.items.length>0);
+
+  // ── Recent Activity feed (derived from existing data; arrays are created_at-ordered) ──
+  const recentActivity = (()=>{
+    const items = [];
+    // Newest players (tail of array = most recently added)
+    players.slice(-4).reverse().forEach((p,i)=>{
+      items.push({ key:`pl-${p.id}`, order:300-i, icon:"👤", color:C.red,
+        title:`${p.name} was added to the roster`, tab:"roster" });
+    });
+    // Newest practice plans
+    customPlans.slice(-4).reverse().forEach((p,i)=>{
+      items.push({ key:`cp-${p.id}`, order:200-i, icon:"📋", color:C.gold,
+        title:`Practice plan "${p.title||'Untitled'}" created`, tab:"plans" });
+    });
+    // Newest scheduled events (events ordered by date asc; tail = latest date)
+    events.slice(-4).reverse().forEach((e,i)=>{
+      const label = e.type==="game"
+        ? `Game${e.opponent?` vs. ${e.opponent}`:""} added to schedule`
+        : `Practice added to schedule`;
+      items.push({ key:`ev-${e.id}`, order:250-i, icon:"📅", color:C.blue, title:label, tab:"schedule" });
+    });
+    // Newest drill assignments, grouped by drill (not player-specific)
+    const seenDrills = new Set();
+    [...assignments].reverse().forEach(a=>{
+      if(seenDrills.has(a.drillId)) return;
+      seenDrills.add(a.drillId);
+      if(seenDrills.size>3) return;
+      const d = findDrill(a.drillId);
+      items.push({ key:`as-${a.drillId}`, order:150-seenDrills.size, icon:"⚾", color:C.teal,
+        title:`Drill "${d?.name||'Drill'}" assigned`, tab:"drills" });
+    });
+    // Sort by our recency proxy and cap the feed
+    return items.sort((a,b)=>b.order-a.order).slice(0,6);
+  })();
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -3914,38 +3948,24 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
           )}
         </div>
       )}
-      <SectionHead accent>Roster</SectionHead>
+      {/* ── Recent Activity ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <SectionHead accent>Recent Activity</SectionHead>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {players.length===0
-          ? <EmptyState icon="👦" title="No players yet" body="Add your first player to get started — you can set their position, link their parents, and track their progress." action="Add First Player" onAction={()=>setTab("roster")}/>
-          : players.map((p,i)=>{
-          const pa=assignments.filter(a=>a.playerId===p.id);
-          const pdone=pa.filter(a=>a.completed).length;
-          const ppct=pa.length?Math.round(pdone/pa.length*100):0;
-          return (
-            <button key={p.id} onClick={()=>goToPlayer(p)} className={`card-hover fade-up-${Math.min(i+2,5)}`} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left",width:"100%",minHeight:68,backgroundImage:C.stripe,position:"relative",overflow:"hidden",boxShadow:"0 4px 16px #00000040"}}>
-              <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(180deg,${C.red},${C.gold}80)`}}/>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingLeft:8}}>
-                <div>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:18,color:C.text,marginBottom:2}}>{p.name}</div>
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                    <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:14,color:C.red,letterSpacing:1}}>{p.position}</span>
-                    <span style={{color:C.textDim,fontSize:10}}>·</span>
-                    <span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:12,color:C.textMid}}>Age {p.age}</span>
-                  </div>
-                </div>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:ppct===100?C.teal:C.gold,lineHeight:1}}>{pdone}/{pa.length}</div>
-                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:2,color:C.textDim,textTransform:"uppercase"}}>Drills</div>
-                  </div>
-                  <Ring pct={ppct} size={40} color={ppct===100?C.teal:C.gold} label={`${ppct}`}/>
-                </div>
+        {recentActivity.length===0
+          ? <EmptyState icon="📋" title="No activity yet" body="As you add players, schedule games, and assign drills, your recent activity will show up here." action="Add a Player" onAction={()=>setTab("roster")}/>
+          : recentActivity.map((a,i)=>(
+            <button key={a.key} onClick={()=>setTab(a.tab)} className={`card-hover fade-up-${Math.min(i+2,5)}`} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left",width:"100%",minHeight:60,backgroundImage:C.stripe,position:"relative",overflow:"hidden",boxShadow:"0 4px 16px #00000040",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(180deg,${a.color},${a.color}40)`}}/>
+              <div style={{width:40,height:40,borderRadius:11,background:`${a.color}1f`,border:`1px solid ${a.color}45`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,marginLeft:6}}>{a.icon}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:600,fontSize:14,color:C.text,lineHeight:1.35}}>{a.title}</div>
               </div>
+              <div style={{color:C.textDim,fontSize:18,flexShrink:0}}>›</div>
             </button>
-          );
-        })}
-        <button onClick={()=>setTab("roster")} style={{display:"block",width:"100%",padding:"13px 0",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:14,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,cursor:"pointer",minHeight:48,textTransform:"uppercase"}}>+ Add Player</button>
+          ))
+        }
       </div>
 
       {/* ── Chat Reports ── */}
