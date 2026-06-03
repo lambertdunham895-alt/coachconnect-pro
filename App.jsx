@@ -3682,6 +3682,8 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
   const today=new Date().toISOString().slice(0,10);
   const nextEvent=events.filter(e=>e.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const _hr = new Date().getHours();
+  const greeting = _hr < 12 ? "Good morning" : _hr < 17 ? "Good afternoon" : "Good evening";
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
@@ -3736,73 +3738,77 @@ function CoachHome({players,assignments,events,goToPlayer,setTab,teamLogo,onTeam
 
       <NewCoachCard page="home" setTab={setTab}/>
 
-      {/* ── Team Identity Banner ── */}
-      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:180}}>
-        {/* Deep layered background */}
-        <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,#06111f 0%,#0b1a30 40%,#130818 100%)`}}/>
-        {/* Diagonal slash accent */}
-        <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
+      {/* ── Stadium Header ── */}
+      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`}}>
+        {/* Stadium background photo */}
+        <div style={{position:"absolute",inset:0}}>
+          <img src="/stadium-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
+          {/* Dark gradient overlay for text legibility */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, rgba(6,17,31,0.92) 0%, rgba(11,26,48,0.82) 45%, rgba(6,17,31,0.70) 100%)`}}/>
+        </div>
         {/* Top accent line */}
-        <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`,zIndex:2}}/>
         {/* Bottom accent line */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
-        {/* Faint diagonal stripes */}
-        <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
-        {/* Glow orb behind logo */}
-        <div style={{position:"absolute",top:-30,left:-30,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}30 0%,transparent 70%)`,pointerEvents:"none"}}/>
-        {/* Large watermark initials in background */}
-        {!teamLogo && (
-          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:160,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
-            {teamInitials}
-          </div>
-        )}
-        {/* Large watermark logo in background */}
-        {teamLogo && (
-          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:160,height:160,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
-            <img src={teamLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-          </div>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`,zIndex:2}}/>
+
+        {/* Settings gear */}
+        {onTeamSettingsSave && (
+          <button onClick={()=>setShowSettings(true)} style={{position:"absolute",top:14,right:14,width:36,height:36,borderRadius:10,background:"rgba(0,0,0,0.35)",backdropFilter:"blur(6px)",border:`1px solid #ffffff25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",zIndex:4,color:"#fff"}}>⚙️</button>
         )}
 
         {/* Content */}
-        <div style={{position:"relative",padding:"28px 22px 28px 22px",display:"flex",alignItems:"center",gap:20}}>
-          {/* Logo — large, prominent */}
-          <label style={{cursor:"pointer",flexShrink:0,position:"relative"}}>
-            <div style={{width:110,height:110,borderRadius:22,overflow:"hidden",border:`3px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 5px ${C.red}20, 0 8px 40px ${C.red}50`:`0 0 0 5px #ffffff08, 0 8px 32px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,transition:"all 0.3s"}}>
-              {teamLogo
-                ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:36,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
-              }
-            </div>
-            {/* Camera badge */}
-            <div style={{position:"absolute",bottom:-4,right:-4,width:24,height:24,borderRadius:"50%",background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,boxShadow:`0 2px 10px ${C.red}80`,border:`2px solid #06111f`,zIndex:2}}>📷</div>
-            <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
-          </label>
+        <div style={{position:"relative",zIndex:3,padding:"24px 20px 22px"}}>
+          {/* Top row: logo + greeting + team name */}
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
+            {/* Logo */}
+            <label style={{cursor:"pointer",flexShrink:0,position:"relative"}}>
+              <div style={{width:84,height:84,borderRadius:"50%",overflow:"hidden",border:`3px solid ${teamLogo?C.red+"cc":"#ffffff40"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}25, 0 8px 32px ${C.red}40`:`0 0 0 4px #ffffff10, 0 8px 28px #00000080`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`}}>
+                {teamLogo
+                  ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:1,color:"#fff",textShadow:`0 0 16px ${C.red}80`}}>{teamInitials}</span>
+                }
+              </div>
+              <div style={{position:"absolute",bottom:-2,right:-2,width:24,height:24,borderRadius:"50%",background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,boxShadow:`0 2px 10px ${C.red}80`,border:`2px solid #06111f`,zIndex:2}}>📷</div>
+              <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
+            </label>
 
-          {/* Team name block */}
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:6}}>
-              ⚾ 2026 Season
-            </div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:48,letterSpacing:3,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:8}}>
-              {teamName||"Your Team"}
-            </div>
-            {/* Decorative divider */}
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{height:3,width:36,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
-              <div style={{height:3,width:12,background:C.gold,opacity:0.4}}/>
-              <div style={{height:3,width:6,background:C.gold,opacity:0.2}}/>
-            </div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:2,color:teamLogo?"#ffffff40":C.red,textTransform:"uppercase",marginTop:8}}>
-              {teamLogo?"Tap logo to update":"Tap logo to add"}
+            {/* Greeting + name */}
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:700,fontSize:15,color:"#fff",marginBottom:2,textShadow:"0 2px 8px rgba(0,0,0,0.6)"}}>
+                {greeting}, Coach! 👋
+              </div>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:40,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 16px rgba(0,0,0,0.7)`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                {teamName||"Your Team"}
+              </div>
+              {/* Accent divider */}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
+                <div style={{height:3,width:32,background:`linear-gradient(90deg,${C.red},${C.gold})`,borderRadius:2}}/>
+                <div style={{height:3,width:14,background:C.gold,opacity:0.5,borderRadius:2}}/>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:2,color:"#ffffffcc",textTransform:"uppercase",marginLeft:4}}>2026 Season</div>
+              </div>
             </div>
           </div>
 
-          {/* Settings gear */}
-          {onTeamSettingsSave && (
-            <button onClick={()=>setShowSettings(true)} style={{position:"absolute",top:16,right:16,width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,cursor:"pointer",zIndex:3,color:"#fff"}}>⚙️</button>
-          )}
+          {/* Stats strip — real data */}
+          <div style={{display:"flex",alignItems:"stretch",background:"rgba(8,18,35,0.55)",backdropFilter:"blur(8px)",border:`1px solid #ffffff15`,borderRadius:14,overflow:"hidden"}}>
+            {[
+              {icon:"👥",v:players.length,l:"Players",c:C.blue},
+              {icon:"✅",v:done,l:"Drills Done",c:C.teal},
+              {icon:"📋",v:needsReview.length,l:"Needs Review",c:C.gold},
+            ].map((s,i)=>(
+              <div key={s.l} style={{flex:1,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,borderLeft:i>0?`1px solid #ffffff12`:"none"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:15}}>{s.icon}</span>
+                  <span className={`number-pop`} style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:"#fff",lineHeight:1,textShadow:`0 0 16px ${s.c}50`}}>{s.v}</span>
+                </div>
+                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:9,letterSpacing:1.5,color:"#ffffff99",textTransform:"uppercase"}}>{s.l}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* ── Team Progress ── */}
       <div className="fade-up glass-card" style={{borderRadius:20,padding:"22px 20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none",opacity:0.5}}/>
         <div style={{position:"absolute",top:-40,right:-40,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
