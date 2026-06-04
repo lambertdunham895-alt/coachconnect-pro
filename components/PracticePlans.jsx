@@ -428,13 +428,6 @@ const PRACTICE_PLANS = [
 ];
 
 // ─── PRACTICE PLANS COMPONENT ────────────────────────────────────────────────
-const FOCUS_OPTIONS = ["Defense","Base Running","Teamwork","Fielding","Outfield","Infield","Throwing","IQ & Strategy","Speed","Game Simulation","Hitting","Custom"];
-const FOCUS_COLORS = {
-  "Defense":"#1e7bd4","Base Running":"#f5c518","Teamwork":"#00d4aa","Fielding":"#8b5cf6",
-  "Outfield":"#06b6d4","Infield":"#f97316","Throwing":"#00d4aa","IQ & Strategy":"#ec4899",
-  "Speed":"#e8192c","Game Simulation":"#f5c518","Hitting":"#e8192c","Custom":"#aaaaaa",
-};
-
 function PracticePlans({customPlans=[],setCustomPlans=()=>{}}) {
   const [view,     setView]    = useState("list");     // "list"|"view"|"build"
   const [selected, setSelected]= useState(null);       // plan object
