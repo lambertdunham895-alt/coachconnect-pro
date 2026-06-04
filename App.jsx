@@ -212,7 +212,7 @@ const C = {
   gold:"#f5c518", teal:"#00d4aa",
   blue:"#1e7bd4", purple:"#8b5cf6", orange:"#f97316",
   text:"#f0ebe2", textMid:"#8a9fc0", textDim:"#3d5070",
-  stripe:"repeating-linear-gradient(135deg,transparent,transparent 6px,rgba(255,255,255,0.018) 6px,rgba(255,255,255,0.018) 12px)",
+  stripe:"none",
   msgMe:"#1e3a6e", msgOther:"#0e1f38",
 };
 
