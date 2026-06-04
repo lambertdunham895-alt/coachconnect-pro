@@ -2266,8 +2266,10 @@ function TopBar({title,sub,onBack,backLabel,onLogout,trialBadge,onUpgrade}) {
       <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
         {onBack
           ? <button onClick={onBack} style={{background:"none",border:"none",color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:1,cursor:"pointer",padding:"4px 0",minHeight:44,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",flexShrink:0}}>‹ {backLabel||"Back"}</button>
-          : <div style={{width:30,height:30,borderRadius:8,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
-              <img src={LOGO} alt="logo" style={{width:24,height:24,objectFit:"contain"}}/>
+          : <div style={{borderRadius:11,padding:2,background:`linear-gradient(135deg,${C.red},${C.gold})`,boxShadow:`0 0 14px ${C.red}66, 0 2px 8px rgba(0,0,0,0.5)`,flexShrink:0,display:"flex"}}>
+              <div style={{width:36,height:36,borderRadius:9,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <img src={LOGO} alt="logo" style={{width:30,height:30,objectFit:"contain"}}/>
+              </div>
             </div>
         }
         <div style={{minWidth:0,overflow:"hidden"}}>
@@ -3849,8 +3851,8 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
         {/* Stadium background photo */}
         <div style={{position:"absolute",inset:0}}>
           <img src="/stadium-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
-          {/* Lighter gradient overlay — lets the photo bleed through more */}
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, rgba(6,17,31,0.78) 0%, rgba(11,26,48,0.55) 45%, rgba(6,17,31,0.38) 100%)`}}/>
+          {/* Directional overlay — dark behind the text (left), fully clear over the baseball (right) */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.85) 0%, rgba(6,17,31,0.6) 28%, rgba(6,17,31,0.18) 52%, rgba(6,17,31,0) 72%)`}}/>
         </div>
         {/* Top accent line */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`,zIndex:2}}/>
