@@ -193,6 +193,20 @@ input, select, textarea { font-size: 16px !important; }
 }
 .float-anim { animation: float 3s ease-in-out infinite; }
 
+/* Hero — Ken Burns slow zoom on background photo */
+@keyframes kenBurns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
+.ken-burns { animation: kenBurns 30s ease-in-out infinite alternate; transform-origin: center 35%; will-change: transform; }
+
+/* Hero — glowing primary CTA */
+@keyframes heroPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(232,25,44,0.5); }
+  50%      { box-shadow: 0 10px 42px rgba(232,25,44,0.95), 0 0 26px rgba(232,25,44,0.6); }
+}
+.hero-cta-glow { animation: heroPulse 2.2s ease-in-out infinite; }
+
 ::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:#1e3060; border-radius:2px; }
@@ -2723,25 +2737,25 @@ function LandingPage({onAuth}) {
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`,zIndex:3}}/>
         {/* Background image */}
         <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:0}}>
-          <img src="/batter.jpg" alt="Young baseball player at the plate" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
+          <img src="/batter.jpg" alt="Young baseball player at the plate" className="ken-burns" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
           {/* Dark overlay for text legibility */}
           <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg, rgba(8,15,30,0.45) 0%, rgba(8,15,30,0.55) 40%, rgba(8,15,30,0.92) 85%, ${C.bg} 100%)`}}/>
         </div>
         {/* Content overlay */}
         <div style={{position:"relative",zIndex:2,padding:"60px 20px 56px",maxWidth:880,margin:"0 auto",minHeight:520,display:"flex",flexDirection:"column",justifyContent:"flex-end",textAlign:"center"}}>
-          <Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow>
-          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
+          <div className="fade-up-1"><Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow></div>
+          <div className="fade-up-2" style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
             One App.<br/>
             <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
           </div>
-          <div style={{fontSize:16,color:"#e8edf5",lineHeight:1.6,maxWidth:560,margin:"0 auto 28px",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>
+          <div className="fade-up-3" style={{fontSize:16,color:"#e8edf5",lineHeight:1.6,maxWidth:560,margin:"0 auto 28px",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>
             Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
           </div>
-          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
+          <div className="fade-up-4" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>setShowLogin(true)} className="hero-cta-glow" style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
             <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(8px)",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
           </div>
-          <div style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
+          <div className="fade-up-5" style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
         </div>
       </div>
 
