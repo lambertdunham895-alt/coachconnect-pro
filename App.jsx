@@ -6093,16 +6093,6 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
         <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
-        {!teamLogo && (
-          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:120,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
-            {teamInitials}
-          </div>
-        )}
-        {teamLogo && (
-          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:120,height:120,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
-            <img src={teamLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-          </div>
-        )}
         <div style={{position:"relative",padding:"18px 20px",display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:76,height:76,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
             {teamLogo
