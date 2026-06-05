@@ -6081,7 +6081,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
 
       {/* ── Team Identity Banner ── */}
-      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
+      <div className="fade-up" style={{position:"relative",overflow:"hidden",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",width:"100vw",marginTop:-18,marginBottom:18,boxShadow:`0 12px 48px #00000080`}}>
         {/* Dugout photo background — mirrors the coach-side stadium header */}
         <div style={{position:"absolute",inset:0}}>
           <img src="/dugout-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
@@ -6092,16 +6092,16 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
         <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
-        <div style={{position:"relative",padding:"18px 20px",display:"flex",alignItems:"center",gap:16}}>
-          <div style={{width:76,height:76,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
+        <div style={{position:"relative",zIndex:2,maxWidth:560,margin:"0 auto",padding:"30px 20px",display:"flex",alignItems:"center",gap:18,minHeight:200,boxSizing:"border-box"}}>
+          <div style={{width:96,height:96,borderRadius:20,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
             {teamLogo
               ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-              : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
+              : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:32,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
             }
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4,textShadow:"0 1px 4px #000000,0 0 10px #000000cc"}}>⚾ 2026 Season</div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 4px #000000,0 1px 14px #000000ee,0 0 30px #000000aa`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:6,textShadow:"0 1px 4px #000000,0 0 10px #000000cc"}}>⚾ 2026 Season</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:46,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 4px #000000,0 1px 14px #000000ee,0 0 30px #000000aa`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:8}}>
               {teamName||"Your Team"}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
