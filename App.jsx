@@ -6085,13 +6085,12 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         {/* Dugout photo background — mirrors the coach-side stadium header */}
         <div style={{position:"absolute",inset:0}}>
           <img src="/dugout-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
-          {/* Dark behind the team name (left), lighter over the dugout (right) */}
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.92) 0%, rgba(6,17,31,0.74) 38%, rgba(6,17,31,0.5) 70%, rgba(6,17,31,0.6) 100%)`}}/>
+          {/* Light scrim — just enough behind the text on the left, photo stays vivid elsewhere */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.8) 0%, rgba(6,17,31,0.34) 32%, rgba(6,17,31,0.06) 58%, rgba(6,17,31,0) 80%)`}}/>
         </div>
         <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
-        <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{position:"relative",padding:"18px 20px",display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:76,height:76,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
@@ -6101,8 +6100,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
             }
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>⚾ 2026 Season</div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4,textShadow:"0 1px 4px #000000,0 0 10px #000000cc"}}>⚾ 2026 Season</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 4px #000000,0 1px 14px #000000ee,0 0 30px #000000aa`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
               {teamName||"Your Team"}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
