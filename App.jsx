@@ -6082,7 +6082,12 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
       {/* ── Team Identity Banner ── */}
       <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
-        <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,#06111f 0%,#0b1a30 40%,#130818 100%)`}}/>
+        {/* Dugout photo background — mirrors the coach-side stadium header */}
+        <div style={{position:"absolute",inset:0}}>
+          <img src="/dugout-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
+          {/* Dark behind the team name (left), lighter over the dugout (right) */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.92) 0%, rgba(6,17,31,0.74) 38%, rgba(6,17,31,0.5) 70%, rgba(6,17,31,0.6) 100%)`}}/>
+        </div>
         <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
