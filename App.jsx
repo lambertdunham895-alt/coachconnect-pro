@@ -6244,7 +6244,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           const lu = lineups[selEv.id]||{};
           const batting = (lu.batting||[]).filter(Boolean);
           const positions = lu.positions||{};
-          const hasLineup = gamePlans[selEv.id]?.shared && (batting.length>0||Object.keys(positions).length>0);
+          const hasLineup = (lu.shared!==false) && (batting.length>0||Object.keys(positions).length>0);
           const evDate = new Date(selEv.date+"T12:00:00");
           return (
             <div>
@@ -6327,7 +6327,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           {upcoming.map((ev,i)=>{
             const isGame=ev.type==="game";
             const evDate=new Date(ev.date+"T12:00:00");
-            const hasLineup=isGame&&gamePlans[ev.id]?.shared;
+            const _lu=lineups[ev.id]||{};
+            const hasLineup=isGame&&((_lu.batting||[]).some(Boolean)||Object.keys(_lu.positions||{}).length>0);
             const isNext=i===0;
             const myStatus = myRsvps[ev.id];
             return (
