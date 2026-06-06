@@ -887,7 +887,7 @@ const COACH_PAGE_TIPS = {
     tips:[
       "Your team's drill progress and upcoming events live here at a glance.",
       "The gold alert card appears when a player completes a drill and needs your review.",
-      "Tap any player's name in Team Progress to jump straight to their profile.",
+      "Tap any player's name in Drill Progress to jump straight to their profile.",
     ]
   },
   roster: {
@@ -3916,14 +3916,14 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
         </div>
       </div>
 
-      {/* ── Team Progress ── */}
+      {/* ── Drill Progress ── */}
       <div className="fade-up glass-card" style={{borderRadius:20,padding:"22px 20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none",opacity:0.5}}/>
         <div style={{position:"absolute",top:-40,right:-40,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,${C.gold}80,${C.red}80)`}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Team Progress</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Drill Progress</div>
             <div style={{display:"flex",gap:24,alignItems:"flex-end"}}>
               {[{v:players.length,l:"Players",c:C.text},{v:done,l:"Done",c:C.gold},{v:pending,l:"Pending",c:C.red}].map(s=>(
                 <div key={s.l}>
