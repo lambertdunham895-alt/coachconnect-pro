@@ -4670,10 +4670,10 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const inBatting   = pid => lu.batting.includes(pid);
   const battingBench = players.filter(p=>!inBatting(p.id));
 
-  const setBattingSlot=(idx,pid)=>{const n=[...lu.batting];const e=n.indexOf(pid);if(e!==-1&&e!==idx)n[e]=null;n[idx]=pid;saveLu({...lu,batting:n});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
+  const setBattingSlot=(idx,pid)=>{const n=[...lu.batting];const e=n.indexOf(pid);if(e!==-1&&e!==idx)n[e]=null;n[idx]=pid;saveLu({...lu,batting:n,shared:true});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
   const clearBattingSlot=idx=>{const n=[...lu.batting];n[idx]=null;saveLu({...lu,batting:n});};
   const swapBatting=(a,b)=>{const n=[...lu.batting];[n[a],n[b]]=[n[b],n[a]];saveLu({...lu,batting:n});};
-  const setFieldPos=(pos,pid)=>{const n={...lu.positions};Object.keys(n).forEach(k=>{if(n[k]===pid)delete n[k];});if(pid)n[pos]=pid;else delete n[pos];saveLu({...lu,positions:n});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
+  const setFieldPos=(pos,pid)=>{const n={...lu.positions};Object.keys(n).forEach(k=>{if(n[k]===pid)delete n[k];});if(pid)n[pos]=pid;else delete n[pos];saveLu({...lu,positions:n,shared:true});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
 
   const handleSlotTap=idx=>{
     const pid=lu.batting[idx];
@@ -4837,20 +4837,20 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           </div>
 
           {/* Share toggle — games only */}
-          {isGame&&(
-            <button onClick={()=>setGP("shared",!gp.shared)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"12px 14px",borderRadius:12,background:gp.shared?`${C.teal}15`:`${C.card}80`,border:`1px solid ${gp.shared?C.teal+"60":C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
+          {isGame&&(()=>{ const sh = lu.shared!==false; return (
+            <button onClick={()=>{const nv=!sh;saveLu({...lu,shared:nv});setGP("shared",nv);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"12px 14px",borderRadius:12,background:sh?`${C.teal}15`:`${C.card}80`,border:`1px solid ${sh?C.teal+"60":C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{fontSize:18}}>{gp.shared?"📢":"🔒"}</div>
+                <div style={{fontSize:18}}>{sh?"📢":"🔒"}</div>
                 <div style={{textAlign:"left"}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:gp.shared?C.teal:C.textMid}}>{gp.shared?"Lineup visible to parents":"Lineup hidden from parents"}</div>
-                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{gp.shared?"Auto-shared when you set the lineup · tap to hide":"Tap to make lineup visible to parents"}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:sh?C.teal:C.textMid}}>{sh?"Lineup visible to parents":"Lineup hidden from parents"}</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{sh?"Auto-shared when you set the lineup · tap to hide":"Tap to make lineup visible to parents"}</div>
                 </div>
               </div>
-              <div style={{width:44,height:24,borderRadius:12,background:gp.shared?C.teal:"#333",position:"relative",flexShrink:0,transition:"background 0.2s",boxShadow:gp.shared?`0 0 12px ${C.teal}60`:"none"}}>
-                <div style={{position:"absolute",top:3,left:gp.shared?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px #00000060"}}/>
+              <div style={{width:44,height:24,borderRadius:12,background:sh?C.teal:"#333",position:"relative",flexShrink:0,transition:"background 0.2s",boxShadow:sh?`0 0 12px ${C.teal}60`:"none"}}>
+                <div style={{position:"absolute",top:3,left:sh?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px #00000060"}}/>
               </div>
             </button>
-          )}
+          );})()}
 
           <div style={{display:"flex",gap:10,marginTop:4}}>
             <PrimaryBtn onClick={save} disabled={!form.date||!form.fieldName}>{editId?"Save Changes":"Create Event"}</PrimaryBtn>
