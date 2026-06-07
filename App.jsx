@@ -5334,11 +5334,19 @@ function PlayerDetail({player,assignments,setAsgn,setPlayers,skillSnapshots,setS
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
                 <button onClick={startEdit} title="Edit profile" style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:8,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,color:C.gold}}>✏️</button>
-                <button onClick={()=>{
-                  if(!window.confirm(`Remove ${player.name} from roster? This cannot be undone.`)) return;
-                  setPlayers(prev=>prev.filter(p=>p.id!==player.id));
-                  if(teamId) supabase.from('players').delete().eq('id',player.id).then(({error})=>{ if(error) console.error('Delete failed:',error.message); });
-                  onDelete();
+                <button onClick={async()=>{
+                  if(!window.confirm(`Permanently delete ${player.name} and ALL of their data?\n\nThis removes their profile, photos, videos, skill history, drill assignments, game stats, and lineup spots. This cannot be undone.`)) return;
+                  if(!teamId){ setPlayers(prev=>prev.filter(p=>p.id!==player.id)); onDelete(); return; }
+                  try{
+                    const {data,error} = await supabase.rpc('delete_player_completely',{p_player_id:player.id});
+                    if(error){ window.alert('Delete failed: '+error.message); return; }
+                    const photoPaths=(data&&data.photo_paths)||[];
+                    const videoPaths=(data&&data.video_paths)||[];
+                    if(photoPaths.length) await supabase.storage.from('player-photos').remove(photoPaths);
+                    if(videoPaths.length) await supabase.storage.from('player-videos').remove(videoPaths);
+                    setPlayers(prev=>prev.filter(p=>p.id!==player.id));
+                    onDelete();
+                  }catch(e){ window.alert('Delete failed: '+(e&&e.message?e.message:e)); }
                 }} title="Remove player" style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,color:C.red}}>🗑️</button>
               </div>
             </div>
