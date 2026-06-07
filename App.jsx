@@ -6864,4 +6864,4 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
 }
 
 // ─── SHARED EXPORTS (used by component files) ────────────────────────────────
-export { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar };
+export { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast };
