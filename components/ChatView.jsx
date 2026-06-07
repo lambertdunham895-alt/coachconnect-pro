@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { C, Avatar, supabase } from "../App";
+import { C, Avatar, supabase, fmtTime, avatarColor, toast } from "../App";
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
 function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId,blockedUsers=[],onBlock=()=>{},onUnblock=()=>{},onReport=()=>{}}) {
