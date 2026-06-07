@@ -1988,7 +1988,7 @@ function AppInner() {
         channel:channelId, text,
         payload: attachment ? { attachment } : null,
       }).then(({error})=>{
-        if(error) console.error('Message insert',error);
+        if(error){ console.error('Message insert',error); toast.error("Message failed to send. Check your connection and try again."); }
         else {
           const isTeam = channelId === 'team';
           const attachLabel = attachment ? (attachment.type==='image' ? ' 📷 Photo' : ` 📎 ${attachment.name}`) : '';
