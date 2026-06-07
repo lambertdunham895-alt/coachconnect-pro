@@ -193,6 +193,20 @@ input, select, textarea { font-size: 16px !important; }
 }
 .float-anim { animation: float 3s ease-in-out infinite; }
 
+/* Hero — Ken Burns slow zoom on background photo */
+@keyframes kenBurns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}
+.ken-burns { animation: kenBurns 30s ease-in-out infinite alternate; transform-origin: center 35%; will-change: transform; }
+
+/* Hero — glowing primary CTA */
+@keyframes heroPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(232,25,44,0.5); }
+  50%      { box-shadow: 0 10px 42px rgba(232,25,44,0.95), 0 0 26px rgba(232,25,44,0.6); }
+}
+.hero-cta-glow { animation: heroPulse 2.2s ease-in-out infinite; }
+
 ::-webkit-scrollbar { width:3px; height:3px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:#1e3060; border-radius:2px; }
@@ -212,7 +226,7 @@ const C = {
   gold:"#f5c518", teal:"#00d4aa",
   blue:"#1e7bd4", purple:"#8b5cf6", orange:"#f97316",
   text:"#f0ebe2", textMid:"#8a9fc0", textDim:"#3d5070",
-  stripe:"repeating-linear-gradient(135deg,transparent,transparent 6px,rgba(255,255,255,0.018) 6px,rgba(255,255,255,0.018) 12px)",
+  stripe:"none",
   msgMe:"#1e3a6e", msgOther:"#0e1f38",
 };
 
@@ -873,7 +887,7 @@ const COACH_PAGE_TIPS = {
     tips:[
       "Your team's drill progress and upcoming events live here at a glance.",
       "The gold alert card appears when a player completes a drill and needs your review.",
-      "Tap any player's name in Team Progress to jump straight to their profile.",
+      "Tap any player's name in Drill Progress to jump straight to their profile.",
     ]
   },
   roster: {
@@ -2252,8 +2266,10 @@ function TopBar({title,sub,onBack,backLabel,onLogout,trialBadge,onUpgrade}) {
       <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
         {onBack
           ? <button onClick={onBack} style={{background:"none",border:"none",color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:1,cursor:"pointer",padding:"4px 0",minHeight:44,display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",flexShrink:0}}>‹ {backLabel||"Back"}</button>
-          : <div style={{width:30,height:30,borderRadius:8,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 2px 8px rgba(0,0,0,0.4)"}}>
-              <img src={LOGO} alt="logo" style={{width:24,height:24,objectFit:"contain"}}/>
+          : <div style={{borderRadius:11,padding:2,background:`linear-gradient(135deg,${C.red},${C.gold})`,boxShadow:`0 0 14px ${C.red}66, 0 2px 8px rgba(0,0,0,0.5)`,flexShrink:0,display:"flex"}}>
+              <div style={{width:36,height:36,borderRadius:9,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <img src={LOGO} alt="logo" style={{width:30,height:30,objectFit:"contain"}}/>
+              </div>
             </div>
         }
         <div style={{minWidth:0,overflow:"hidden"}}>
@@ -2723,25 +2739,25 @@ function LandingPage({onAuth}) {
         <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},${C.red},transparent)`,zIndex:3}}/>
         {/* Background image */}
         <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:0}}>
-          <img src="/batter.jpg" alt="Young baseball player at the plate" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
+          <img src="/batter.jpg" alt="Young baseball player at the plate" className="ken-burns" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block"}}/>
           {/* Dark overlay for text legibility */}
           <div style={{position:"absolute",inset:0,background:`linear-gradient(180deg, rgba(8,15,30,0.45) 0%, rgba(8,15,30,0.55) 40%, rgba(8,15,30,0.92) 85%, ${C.bg} 100%)`}}/>
         </div>
         {/* Content overlay */}
         <div style={{position:"relative",zIndex:2,padding:"60px 20px 56px",maxWidth:880,margin:"0 auto",minHeight:520,display:"flex",flexDirection:"column",justifyContent:"flex-end",textAlign:"center"}}>
-          <Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow>
-          <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
+          <div className="fade-up-1"><Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow></div>
+          <div className="fade-up-2" style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
             One App.<br/>
             <span style={{background:`linear-gradient(90deg,${C.gold},#f7d672)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>The Whole Season.</span>
           </div>
-          <div style={{fontSize:16,color:"#e8edf5",lineHeight:1.6,maxWidth:560,margin:"0 auto 28px",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>
+          <div className="fade-up-3" style={{fontSize:16,color:"#e8edf5",lineHeight:1.6,maxWidth:560,margin:"0 auto 28px",textShadow:"0 2px 12px rgba(0,0,0,0.8)"}}>
             Score live games, track player stats, plan practices, communicate with parents — all in one place. Built by a coach, for coaches.
           </div>
-          <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-            <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
+          <div className="fade-up-4" style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+            <button onClick={()=>setShowLogin(true)} className="hero-cta-glow" style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
             <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(8px)",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
           </div>
-          <div style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
+          <div className="fade-up-5" style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
         </div>
       </div>
 
@@ -3860,8 +3876,8 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
         {/* Stadium background photo */}
         <div style={{position:"absolute",inset:0}}>
           <img src="/stadium-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
-          {/* Lighter gradient overlay — lets the photo bleed through more */}
-          <div style={{position:"absolute",inset:0,background:`linear-gradient(135deg, rgba(6,17,31,0.78) 0%, rgba(11,26,48,0.55) 45%, rgba(6,17,31,0.38) 100%)`}}/>
+          {/* Directional overlay — dark behind the text (left), fully clear over the baseball (right) */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.85) 0%, rgba(6,17,31,0.6) 28%, rgba(6,17,31,0.18) 52%, rgba(6,17,31,0) 72%)`}}/>
         </div>
         {/* Top accent line */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`,zIndex:2}}/>
@@ -3925,14 +3941,14 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
         </div>
       </div>
 
-      {/* ── Team Progress ── */}
+      {/* ── Drill Progress ── */}
       <div className="fade-up glass-card" style={{borderRadius:20,padding:"22px 20px",marginBottom:16,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,backgroundImage:C.stripe,pointerEvents:"none",opacity:0.5}}/>
         <div style={{position:"absolute",top:-40,right:-40,width:200,height:200,borderRadius:"50%",background:`radial-gradient(circle,${C.red}20 0%,transparent 70%)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red}80,${C.gold}80,${C.red}80)`}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative"}}>
           <div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Team Progress</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:3,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Drill Progress</div>
             <div style={{display:"flex",gap:24,alignItems:"flex-end"}}>
               {[{v:players.length,l:"Players",c:C.text},{v:done,l:"Done",c:C.gold},{v:pending,l:"Pending",c:C.red}].map(s=>(
                 <div key={s.l}>
@@ -4679,10 +4695,10 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const inBatting   = pid => lu.batting.includes(pid);
   const battingBench = players.filter(p=>!inBatting(p.id));
 
-  const setBattingSlot=(idx,pid)=>{const n=[...lu.batting];const e=n.indexOf(pid);if(e!==-1&&e!==idx)n[e]=null;n[idx]=pid;saveLu({...lu,batting:n});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
+  const setBattingSlot=(idx,pid)=>{const n=[...lu.batting];const e=n.indexOf(pid);if(e!==-1&&e!==idx)n[e]=null;n[idx]=pid;saveLu({...lu,batting:n,shared:true});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
   const clearBattingSlot=idx=>{const n=[...lu.batting];n[idx]=null;saveLu({...lu,batting:n});};
   const swapBatting=(a,b)=>{const n=[...lu.batting];[n[a],n[b]]=[n[b],n[a]];saveLu({...lu,batting:n});};
-  const setFieldPos=(pos,pid)=>{const n={...lu.positions};Object.keys(n).forEach(k=>{if(n[k]===pid)delete n[k];});if(pid)n[pos]=pid;else delete n[pos];saveLu({...lu,positions:n});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
+  const setFieldPos=(pos,pid)=>{const n={...lu.positions};Object.keys(n).forEach(k=>{if(n[k]===pid)delete n[k];});if(pid)n[pos]=pid;else delete n[pos];saveLu({...lu,positions:n,shared:true});setGamePlans(prev=>({...prev,[formEvId]:{...(prev[formEvId]||{}),shared:true}}));};
 
   const handleSlotTap=idx=>{
     const pid=lu.batting[idx];
@@ -4846,20 +4862,20 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           </div>
 
           {/* Share toggle — games only */}
-          {isGame&&(
-            <button onClick={()=>setGP("shared",!gp.shared)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"12px 14px",borderRadius:12,background:gp.shared?`${C.teal}15`:`${C.card}80`,border:`1px solid ${gp.shared?C.teal+"60":C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
+          {isGame&&(()=>{ const sh = lu.shared!==false; return (
+            <button onClick={()=>{const nv=!sh;saveLu({...lu,shared:nv});setGP("shared",nv);}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"12px 14px",borderRadius:12,background:sh?`${C.teal}15`:`${C.card}80`,border:`1px solid ${sh?C.teal+"60":C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{fontSize:18}}>{gp.shared?"📢":"🔒"}</div>
+                <div style={{fontSize:18}}>{sh?"📢":"🔒"}</div>
                 <div style={{textAlign:"left"}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:gp.shared?C.teal:C.textMid}}>{gp.shared?"Lineup visible to parents":"Lineup hidden from parents"}</div>
-                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{gp.shared?"Auto-shared when you set the lineup · tap to hide":"Tap to make lineup visible to parents"}</div>
+                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:sh?C.teal:C.textMid}}>{sh?"Lineup visible to parents":"Lineup hidden from parents"}</div>
+                  <div style={{fontSize:11,color:C.textDim,marginTop:1}}>{sh?"Auto-shared when you set the lineup · tap to hide":"Tap to make lineup visible to parents"}</div>
                 </div>
               </div>
-              <div style={{width:44,height:24,borderRadius:12,background:gp.shared?C.teal:"#333",position:"relative",flexShrink:0,transition:"background 0.2s",boxShadow:gp.shared?`0 0 12px ${C.teal}60`:"none"}}>
-                <div style={{position:"absolute",top:3,left:gp.shared?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px #00000060"}}/>
+              <div style={{width:44,height:24,borderRadius:12,background:sh?C.teal:"#333",position:"relative",flexShrink:0,transition:"background 0.2s",boxShadow:sh?`0 0 12px ${C.teal}60`:"none"}}>
+                <div style={{position:"absolute",top:3,left:sh?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left 0.2s",boxShadow:"0 1px 4px #00000060"}}/>
               </div>
             </button>
-          )}
+          );})()}
 
           <div style={{display:"flex",gap:10,marginTop:4}}>
             <PrimaryBtn onClick={save} disabled={!form.date||!form.fieldName}>{editId?"Save Changes":"Create Event"}</PrimaryBtn>
@@ -6090,33 +6106,27 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
 
       {/* ── Team Identity Banner ── */}
-      <div className="fade-up" style={{borderRadius:20,marginBottom:16,position:"relative",overflow:"hidden",boxShadow:`0 12px 48px #00000080`,minHeight:120}}>
-        <div style={{position:"absolute",inset:0,background:`linear-gradient(160deg,#06111f 0%,#0b1a30 40%,#130818 100%)`}}/>
+      <div className="fade-up" style={{position:"relative",overflow:"hidden",marginLeft:"calc(50% - 50vw)",marginRight:"calc(50% - 50vw)",width:"100vw",marginTop:-18,marginBottom:18,boxShadow:`0 12px 48px #00000080`}}>
+        {/* Dugout photo background — mirrors the coach-side stadium header */}
+        <div style={{position:"absolute",inset:0}}>
+          <img src="/dugout-bg.jpg" alt="" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center"}}/>
+          {/* Light scrim — just enough behind the text on the left, photo stays vivid elsewhere */}
+          <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg, rgba(6,17,31,0.8) 0%, rgba(6,17,31,0.34) 32%, rgba(6,17,31,0.06) 58%, rgba(6,17,31,0) 80%)`}}/>
+        </div>
         <div style={{position:"absolute",top:0,right:0,bottom:0,width:"55%",background:`linear-gradient(160deg,transparent 0%,${C.red}12 50%,${C.red}06 100%)`,clipPath:"polygon(20% 0%,100% 0%,100% 100%,0% 100%)"}}/>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:2,background:`linear-gradient(90deg,transparent,${C.red}80,${C.gold}80,transparent)`}}/>
-        <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(60deg,transparent,transparent 18px,#ffffff04 18px,#ffffff04 19px)`,pointerEvents:"none"}}/>
         <div style={{position:"absolute",top:-20,left:-20,width:160,height:160,borderRadius:"50%",background:`radial-gradient(circle,${C.red}25 0%,transparent 70%)`,pointerEvents:"none"}}/>
-        {!teamLogo && (
-          <div style={{position:"absolute",right:-10,top:"50%",transform:"translateY(-50%)",fontFamily:"Bebas Neue, sans-serif",fontSize:120,color:"#ffffff06",letterSpacing:4,lineHeight:1,pointerEvents:"none",userSelect:"none"}}>
-            {teamInitials}
-          </div>
-        )}
-        {teamLogo && (
-          <div style={{position:"absolute",right:-16,top:"50%",transform:"translateY(-50%)",width:120,height:120,borderRadius:20,overflow:"hidden",opacity:0.12,pointerEvents:"none"}}>
-            <img src={teamLogo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-          </div>
-        )}
-        <div style={{position:"relative",padding:"18px 20px",display:"flex",alignItems:"center",gap:16}}>
-          <div style={{width:76,height:76,borderRadius:16,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
+        <div style={{position:"relative",zIndex:2,maxWidth:560,margin:"0 auto",padding:"30px 20px",display:"flex",alignItems:"center",gap:18,minHeight:200,boxSizing:"border-box"}}>
+          <div style={{width:96,height:96,borderRadius:20,overflow:"hidden",border:`2px solid ${teamLogo?C.red+"90":"#ffffff20"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}20, 0 6px 28px ${C.red}50`:`0 0 0 4px #ffffff08, 0 6px 20px #00000060`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`,flexShrink:0}}>
             {teamLogo
               ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-              : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
+              : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:32,letterSpacing:1,color:"#fff",textShadow:`0 0 20px ${C.red}80`}}>{teamInitials}</span>
             }
           </div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:4}}>⚾ 2026 Season</div>
-            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 20px #00000080`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:6}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:4,color:C.red,textTransform:"uppercase",marginBottom:6,textShadow:"0 1px 4px #000000,0 0 10px #000000cc"}}>⚾ 2026 Season</div>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:46,letterSpacing:2,color:"#fff",lineHeight:1,textShadow:`0 2px 4px #000000,0 1px 14px #000000ee,0 0 30px #000000aa`,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",marginBottom:8}}>
               {teamName||"Your Team"}
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -6259,7 +6269,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           const lu = lineups[selEv.id]||{};
           const batting = (lu.batting||[]).filter(Boolean);
           const positions = lu.positions||{};
-          const hasLineup = gamePlans[selEv.id]?.shared && (batting.length>0||Object.keys(positions).length>0);
+          const hasLineup = (lu.shared!==false) && (batting.length>0||Object.keys(positions).length>0);
           const evDate = new Date(selEv.date+"T12:00:00");
           return (
             <div>
@@ -6342,7 +6352,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           {upcoming.map((ev,i)=>{
             const isGame=ev.type==="game";
             const evDate=new Date(ev.date+"T12:00:00");
-            const hasLineup=isGame&&gamePlans[ev.id]?.shared;
+            const _lu=lineups[ev.id]||{};
+            const hasLineup=isGame&&((_lu.batting||[]).some(Boolean)||Object.keys(_lu.positions||{}).length>0);
             const isNext=i===0;
             const myStatus = myRsvps[ev.id];
             return (
@@ -6670,304 +6681,7 @@ const POS_COORDS = {
   RF:   { left:"75.8%", top:"30.8%" },
 };
 
-function LineupBuilder({players, events, lineups, setLineups, setTab}) {
-  const games = events.filter(e=>e.type==="game").sort((a,b)=>a.date.localeCompare(b.date));
-  const [selectedGame, setSelectedGame] = useState(games[0]?.id || null);
-  const [view, setView] = useState("batting"); // "batting" | "field"
-  const [dragSrc, setDragSrc] = useState(null);
-  const [selectedPid, setSelectedPid] = useState(null);      // tap-to-select batting
-  const [selectedFieldPid, setSelectedFieldPid] = useState(null); // tap-to-select field
-
-  const game = events.find(e=>e.id===selectedGame);
-  const lu = lineups[selectedGame] || { batting: Array(9).fill(null), positions: {} };
-
-  const save = (next) => setLineups(prev=>({...prev, [selectedGame]: next}));
-
-  const inBatting = (pid) => lu.batting.includes(pid);
-  const battingBench = players.filter(p => !inBatting(p.id)); // for batting view
-  // field view: ALL players available — any player can play any position
-
-  // ── Batting order helpers ─────────────────────────────────────────────────
-  const setBattingSlot = (idx, pid) => {
-    const next = [...lu.batting];
-    // if player already in another slot, clear it
-    const existing = next.indexOf(pid);
-    if(existing !== -1 && existing !== idx) next[existing] = null;
-    next[idx] = pid;
-    save({...lu, batting: next});
-  };
-  const clearBattingSlot = (idx) => {
-    const next = [...lu.batting];
-    next[idx] = null;
-    save({...lu, batting: next});
-  };
-  const swapBatting = (a, b) => {
-    const next = [...lu.batting];
-    [next[a], next[b]] = [next[b], next[a]];
-    save({...lu, batting: next});
-  };
-
-  // ── Field position helpers ────────────────────────────────────────────────
-  const setFieldPos = (pos, pid) => {
-    const next = {...lu.positions};
-    // clear any existing assignment for this player
-    Object.keys(next).forEach(k=>{ if(next[k]===pid) delete next[k]; });
-    if(pid) next[pos] = pid; else delete next[pos];
-    save({...lu, positions: next});
-  };
-
-  const playerById = (id) => players.find(p=>p.id===id);
-
-  // ── Field position tap handler — any player can go anywhere ──────────────
-  const handleFieldTap = (pos) => {
-    if(!selectedFieldPid) return;
-    const n = {...lu.positions};
-    // if this player is already in another position, clear it
-    Object.keys(n).forEach(k=>{ if(n[k]===selectedFieldPid) delete n[k]; });
-    // if target pos already has someone, swap them back to their old spot
-    const displaced = n[pos];
-    if(displaced) {
-      const oldPos = Object.entries(lu.positions).find(([k,v])=>v===selectedFieldPid)?.[0];
-      if(oldPos) n[oldPos] = displaced;
-    }
-    n[pos] = selectedFieldPid;
-    save({...lu, positions: n});
-    setSelectedFieldPid(null);
-  };
-
-  // ── Drag handlers (kept for desktop) ─────────────────────────────────────
-  const onDragStart = (e, src) => { setDragSrc(src); e.dataTransfer.effectAllowed="move"; };
-  const onDrop = (e, target) => {
-    e.preventDefault();
-    if(!dragSrc) return;
-    const pid = dragSrc.playerId;
-    if(!pid) return;
-    if(view==="batting") {
-      if(target.type==="batting") {
-        if(dragSrc.type==="batting") swapBatting(dragSrc.index, target.index);
-        else setBattingSlot(target.index, pid);
-      }
-    } else {
-      if(target.type==="field") setFieldPos(target.pos, pid);
-    }
-    setDragSrc(null);
-  };
-  const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect="move"; };
-
-  if(!selectedGame || games.length===0) return (
-    <div>
-      <SectionHead accent>Game Builder</SectionHead>
-      <EmptyState icon="⚾" title="No games scheduled yet" body="Head over to Schedule and add your first game. Once it's there, you can build your lineup and game plan right here." action="Go to Schedule" onAction={()=>setTab&&setTab("schedule")}/>
-    </div>
-  );
-
-  return (
-    <div>
-      <SectionHead accent>Game Builder</SectionHead>
-
-      {/* Game selector */}
-      <div style={{marginBottom:16}}>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:6}}>Game</div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {games.map(g=>{
-            const active = g.id===selectedGame;
-            return (
-              <button key={g.id} onClick={()=>setSelectedGame(g.id)} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderRadius:12,background:active?`linear-gradient(135deg,${C.red}20,${C.card})`:`${C.card}`,border:`1px solid ${active?C.red+"60":C.border}`,cursor:"pointer",textAlign:"left",transition:"all 0.15s",boxShadow:active?`0 0 16px ${C.red}20`:"none"}}>
-                <div style={{textAlign:"center",minWidth:36,flexShrink:0}}>
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,color:active?C.red:C.textMid,lineHeight:1}}>{new Date(g.date+"T12:00:00").getDate()}</div>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,color:C.textDim,letterSpacing:1}}>{new Date(g.date+"T12:00:00").toLocaleString("en-US",{month:"short"}).toUpperCase()}</div>
-                </div>
-                <div>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:active?C.text:C.textMid}}>vs. {g.opponent||"TBD"}</div>
-                  <div style={{fontSize:12,color:C.textDim}}>📍 {g.location} · {g.time}</div>
-                </div>
-                {active&&<div style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:C.red,boxShadow:`0 0 8px ${C.red}`}}/>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* View toggle */}
-      <div style={{display:"flex",gap:0,marginBottom:20,background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`}}>
-        {[{id:"batting",label:"⚾ Batting Order"},{id:"field",label:"🏟 Field Positions"}].map(v=>(
-          <button key={v.id} onClick={()=>setView(v.id)} style={{flex:1,padding:"11px 0",borderRadius:9,background:view===v.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:view===v.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:44,boxShadow:view===v.id?`0 4px 16px ${C.red}40`:"none",transition:"all 0.2s"}}>{v.label}</button>
-        ))}
-      </div>
-
-      {/* ── BATTING ORDER VIEW ── */}
-      {view==="batting" && (
-        <div>
-          {/* Selected player banner */}
-          {selectedPid&&(()=>{const sp=playerById(selectedPid);return sp?(
-            <div style={{background:`${C.gold}18`,border:`1px solid ${C.gold}60`,borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-              <Avatar name={sp.name} size={30}/>
-              <div style={{flex:1,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.gold}}>{sp.name} selected — tap a slot to place them</div>
-              <button onClick={()=>setSelectedPid(null)} style={{background:"none",border:"none",color:C.textDim,fontSize:18,cursor:"pointer",padding:4}}>×</button>
-            </div>
-          ):null;})()}
-
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase"}}>Tap player → tap slot to place</div>
-            <button onClick={()=>{save({...lu,batting:Array(9).fill(null)});setSelectedPid(null);}} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,padding:"5px 12px",color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:11,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>Clear</button>
-          </div>
-
-          {/* Batting slots */}
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
-            {lu.batting.map((pid, idx)=>{
-              const p = pid ? playerById(pid) : null;
-              const isSelected = pid && pid===selectedPid;
-              const isTarget = !!selectedPid && !isSelected;
-              return (
-                <div key={idx} onClick={()=>{
-                  if(isSelected){setSelectedPid(null);return;}
-                  if(selectedPid){
-                    const n=[...lu.batting];
-                    const fromIdx=n.indexOf(selectedPid);
-                    if(fromIdx!==-1) n[fromIdx]=pid||null;
-                    n[idx]=selectedPid;
-                    save({...lu,batting:n});
-                    setSelectedPid(null);
-                  } else if(pid){
-                    setSelectedPid(pid);
-                  }
-                }}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,
-                    background:isSelected?`linear-gradient(90deg,${C.gold}30,${C.gold}15)`:isTarget&&!p?`${C.blue}08`:p?`linear-gradient(90deg,${C.card},${C.cardAlt})`:C.card,
-                    border:`2px solid ${isSelected?C.gold:isTarget&&!p?C.blue+"50":p?C.borderBright:C.border}`,
-                    minHeight:56,cursor:"pointer",transition:"all 0.15s",
-                    boxShadow:isSelected?`0 0 16px ${C.gold}40`:isTarget&&!p?`0 0 8px ${C.blue}20`:p?`0 2px 12px #00000040`:"none"}}>
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:28,color:isSelected?C.gold:p?C.gold:isTarget?C.blue:C.textDim,lineHeight:1,minWidth:28,textAlign:"center",textShadow:p&&!isSelected?`0 0 16px ${C.gold}60`:"none"}}>{idx+1}</div>
-                  {p ? (<>
-                    <Avatar name={p.name} size={36}/>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:isSelected?C.gold:C.text}}>{p.name}</div>
-                      <div style={{display:"flex",gap:6,marginTop:2}}>
-                        <Tag label={p.position} color={isSelected?C.gold:C.red} small/>
-                        {lu.positions && Object.entries(lu.positions).find(([k,v])=>v===p.id) &&
-                          <Tag label={Object.entries(lu.positions).find(([k,v])=>v===p.id)[0]} color={C.blue} small/>}
-                      </div>
-                    </div>
-                    {isSelected
-                      ? <div style={{fontSize:16,color:C.gold,paddingRight:4}}>✦</div>
-                      : <button onClick={e=>{e.stopPropagation();clearBattingSlot(idx);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:18,padding:"4px",minWidth:32,minHeight:32,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
-                    }
-                  </>) : (
-                    <div style={{flex:1,fontFamily:"Barlow Condensed, sans-serif",fontSize:12,letterSpacing:2,color:isTarget?C.blue:C.textDim,textTransform:"uppercase"}}>
-                      {isTarget ? "← Tap to place here" : "— Empty slot —"}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Bench */}
-          <BenchRoster bench={battingBench} selectedPid={selectedPid} onSelectPlayer={setSelectedPid} onTapAdd={(pid)=>{
-            const emptyIdx = lu.batting.indexOf(null);
-            if(emptyIdx !== -1) setBattingSlot(emptyIdx, pid);
-          }}/>
-        </div>
-      )}
-
-      {/* ── FIELD POSITIONS VIEW ── */}
-      {view==="field" && (
-        <div>
-          <PositionLegend/>
-
-          {/* Selected player banner */}
-          {selectedFieldPid&&(()=>{const sp=playerById(selectedFieldPid);return sp?(
-            <div style={{background:`${C.gold}18`,border:`1px solid ${C.gold}60`,borderRadius:12,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
-              <Avatar name={sp.name} size={30}/>
-              <div style={{flex:1,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.gold}}>{sp.name} selected — tap a position to assign</div>
-              <button onClick={()=>setSelectedFieldPid(null)} style={{background:"none",border:"none",color:C.textDim,fontSize:18,cursor:"pointer",padding:4}}>×</button>
-            </div>
-          ):null;})()}
-
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:12}}>
-            {selectedFieldPid ? "Now tap a position below" : "Tap a player, then tap a position"}
-          </div>
-
-          {/* Position slots — tap to place selected player */}
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:20}}>
-            {FIELD_POSITIONS.map(pos=>{
-              const pid = lu.positions[pos];
-              const p = pid ? playerById(pid) : null;
-              const isSelectedHere = pid && pid===selectedFieldPid;
-              const isTarget = !!selectedFieldPid && !isSelectedHere;
-              return (
-                <div key={pos}
-                  onClick={()=>{
-                    if(isSelectedHere){setSelectedFieldPid(null);return;}
-                    if(selectedFieldPid){ handleFieldTap(pos); }
-                    else if(pid){ setSelectedFieldPid(pid); }
-                  }}
-                  style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:12,
-                    background:isSelectedHere?`linear-gradient(90deg,${C.gold}30,${C.gold}15)`:isTarget&&!p?`${C.blue}08`:p?`linear-gradient(90deg,${C.card},${C.cardAlt})`:C.card,
-                    border:`2px solid ${isSelectedHere?C.gold:isTarget&&!p?C.blue+"50":p?C.blue+"50":C.border}`,
-                    minHeight:52,cursor:"pointer",transition:"all 0.15s",
-                    boxShadow:isSelectedHere?`0 0 16px ${C.gold}40`:isTarget&&!p?`0 0 8px ${C.blue}20`:"none"}}>
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:isSelectedHere?C.gold:p?C.blue:isTarget?C.blue:C.textDim,minWidth:34,letterSpacing:1}}>{pos}</div>
-                  {p ? (<>
-                    <Avatar name={p.name} size={32}/>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:isSelectedHere?C.gold:C.text}}>{p.name}</div>
-                      <div style={{fontSize:11,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:0.5}}>Default: {p.position}</div>
-                    </div>
-                    {isSelectedHere
-                      ? <div style={{fontSize:16,color:C.gold}}>✦</div>
-                      : <button onClick={e=>{e.stopPropagation();setFieldPos(pos,null);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:18,padding:"4px",minWidth:32,minHeight:32}}>×</button>
-                    }
-                  </>) : (
-                    <div style={{flex:1,fontFamily:"Barlow Condensed, sans-serif",fontSize:11,letterSpacing:2,color:isTarget?C.blue:C.textDim,textTransform:"uppercase"}}>
-                      {isTarget ? "← Tap to place here" : "— Unassigned —"}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ALL players — tap to select, regardless of batting slot */}
-          <div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>
-              All Players ({players.length})
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {players.map(p=>{
-                const isSelected = p.id===selectedFieldPid;
-                const assignedPos = Object.entries(lu.positions).find(([k,v])=>v===p.id)?.[0];
-                return (
-                  <div key={p.id} onClick={()=>setSelectedFieldPid(isSelected?null:p.id)}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:12,
-                      background:isSelected?`linear-gradient(90deg,${C.gold}25,${C.gold}10)`:C.card,
-                      border:`2px solid ${isSelected?C.gold:assignedPos?C.blue+"40":C.border}`,
-                      cursor:"pointer",transition:"all 0.15s",
-                      boxShadow:isSelected?`0 0 14px ${C.gold}35`:"none"}}>
-                    <Avatar name={p.name} size={34}/>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:isSelected?C.gold:C.text}}>{p.name}</div>
-                      <div style={{display:"flex",gap:6,marginTop:2,flexWrap:"wrap"}}>
-                        <Tag label={`Default: ${p.position}`} color={C.textDim} small/>
-                        {assignedPos&&<Tag label={`Playing: ${assignedPos}`} color={C.blue} small/>}
-                      </div>
-                    </div>
-                    {isSelected
-                      ? <div style={{fontSize:14,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700}}>✦ Selected</div>
-                      : assignedPos
-                        ? <button onClick={e=>{e.stopPropagation();setFieldPos(assignedPos,null);}} style={{padding:"5px 10px",borderRadius:8,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,cursor:"pointer"}}>Remove</button>
-                        : <div style={{fontSize:12,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",letterSpacing:1}}>Tap to select</div>
-                    }
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// (LineupBuilder removed — unused dead code; lineup UI now lives in Schedule)
 
 // ── Field Diamond SVG graphic ─────────────────────────────────────────────────
 function FieldDiamond({positions, playerById, selectedPid, onSelectPos, setFieldPos}) {
