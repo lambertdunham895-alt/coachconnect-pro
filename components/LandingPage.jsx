@@ -323,7 +323,7 @@ function LandingPage({onAuth}) {
 
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
-const PRIVACY_POLICY_VERSION = "1.0";
+const PRIVACY_POLICY_VERSION = "1.1";
 function LoginScreen({onAuth, onBack=null}) {
   const [mode,    setMode]    = useState("login"); // "login" | "signup"
   const [email,   setEmail]   = useState("");
