@@ -2626,14 +2626,6 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
           </div>
           <div style={{color:C.red,fontSize:14}}>↓</div>
         </a>
-        <a href="https://ccp-scorebook.vercel.app" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
-          <div style={{fontSize:24}}>📋</div>
-          <div style={{flex:1}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>CCP Scorebook</div>
-            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Score any game on your phone — free, no signup</div>
-          </div>
-          <div style={{color:C.gold,fontSize:14}}>↗</div>
-        </a>
       </div>
 
       {/* Refresh hint */}
