@@ -2211,7 +2211,7 @@ function AppInner() {
         <div style={{background:`linear-gradient(90deg,#1a0808,${C.card})`,borderBottom:`1px solid ${C.red}60`,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
           <div>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:1.5,color:C.red,textTransform:"uppercase"}}>🔒 Trial Ended</div>
-            <div style={{fontSize:12,color:C.textMid,marginTop:1}}>Drills & Progress are locked. Upgrade to restore access.</div>
+            <div style={{fontSize:12,color:C.textMid,marginTop:1}}>Drills, Progress, Practice Plans, Lineups & Scorebook are locked. Roster, schedule & chat stay free. Upgrade to restore full access.</div>
             <button onClick={openBillingPortal} style={{background:"none",border:"none",color:C.textDim,fontSize:11,textDecoration:"underline",cursor:"pointer",padding:"4px 0 0",fontFamily:"Plus Jakarta Sans, sans-serif"}}>Manage subscription</button>
           </div>
           <button onClick={()=>setShowUpgrade(true)} style={{padding:"8px 16px",borderRadius:9,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",boxShadow:`0 4px 12px ${C.red}40`}}>Unlock Now</button>
@@ -2235,11 +2235,11 @@ function AppInner() {
         ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
-            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} customPlans={customPlans} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport}/>}
+            {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} customPlans={customPlans} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id} customDrills={customDrills} setCustomDrills={setCustomDrills}/>}
-            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id}/>}
-            {tab==="plans"    && <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/>}
+            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
+            {tab==="plans"    && (canAccess() ? <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/> : <PaywallGate feature="Practice Plans" onUpgrade={()=>setShowUpgrade(true)}/>)}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:session?.user?.id||"coach",name:profile?.full_name||"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")} customDrills={customDrills}/>}
           </div>
@@ -2841,7 +2841,7 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
 }
 
 // ─── COACH HOME ───────────────────────────────────────────────────────────────
-function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null,chatReports=[],onResolveReport=()=>{}}) {
+function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,teamLogo,onTeamLogoChange,teamName,playerVideos={},teamData={},onTeamSettingsSave=null,chatReports=[],onResolveReport=()=>{},canAccess=()=>true,onUpgrade=()=>{}}) {
   const done=assignments.filter(a=>a.completed).length;
   const pending=assignments.filter(a=>!a.completed).length;
   const pct=assignments.length?Math.round(done/assignments.length*100):0;
@@ -3101,6 +3101,7 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
             <div style={{display:"flex",justifyContent:"flex-end",marginTop:10,position:"relative"}}>
               <button onClick={(e)=>{
                 e.stopPropagation();
+                if(canAccess && !canAccess("scorebook")){ onUpgrade && onUpgrade(); return; }
                 const tid = teamData?.id || '';
                 const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(tid)}&event_id=${encodeURIComponent(nextEvent.id)}`;
                 window.open(url, '_blank');
@@ -3636,7 +3637,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 // ─── SCHEDULE ─────────────────────────────────────────────────────────────────
 const PITCH_TYPES = ["Fastball","Two-Seam","Curveball","Slider","Changeup","Sinker","Cutter","Splitter"];
 
-function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId}) {
+function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId,canAccess=()=>true,onUpgrade=()=>{}}) {
   const [view,      setView]      = useState("list"); // "list" | "form"
   const [formTab,   setFormTab]   = useState("info"); // "info"|"lineup"|"pitching"|"situations"
   const [editId,    setEditId]    = useState(null);
@@ -3904,7 +3905,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       {isGame&&(
         <div style={{display:"flex",gap:0,marginBottom:18,background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`}}>
           {formTabs.map(t=>(
-            <button key={t.id} onClick={()=>setFormTab(t.id)} style={{flex:1,padding:"10px 0",borderRadius:9,background:formTab===t.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:formTab===t.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:0.8,textTransform:"uppercase",cursor:"pointer",minHeight:42,boxShadow:formTab===t.id?`0 4px 16px ${C.red}40`:"none",transition:"all 0.2s"}}>
+            <button key={t.id} onClick={()=>{ if((t.id==="batting"||t.id==="field") && canAccess && !canAccess("lineups")){ onUpgrade && onUpgrade(); return; } setFormTab(t.id); }} style={{flex:1,padding:"10px 0",borderRadius:9,background:formTab===t.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:formTab===t.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:0.8,textTransform:"uppercase",cursor:"pointer",minHeight:42,boxShadow:formTab===t.id?`0 4px 16px ${C.red}40`:"none",transition:"all 0.2s"}}>
               {t.label}
             </button>
           ))}
