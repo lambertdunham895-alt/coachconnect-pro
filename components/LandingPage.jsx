@@ -277,16 +277,6 @@ function LandingPage({onAuth}) {
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Before, during, and after the game. What to say. What NOT to say. Why "I love watching you play" is the most powerful sentence in youth sports.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.red,textTransform:"uppercase"}}>Download →</div>
             </a>
-            <a href="https://ccp-scorebook.vercel.app" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.gold}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold})`}}/>
-              <div style={{borderRadius:10,overflow:"hidden",marginBottom:14,marginTop:6,aspectRatio:"16/9",background:"#000"}}>
-                <img src="/parent-in-stands.jpg" alt="Parent in stands watching game on phone with live scorebook" style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"center",display:"block"}}/>
-              </div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:8}}>Free Tool</div>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>CCP Scorebook</div>
-              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Score any game on your phone. Inning-by-inning, at-bat tracking, runner advancement, full play-by-play. No signup required.</div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>Open Scorebook →</div>
-            </a>
             <a href="/Coach_Connect_Pro_Sign_Up_Sheet.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.blue}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.blue},${C.teal})`}}/>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.blue,textTransform:"uppercase",marginBottom:8}}>Printable PDF</div>
