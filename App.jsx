@@ -1494,11 +1494,33 @@ function AppInner() {
 
   const [loadError, setLoadError] = useState(null);
 
-  const loadProfile = async (userId) => {
+  const loadProfile = async (userId, attempt = 0) => {
+    const MAX_ATTEMPTS = 6;   // up to ~6 tries before giving up
+    const RETRY_DELAY = 600;  // ms between tries
     try {
-      const {data, error} = await supabase.from("profiles").select("*").eq("id",userId).single();
-      if (error) { console.error('Profile load error:', error.message); setLoadError("Couldn't load your profile. Please try again."); setAuthReady(true); return; }
-      if (!data) { setLoadError("Profile not found. Please sign out and create a new account."); setAuthReady(true); return; }
+      // maybeSingle() returns null (not an error) when the row isn't there yet —
+      // important right after signup, when the profile/team rows may still be inserting.
+      const {data, error} = await supabase.from("profiles").select("*").eq("id",userId).maybeSingle();
+
+      // Real query error (network / permissions / transient) — retry briefly, then fail.
+      if (error) {
+        console.error('Profile load error:', error.message);
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(r=>setTimeout(r, RETRY_DELAY));
+          return loadProfile(userId, attempt + 1);
+        }
+        setLoadError("Couldn't load your profile. Please try again."); setAuthReady(true); return;
+      }
+
+      // No row yet — almost always a brand-new signup still finishing. Wait and retry.
+      if (!data) {
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(r=>setTimeout(r, RETRY_DELAY));
+          return loadProfile(userId, attempt + 1);
+        }
+        setLoadError("Profile not found. Please sign out and create a new account."); setAuthReady(true); return;
+      }
+
       setProfile(data);
       if (data?.team_id) {
         const {data:td} = await supabase.from("teams").select("*").eq("id",data.team_id).single();
@@ -1517,6 +1539,10 @@ function AppInner() {
       if (data?.team_id) registerPushSubscription(userId, data.team_id);
     } catch(err) {
       console.error('loadProfile error:', err);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(r=>setTimeout(r, RETRY_DELAY));
+        return loadProfile(userId, attempt + 1);
+      }
       setLoadError("Something went wrong loading your data. Check your internet connection and try again.");
       setAuthReady(true);
     }
