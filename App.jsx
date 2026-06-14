@@ -3389,7 +3389,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
       {/* ── ROSTER SCANNER MODAL ──────────────────────────────────────────── */}
       {showScanner && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-          <div style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          <div style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <div>
                 <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1}}>📸 Scan Roster</div>
@@ -3437,27 +3437,27 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
                       </div>
                       <input value={p.name||""} onChange={e=>updateScannedPlayer(p._localId,"name",e.target.value)} placeholder="Player name" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8}}>
-                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
-                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
+                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
                           <option value="R">Bats R</option>
                           <option value="L">Bats L</option>
                           <option value="S">Bats S</option>
                         </select>
-                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
+                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
                           <option value="R">Throws R</option>
                           <option value="L">Throws L</option>
                         </select>
                       </div>
                       <div style={{background:`${C.blue}08`,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>
                         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.blue,textTransform:"uppercase"}}>Parent / Guardian</div>
-                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
                         </div>
                       </div>
                     </div>
@@ -4162,7 +4162,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
         };
         return (
           <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>setRsvpDetail(null)}>
-            <div onClick={(e)=>e.stopPropagation()} style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"85vh",overflowY:"auto"}}>
+            <div onClick={(e)=>e.stopPropagation()} style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"85vh",overflowY:"auto"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
                 <div>
                   <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:2,color:"#fff",lineHeight:1}}>RSVP Status</div>
@@ -4202,7 +4202,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       {/* ── SCHEDULE SCANNER MODAL ───────────────────────────────────────── */}
       {showScanner && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-          <div style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          <div style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
             {/* Header */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <div>
@@ -6211,7 +6211,7 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
       {/* ── ROSTER SCANNER MODAL (same AI flow as the Roster screen) ── */}
       {showScanner && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-          <div style={{width:"100%",maxWidth:560,background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
+          <div style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <div>
                 <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1}}>📸 Scan Roster</div>
@@ -6259,27 +6259,27 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
                       </div>
                       <input value={p.name||""} onChange={e=>updateScannedPlayer(p._localId,"name",e.target.value)} placeholder="Player name" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8}}>
-                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
-                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
+                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
                           <option value="R">Bats R</option>
                           <option value="L">Bats L</option>
                           <option value="S">Bats S</option>
                         </select>
-                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
+                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
                           <option value="R">Throws R</option>
                           <option value="L">Throws L</option>
                         </select>
                       </div>
                       <div style={{background:`${C.blue}08`,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>
                         <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.blue,textTransform:"uppercase"}}>Parent / Guardian</div>
-                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
+                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
                         </div>
                       </div>
                     </div>
