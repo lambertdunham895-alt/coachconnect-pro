@@ -3129,7 +3129,28 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
                 e.stopPropagation();
                 if(canAccess && !canAccess("scorebook")){ onUpgrade && onUpgrade(); return; }
                 const tid = teamData?.id || '';
-                const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(tid)}&event_id=${encodeURIComponent(nextEvent.id)}`;
+                // Attach the coach's Supabase session in the URL fragment (never sent to
+                // servers) so the scorebook can talk to the database AS this coach. Read
+                // synchronously from storage so window.open stays in the click gesture
+                // (avoids mobile popup blocking) and the token is present on first load.
+                let frag = '';
+                try {
+                  let raw = localStorage.getItem('sb-hcadlkmejdekhbgfvyaq-auth-token');
+                  if(!raw){
+                    for(let i=0;i<localStorage.length;i++){
+                      const k = localStorage.key(i);
+                      if(k && k.startsWith('sb-') && k.endsWith('-auth-token')){ raw = localStorage.getItem(k); break; }
+                    }
+                  }
+                  if(raw){
+                    const parsed = JSON.parse(raw);
+                    const s = parsed && parsed.access_token ? parsed : (parsed && (parsed.currentSession || parsed.session)) || {};
+                    if(s.access_token && s.refresh_token){
+                      frag = `#at=${encodeURIComponent(s.access_token)}&rt=${encodeURIComponent(s.refresh_token)}`;
+                    }
+                  }
+                } catch(err){}
+                const url = `https://ccp-scorebook.vercel.app/?team_id=${encodeURIComponent(tid)}&event_id=${encodeURIComponent(nextEvent.id)}${frag}`;
                 window.open(url, '_blank');
               }} className="btn-press" style={{display:"inline-flex",alignItems:"center",gap:6,padding:"7px 12px",background:"transparent",border:`1px solid ${C.gold}80`,borderRadius:8,cursor:"pointer",color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase"}}>
                 <span style={{fontSize:12}}>⚾</span>
