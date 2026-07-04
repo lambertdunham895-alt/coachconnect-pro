@@ -1318,6 +1318,7 @@ function AppInner() {
   const [parentUserId, setPUID] = useState(null);
   const [parentPlayerLink, setParentPlayerLink] = useState(null);
   const [launching, setLaunching] = useState(true); // show launch screen first
+  const [recoveryMode, setRecoveryMode] = useState(false); // user arrived via password-reset email link
 
   // ── Listen for auth state changes ────────────────────────────────────────
   useEffect(()=>{
@@ -1328,7 +1329,13 @@ function AppInner() {
     });
     const {data:{subscription}} = supabase.auth.onAuthStateChange((event,session)=>{
       // Only reload data on actual sign-in, not token refresh
-      if(event === 'SIGNED_OUT') {
+      if(event === 'PASSWORD_RECOVERY') {
+        // User clicked the reset link in their email — Supabase signed them in
+        // with a temporary session; show the "set new password" screen.
+        setSession(session);
+        setRecoveryMode(true);
+        setAuthReady(true);
+      } else if(event === 'SIGNED_OUT') {
         setSession(null); setProfile(null); setAuthReady(true);
       } else if(event === 'SIGNED_IN') {
         setSession(session);
@@ -2083,6 +2090,12 @@ function AppInner() {
 
   if (launching) return <LaunchScreen onDone={() => setLaunching(false)} />;
 
+  // Password-recovery: user arrived from the reset email — make them set a new
+  // password before anything else.
+  if (recoveryMode && session) return (
+    <ResetPasswordScreen onDone={()=>{ setRecoveryMode(false); loadProfile(session.user.id); }}/>
+  );
+
   if (loadError) return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
       <style>{FONTS}</style>
@@ -2299,6 +2312,57 @@ export default function App() {
 }
 
 // ─── TOP BAR ─────────────────────────────────────────────────────────────────
+// ─── RESET PASSWORD (arrived via email recovery link) ────────────────────────
+function ResetPasswordScreen({onDone}) {
+  const [pass1, setPass1] = useState("");
+  const [pass2, setPass2] = useState("");
+  const [show, setShow] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const save = async () => {
+    setError("");
+    if(pass1.length < 6){ setError("Password must be at least 6 characters."); return; }
+    if(pass1 !== pass2){ setError("Passwords don't match."); return; }
+    setSaving(true);
+    const {error:err} = await supabase.auth.updateUser({ password: pass1 });
+    setSaving(false);
+    if(err){ setError(err.message); return; }
+    setDone(true);
+    setTimeout(onDone, 1200);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:"24px 20px"}}>
+      <style>{FONTS}</style>
+      <div style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:380,boxShadow:`0 24px 60px #00000088`,position:"relative"}}>
+        <div style={{position:"absolute",top:0,left:24,right:24,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},transparent)`,borderRadius:2}}/>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:2,color:C.text,marginBottom:6}}>Set a New Password</div>
+        <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:20}}>You're signed in via your reset link. Choose a new password to finish.</div>
+        {done ? (
+          <div style={{padding:"14px 16px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,color:C.teal,fontSize:13,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1}}>✓ Password updated — taking you to your dashboard…</div>
+        ) : (
+          <>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{position:"relative"}}>
+                <input value={pass1} onChange={e=>setPass1(e.target.value)} placeholder="New password" type={show?"text":"password"} style={{...inp,paddingRight:44}}/>
+                <button onClick={()=>setShow(x=>!x)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:14,padding:4}}>{show?"🙈":"👁"}</button>
+              </div>
+              <input value={pass2} onChange={e=>setPass2(e.target.value)} placeholder="Confirm new password" type={show?"text":"password"} style={inp}
+                onKeyDown={e=>e.key==="Enter"&&save()}/>
+            </div>
+            {error&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontSize:12,color:"#ff8080"}}>{error}</div>}
+            <button onClick={save} disabled={saving||!pass1||!pass2} style={{width:"100%",marginTop:20,padding:"15px 0",borderRadius:12,background:saving?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:saving?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:saving?"not-allowed":"pointer",minHeight:52}}>
+              {saving?"Saving…":"Save New Password →"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TopBar({title,sub,onBack,backLabel,onLogout,trialBadge,onUpgrade}) {
   return (
     <header style={{position:"sticky",top:0,zIndex:200,background:`${C.bg}ee`,backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.border}`,padding:"0 12px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
