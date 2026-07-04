@@ -315,7 +315,7 @@ function LandingPage({onAuth}) {
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 const PRIVACY_POLICY_VERSION = "1.1";
 function LoginScreen({onAuth, onBack=null}) {
-  const [mode,    setMode]    = useState("login"); // "login" | "signup"
+  const [mode,    setMode]    = useState("login"); // "login" | "signup" | "forgot"
   const [email,   setEmail]   = useState("");
   const [pass,    setPass]    = useState("");
   const [name,    setName]    = useState("");
@@ -325,6 +325,7 @@ function LoginScreen({onAuth, onBack=null}) {
   const [error,   setError]   = useState("");
   const [showPass,setShowPass]= useState(false);
   const [consent, setConsent] = useState(false); // COPPA parental consent (parent signup)
+  const [resetSent, setResetSent] = useState(false); // forgot-password email sent
 
   const handleLogin = async () => {
     setError(""); setLoading(true);
@@ -339,6 +340,20 @@ function LoginScreen({onAuth, onBack=null}) {
     }
     onAuth(data.user, profile);
     setLoading(false);
+  };
+
+  // ── Forgot password: send the reset email ──
+  const handleForgot = async () => {
+    setError("");
+    const em = email.trim();
+    if(!em){ setError("Enter your email address first."); return; }
+    setLoading(true);
+    const {error:err} = await supabase.auth.resetPasswordForEmail(em, {
+      redirectTo: window.location.origin,
+    });
+    setLoading(false);
+    if(err){ setError("Couldn't send reset email: " + err.message); return; }
+    setResetSent(true);
   };
 
   const handleSignup = async () => {
@@ -432,61 +447,98 @@ function LoginScreen({onAuth, onBack=null}) {
       <div className="fade-up-1" style={{background:C.card,borderRadius:20,border:`1px solid ${C.border}`,padding:"28px 24px",width:"100%",maxWidth:380,position:"relative",zIndex:1,boxShadow:`0 24px 60px #00000088`}}>
         <div style={{position:"absolute",top:0,left:24,right:24,height:2,background:`linear-gradient(90deg,transparent,${C.red},${C.gold},transparent)`,borderRadius:2}}/>
 
-        {/* Mode toggle */}
-        <div style={{display:"flex",background:`${C.bg}`,borderRadius:10,padding:3,marginBottom:24,gap:2}}>
-          {["login","signup"].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:mode===m?C.red:"transparent",color:mode===m?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
-              {m==="login"?"Sign In":"Create Account"}
+        {/* ── FORGOT PASSWORD MODE ── */}
+        {mode==="forgot" ? (
+          <>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:2,color:C.text,marginBottom:6}}>Reset Your Password</div>
+            {resetSent ? (
+              <>
+                <div style={{padding:"14px 16px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}50`,fontSize:13,color:C.teal,lineHeight:1.6,marginBottom:16}}>
+                  ✓ Check your email — if an account exists for <b>{email.trim()}</b>, a reset link is on its way. Open it on this device and you'll be asked to set a new password.
+                </div>
+                <div style={{fontSize:12,color:C.textDim,lineHeight:1.6,marginBottom:16}}>Nothing after a few minutes? Check your spam folder, or make sure the email matches the one you signed up with.</div>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:13,color:C.textMid,lineHeight:1.6,marginBottom:18}}>Enter the email you signed up with and we'll send you a link to set a new password.</div>
+                <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address" type="email" style={inp}
+                  onKeyDown={e=>e.key==="Enter"&&handleForgot()}/>
+                {error&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontSize:12,color:"#ff8080"}}>{error}</div>}
+                <button onClick={handleForgot} disabled={loading||!email.trim()} style={{width:"100%",marginTop:18,padding:"15px 0",borderRadius:12,background:loading?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:loading?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:loading?"not-allowed":"pointer",minHeight:52}}>
+                  {loading?"Sending…":"Send Reset Link →"}
+                </button>
+              </>
+            )}
+            <div style={{textAlign:"center",marginTop:16}}>
+              <button onClick={()=>{setMode("login");setError("");setResetSent(false);}} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,padding:0}}>‹ Back to Sign In</button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Mode toggle */}
+            <div style={{display:"flex",background:`${C.bg}`,borderRadius:10,padding:3,marginBottom:24,gap:2}}>
+              {["login","signup"].map(m=>(
+                <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:mode===m?C.red:"transparent",color:mode===m?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                  {m==="login"?"Sign In":"Create Account"}
+                </button>
+              ))}
+            </div>
+
+            {/* Role selector (signup only) */}
+            {mode==="signup"&&(
+              <div style={{display:"flex",gap:8,marginBottom:16}}>
+                {["coach","parent"].map(r=>(
+                  <button key={r} onClick={()=>setRole(r)} style={{flex:1,padding:"10px 0",borderRadius:10,border:`2px solid ${role===r?(r==="coach"?C.blue:C.gold):C.border}`,background:role===r?(r==="coach"?`${C.blue}15`:`${C.gold}15`):"transparent",color:role===r?(r==="coach"?C.blue:C.gold):C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
+                    {r==="coach"?"⚙️ Coach":"👨‍👩‍👦 Parent"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Fields */}
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {mode==="signup"&&<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" style={inp}/>}
+              {mode==="signup"&&role==="coach"&&<input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Team name (e.g. River Dogs 12U)" style={inp}/>}
+              <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address" type="email" style={inp}/>
+              <div style={{position:"relative"}}>
+                <input value={pass} onChange={e=>setPass(e.target.value)} placeholder="Password" type={showPass?"text":"password"} style={{...inp,paddingRight:44}}
+                  onKeyDown={e=>e.key==="Enter"&&(mode==="login"?handleLogin():handleSignup())}/>
+                <button onClick={()=>setShowPass(x=>!x)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:14,padding:4}}>{showPass?"🙈":"👁"}</button>
+              </div>
+            </div>
+
+            {/* Forgot password link (login mode only) */}
+            {mode==="login"&&(
+              <div style={{textAlign:"right",marginTop:8}}>
+                <button onClick={()=>{setMode("forgot");setError("");setResetSent(false);}} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:0.5,padding:0}}>Forgot password?</button>
+              </div>
+            )}
+
+            {/* COPPA parental consent (parent signup only) */}
+            {mode==="signup"&&role==="parent"&&(
+              <label style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"12px 14px",borderRadius:10,background:`${C.gold}10`,border:`1px solid ${consent?C.gold:C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
+                <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:2,width:18,height:18,accentColor:C.gold,cursor:"pointer",flexShrink:0}}/>
+                <span style={{fontSize:12,lineHeight:1.5,color:C.textMid}}>
+                  I am the parent or legal guardian of the player(s) on this account. I have read the{" "}
+                  <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{color:C.gold,textDecoration:"underline"}}>Privacy Policy</a>{" "}
+                  and consent to CoachConnect Pro collecting and using my child&apos;s information — including name, age, photos, videos, and performance data — as described there, so my child&apos;s coach and I can manage their participation and development.
+                </span>
+              </label>
+            )}
+
+            {error&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontSize:12,color:"#ff8080"}}>{error}</div>}
+
+            <button onClick={mode==="login"?handleLogin:handleSignup} disabled={loading||!email||!pass||(mode==="signup"&&role==="parent"&&!consent)} style={{width:"100%",marginTop:20,padding:"15px 0",borderRadius:12,background:loading?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:loading?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:loading?"not-allowed":"pointer",boxShadow:loading?"none":`0 6px 20px ${C.red}40`,transition:"all 0.2s",minHeight:52}}>
+              {loading?"Please wait…":mode==="login"?"Sign In →":"Create Account →"}
             </button>
-          ))}
-        </div>
 
-        {/* Role selector (signup only) */}
-        {mode==="signup"&&(
-          <div style={{display:"flex",gap:8,marginBottom:16}}>
-            {["coach","parent"].map(r=>(
-              <button key={r} onClick={()=>setRole(r)} style={{flex:1,padding:"10px 0",borderRadius:10,border:`2px solid ${role===r?(r==="coach"?C.blue:C.gold):C.border}`,background:role===r?(r==="coach"?`${C.blue}15`:`${C.gold}15`):"transparent",color:role===r?(r==="coach"?C.blue:C.gold):C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>
-                {r==="coach"?"⚙️ Coach":"👨‍👩‍👦 Parent"}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Fields */}
-        <div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {mode==="signup"&&<input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" style={inp}/>}
-          {mode==="signup"&&role==="coach"&&<input value={teamName} onChange={e=>setTeamName(e.target.value)} placeholder="Team name (e.g. River Dogs 12U)" style={inp}/>}
-          <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address" type="email" style={inp}/>
-          <div style={{position:"relative"}}>
-            <input value={pass} onChange={e=>setPass(e.target.value)} placeholder="Password" type={showPass?"text":"password"} style={{...inp,paddingRight:44}}
-              onKeyDown={e=>e.key==="Enter"&&(mode==="login"?handleLogin():handleSignup())}/>
-            <button onClick={()=>setShowPass(x=>!x)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:14,padding:4}}>{showPass?"🙈":"👁"}</button>
-          </div>
-        </div>
-
-        {/* COPPA parental consent (parent signup only) */}
-        {mode==="signup"&&role==="parent"&&(
-          <label style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"12px 14px",borderRadius:10,background:`${C.gold}10`,border:`1px solid ${consent?C.gold:C.border}`,cursor:"pointer",transition:"all 0.2s"}}>
-            <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:2,width:18,height:18,accentColor:C.gold,cursor:"pointer",flexShrink:0}}/>
-            <span style={{fontSize:12,lineHeight:1.5,color:C.textMid}}>
-              I am the parent or legal guardian of the player(s) on this account. I have read the{" "}
-              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" style={{color:C.gold,textDecoration:"underline"}}>Privacy Policy</a>{" "}
-              and consent to CoachConnect Pro collecting and using my child&apos;s information — including name, age, photos, videos, and performance data — as described there, so my child&apos;s coach and I can manage their participation and development.
-            </span>
-          </label>
-        )}
-
-        {error&&<div style={{marginTop:12,padding:"10px 14px",borderRadius:9,background:`${C.red}15`,border:`1px solid ${C.red}40`,fontSize:12,color:"#ff8080"}}>{error}</div>}
-
-        <button onClick={mode==="login"?handleLogin:handleSignup} disabled={loading||!email||!pass||(mode==="signup"&&role==="parent"&&!consent)} style={{width:"100%",marginTop:20,padding:"15px 0",borderRadius:12,background:loading?C.card:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:loading?C.textDim:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:loading?"not-allowed":"pointer",boxShadow:loading?"none":`0 6px 20px ${C.red}40`,transition:"all 0.2s",minHeight:52}}>
-          {loading?"Please wait…":mode==="login"?"Sign In →":"Create Account →"}
-        </button>
-
-        {mode==="login"&&(
-          <div style={{textAlign:"center",marginTop:14,fontSize:12,color:C.textDim}}>
-            No account?{" "}
-            <button onClick={()=>{setMode("signup");setError("");}} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,padding:0}}>Create one free →</button>
-          </div>
+            {mode==="login"&&(
+              <div style={{textAlign:"center",marginTop:14,fontSize:12,color:C.textDim}}>
+                No account?{" "}
+                <button onClick={()=>{setMode("signup");setError("");}} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,padding:0}}>Create one free →</button>
+              </div>
+            )}
+          </>
         )}
 
         <div style={{textAlign:"center",marginTop:20,paddingTop:16,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"center",gap:20}}>
