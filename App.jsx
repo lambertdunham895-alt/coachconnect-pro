@@ -3854,7 +3854,19 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
   const importScannedEvents = async () => {
     const toAdd = scannedEvents.filter(ev => ev._include && ev.date);
     if(toAdd.length===0) return;
-    const newEvents = toAdd.map(ev => ({
+    // Dedupe: skip any scanned event that already exists (same date + opponent +
+    // time). Without this, re-scanning the same schedule stacks duplicates.
+    const key = ev => [ev.date, (ev.opponent||"").trim().toLowerCase(), (ev.time||"").trim()].join("|");
+    const existing = new Set(events.map(key));
+    const fresh = [];
+    let skipped = 0;
+    for(const ev of toAdd){
+      const k = key(ev);
+      if(existing.has(k)){ skipped++; continue; }
+      existing.add(k); // also dedupes within the scan itself
+      fresh.push(ev);
+    }
+    const newEvents = fresh.map(ev => ({
       id: uid(),
       type: ev.type==="game"?"game":"practice",
       date: ev.date,
@@ -3867,10 +3879,13 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       notes: "",
     }));
     // setEvents is the DB-aware setter — it persists each new event itself.
-    setEvents(prev => [...prev, ...newEvents]);
+    if(newEvents.length > 0) setEvents(prev => [...prev, ...newEvents]);
     setShowScanner(false);
     setScannedEvents([]);
     setScanError("");
+    if(skipped > 0 && newEvents.length > 0) toast.success(`Added ${newEvents.length} event${newEvents.length!==1?"s":""} — skipped ${skipped} already on your schedule.`);
+    else if(skipped > 0) toast.success(`All ${skipped} scanned event${skipped!==1?"s":""} are already on your schedule — nothing added.`);
+    else toast.success(`Added ${newEvents.length} event${newEvents.length!==1?"s":""} to your schedule.`);
   };
 
   // ── Lineup tap-to-select state ──
@@ -3999,7 +4014,10 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       .then(({error})=>{ if(error) console.error('Event delete failed:',error.message); });
   };
   const todayStr=new Date().toISOString().slice(0,10);
-  const sorted=[...events].filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+  const [schedView, setSchedView] = useState("upcoming"); // "upcoming" | "past"
+  const upcomingEvents=[...events].filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+  const pastEvents=[...events].filter(e=>e.date<todayStr).sort((a,b)=>b.date.localeCompare(a.date)); // newest first
+  const sorted = schedView==="past" ? pastEvents : upcomingEvents;
   const isGame=form.type==="game";
   const formTabs=isGame?[{id:"info",label:"🔴 Info"},{id:"batting",label:"🔴 Batting Order"},{id:"field",label:"🔴 Field Positions"}]:[];
 
@@ -4184,6 +4202,14 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
           <PrimaryBtn onClick={openNew}>+ Event</PrimaryBtn>
         </div>
       </div>
+      {/* Upcoming / Past toggle — past events are kept, not lost. Shown whenever any past events exist. */}
+      {pastEvents.length>0&&(
+        <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:3,gap:2,marginBottom:14}}>
+          {[["upcoming",`Upcoming (${upcomingEvents.length})`],["past",`Past (${pastEvents.length})`]].map(([k,label])=>(
+            <button key={k} onClick={()=>setSchedView(k)} style={{flex:1,padding:"9px 0",borderRadius:8,border:"none",background:schedView===k?C.red:"transparent",color:schedView===k?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",transition:"all 0.2s"}}>{label}</button>
+          ))}
+        </div>
+      )}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {sorted.map((ev,i)=>{
           const isG=ev.type==="game"; const ec=isG?C.red:C.blue;
@@ -4242,7 +4268,9 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
             </div>
           );
         })}
-        {sorted.length===0&&<EmptyState icon="📅" title="No events scheduled" body="Add your first practice or game. Parents will automatically see upcoming events in their app." action="Add First Event" onAction={openNew}/>}
+        {sorted.length===0&&schedView==="upcoming"&&pastEvents.length>0&&<EmptyState icon="📅" title="No upcoming events" body={`Nothing scheduled ahead — but you have ${pastEvents.length} past event${pastEvents.length!==1?"s":""} saved. Tap "Past" above to see them, or add what's next.`} action="Add Event" onAction={openNew}/>}
+        {sorted.length===0&&schedView==="upcoming"&&pastEvents.length===0&&<EmptyState icon="📅" title="No events scheduled" body="Add your first practice or game. Parents will automatically see upcoming events in their app." action="Add First Event" onAction={openNew}/>}
+        {sorted.length===0&&schedView==="past"&&<EmptyState icon="📅" title="No past events" body="Events automatically move here once their date has passed."/>}
       </div>
 
       {/* ── RSVP DETAIL MODAL ─────────────────────────────────────────────── */}
