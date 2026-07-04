@@ -2223,16 +2223,29 @@ function AppInner() {
         onUpgrade={!isActive ? ()=>setShowUpgrade(true) : null}
       />
 
-      {/* Trial / expired banner */}
-      {isTrial && daysLeft <= 5 && !showUpgrade && (
-        <div style={{background:`linear-gradient(90deg,${C.red}22,${C.red}11)`,borderBottom:`1px solid ${C.red}40`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-          <div>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:1.5,color:C.red,textTransform:"uppercase"}}>⏳ {daysLeft} day{daysLeft!==1?"s":""} left in your trial</div>
-            <div style={{fontSize:12,color:C.textMid,marginTop:1}}>Upgrade to keep full access after your trial ends</div>
+      {/* Trial / expired banner — personalized: shows the coach what THEY built and what locks */}
+      {isTrial && daysLeft <= 5 && !showUpgrade && (()=>{
+        const urgent = daysLeft <= 3;
+        const upcomingGames = (events||[]).filter(e => e.date >= new Date().toISOString().slice(0,10)).length;
+        const built = [];
+        if((players||[]).length > 0) built.push(`your ${players.length}-player roster`);
+        if(upcomingGames > 0) built.push(`${upcomingGames} upcoming event${upcomingGames!==1?"s":""}`);
+        if((players||[]).length > 0) built.push("season stats");
+        const stakes = built.length
+          ? `${built.join(", ").replace(/, ([^,]*)$/, " and $1")} ${urgent ? "— Drills, Practice Plans, Lineups & Scorebook lock when the trial ends. Roster, schedule & chat stay free." : "are all set up. Keep the momentum going."}`
+          : (urgent ? "Drills, Practice Plans, Lineups & Scorebook lock when the trial ends. Roster, schedule & chat stay free." : "Upgrade to keep full access after your trial ends.");
+        return (
+          <div style={{background:urgent?`linear-gradient(90deg,${C.red}30,${C.red}15)`:`linear-gradient(90deg,${C.gold}20,${C.gold}0c)`,borderBottom:`1px solid ${urgent?C.red+"60":C.gold+"40"}`,padding:urgent?"12px 16px":"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:1.5,color:urgent?C.red:C.gold,textTransform:"uppercase"}}>
+                {urgent ? `⏳ Only ${daysLeft} day${daysLeft!==1?"s":""} left in your trial` : `⏳ ${daysLeft} day${daysLeft!==1?"s":""} left in your trial`}
+              </div>
+              <div style={{fontSize:12,color:C.textMid,marginTop:1,lineHeight:1.45}}>{stakes.charAt(0).toUpperCase()+stakes.slice(1)}</div>
+            </div>
+            <button onClick={()=>setShowUpgrade(true)} style={{padding:"8px 16px",borderRadius:9,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",boxShadow:`0 4px 12px ${C.red}40`}}>{urgent?"Keep My Team →":"Upgrade"}</button>
           </div>
-          <button onClick={()=>setShowUpgrade(true)} style={{padding:"8px 16px",borderRadius:9,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",whiteSpace:"nowrap",boxShadow:`0 4px 12px ${C.red}40`}}>Upgrade</button>
-        </div>
-      )}
+        );
+      })()}
       {isExpired && !showUpgrade && (
         <div style={{background:`linear-gradient(90deg,#1a0808,${C.card})`,borderBottom:`1px solid ${C.red}60`,padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
           <div>
