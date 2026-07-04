@@ -691,6 +691,32 @@ const toast = {
   info(message, duration=4000){ return toast.show(message, "info", duration); },
 };
 
+// ── Error logging → error_logs table ─────────────────────────────────────────
+// Fire-and-forget: failures in the app land somewhere the founder can see them
+// instead of dying in the user's browser console. Guard rails: max 10 per
+// session, no duplicate messages, and the logger itself can never throw.
+const _errSeen = new Set();
+let _errCount = 0;
+let _errCtx = { user_id: null, team_id: null };
+function setErrorContext(ctx){ _errCtx = { ..._errCtx, ...ctx }; }
+function logError(source, message, stack){
+  try {
+    if(!message) return;
+    const key = String(message).slice(0, 200);
+    if(_errSeen.has(key) || _errCount >= 10) return;
+    _errSeen.add(key); _errCount++;
+    supabase.from('error_logs').insert({
+      user_id: _errCtx.user_id,
+      team_id: _errCtx.team_id,
+      source: source || 'manual',
+      message: String(message).slice(0, 1000),
+      stack: stack ? String(stack).slice(0, 4000) : null,
+      url: (typeof window !== 'undefined' ? window.location.href.split('#')[0] : '').slice(0, 300),
+      user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : '').slice(0, 300),
+    }).then(()=>{}, ()=>{});
+  } catch(e){}
+}
+
 // Throttled save-failure notice. A burst of failed background writes (e.g. lost
 // connection mid-session) collapses into ONE message instead of spamming the user.
 let _lastSaveErrAt = 0;
@@ -1348,6 +1374,26 @@ function AppInner() {
     return ()=>subscription.unsubscribe();
   },[]);
 
+  // ── Global error capture: uncaught errors + unhandled promise rejections ──
+  useEffect(()=>{
+    const onErr = (e)=>logError('window', e.message, e.error && e.error.stack);
+    const onRej = (e)=>{
+      const r = e.reason;
+      logError('promise', (r && r.message) || String(r), r && r.stack);
+    };
+    window.addEventListener('error', onErr);
+    window.addEventListener('unhandledrejection', onRej);
+    return ()=>{
+      window.removeEventListener('error', onErr);
+      window.removeEventListener('unhandledrejection', onRej);
+    };
+  },[]);
+
+  // Keep the error logger's context current so reports carry who/which team
+  useEffect(()=>{
+    setErrorContext({ user_id: session?.user?.id || null, team_id: profile?.team_id || null });
+  },[session, profile]);
+
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
   const loadTeamData = async (teamId, userId) => {
@@ -1355,7 +1401,7 @@ function AppInner() {
       const [
         {data:pData}, {data:aData}, {data:eData},
         {data:mData}, {data:sData}, {data:lData}, {data:gData}, {data:dvData},
-        {data:cpData}, {data:phData}, {data:readData}, {data:ppData}, {data:pvData},
+        {data:cpData}, {data:phData}, {data:readData}, {data:pvData},
         {data:cdData},
         {data:buData},
         {data:crData},
@@ -1371,7 +1417,6 @@ function AppInner() {
         supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('player_photos').select('*').eq('team_id' , teamId),
         supabase.from('chat_read_status').select('*').eq('team_id',teamId),
-        supabase.from('parent_players').select('*'),
         supabase.from('player_videos').select('*').eq('team_id',teamId),
         supabase.from('custom_drills').select('*').eq('team_id',teamId).order('created_at'),
         supabase.from('blocked_users').select('*').eq('team_id',teamId),
@@ -1408,6 +1453,11 @@ function AppInner() {
         channelRemap[`dm-${p.id}`] = `dm-${par.id}`;
       });
     });
+    // Parent links — scoped to THIS team's players (previously fetched the whole
+    // table across all teams, relying on RLS alone and growing with every team).
+    const {data:ppData} = loadedPlayers.length
+      ? await supabase.from('parent_players').select('*').in('player_id', loadedPlayers.map(p=>p.id))
+      : {data: []};
     // Map dm-{authUserId} → dm-{parentInfoId} using parent_players links
     (ppData||[]).forEach(pp => {
       const player = loadedPlayers.find(p=>p.id===pp.player_id);
