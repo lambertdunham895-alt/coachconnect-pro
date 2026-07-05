@@ -3141,22 +3141,7 @@ function CoachHome({players,assignments,events,customPlans=[],goToPlayer,setTab,
             </div>
           </div>
 
-          {/* Stats strip — real data */}
-          <div style={{display:"flex",alignItems:"stretch",background:"rgba(8,18,35,0.5)",backdropFilter:"blur(8px)",border:`1px solid #ffffff20`,borderRadius:14,overflow:"hidden"}}>
-            {[
-              {icon:"👥",v:players.length,l:"Players",c:C.blue},
-              {icon:"✅",v:done,l:"Drills Done",c:C.teal},
-              {icon:"📋",v:needsReview.length,l:"Needs Review",c:C.gold},
-            ].map((s,i)=>(
-              <div key={s.l} style={{flex:1,padding:"14px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,borderLeft:i>0?`1px solid #ffffff15`:"none"}}>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:15}}>{s.icon}</span>
-                  <span className={`number-pop`} style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,color:"#fff",lineHeight:1,textShadow:`0 0 16px ${s.c}60`}}>{s.v}</span>
-                </div>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:600,fontSize:9,letterSpacing:1.5,color:"#ffffffcc",textTransform:"uppercase",textShadow:"0 1px 4px rgba(0,0,0,0.6)"}}>{s.l}</div>
-              </div>
-            ))}
-          </div>
+          {/* Stats strip removed — the Drill Progress card below carries these numbers */}
         </div>
       </div>
 
