@@ -21,6 +21,14 @@ export default async function handler(req) {
     });
   }
 
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_API_KEY) {
+    return new Response(JSON.stringify({ error: 'Server not configured: missing ANTHROPIC_API_KEY' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    });
+  }
+
   try {
     const body = await req.json();
     const { imageBase64, mediaType } = body;
@@ -37,7 +45,7 @@ export default async function handler(req) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': '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',
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
