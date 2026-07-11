@@ -211,14 +211,15 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
             <div key={item.id} className="pop-in" style={{display:"flex",flexDirection:isMe?"row-reverse":"row",gap:8,alignItems:"flex-end",marginBottom:isSameAsNext?2:8,userSelect:"none",WebkitUserSelect:"none",WebkitTouchCallout:"none",MozUserSelect:"none",msUserSelect:"none"}}
               onContextMenu={(e)=>{e.preventDefault();setReactionPicker(item.id);setMsgMenu(null);}}
               onTouchStart={(e)=>{
-                e.currentTarget._lpFired=false;
+                const el=e.currentTarget;
+                el._lpFired=false;
                 const t=setTimeout(()=>{
-                  e.currentTarget._lpFired=true;
+                  el._lpFired=true;
                   setReactionPicker(item.id);
                   setMsgMenu(null);
                   if(navigator.vibrate)navigator.vibrate(20);
                 },500);
-                e.currentTarget._lpt=t;
+                el._lpt=t;
               }}
               onTouchEnd={(e)=>{
                 clearTimeout(e.currentTarget._lpt);
