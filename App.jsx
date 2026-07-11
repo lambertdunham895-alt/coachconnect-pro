@@ -1408,10 +1408,6 @@ function AppInner() {
     setErrorContext({ user_id: session?.user?.id || null, team_id: profile?.team_id || null });
   },[session, profile]);
 
-  // ── Usage analytics: log which tabs get used (feeds founder Admin panel) ──
-  useEffect(()=>{
-    if(session?.user?.id && tab) trackUsage(session.user.id, profile?.team_id, "tab:"+tab);
-  },[tab, session?.user?.id]);
 
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
@@ -2073,6 +2069,11 @@ function AppInner() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [tab, setTab]           = useState("home");
+  // ── Usage analytics: log which tabs get used (feeds founder Admin panel) ──
+  useEffect(()=>{
+    if(session?.user?.id && tab) trackUsage(session.user.id, profile?.team_id, "tab:"+tab);
+  },[tab, session?.user?.id]);
+
   const [skipOnboarding, setSkipOnboarding] = useState(false);
   const [selectedPlayer, setSP] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
