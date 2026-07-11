@@ -2490,6 +2490,14 @@ function SupportModal({session, profile, onClose}) {
         subject:subject.trim(), message:message.trim()
       });
       if(error)throw error;
+      // Notify the founder's devices — fire and forget
+      supabase.functions.invoke("send-notification", { body: {
+        user_id: FOUNDER_ID,
+        title: "\ud83d\udee5 New Support Ticket",
+        body: (profile?.full_name||session?.user?.email||"Someone") + ": " + subject.trim(),
+        tag: "support",
+        url: "/"
+      }}).catch(()=>{});
       setDone(true);
     }catch(e){ console.error("support ticket failed", e); }
     setSending(false);
