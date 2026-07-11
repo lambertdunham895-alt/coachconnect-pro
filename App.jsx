@@ -2340,7 +2340,7 @@ function AppInner() {
             {tab==="home"     && <CoachHome players={players} assignments={assignments} events={events} customPlans={customPlans} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="roster"   && <Roster players={players} setPlayers={setPlayersDb} goToPlayer={goToPlayer} playerPhotos={playerPhotos} teamId={profile?.team_id}/>}
             {tab==="drills"   && <AssignDrills players={players} assignments={assignments} setAsgn={setAsgnDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} playerVideos={playerVideos} teamId={profile?.team_id} customDrills={customDrills} setCustomDrills={setCustomDrills}/>}
-            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
+            {tab==="schedule" && <Schedule events={events} setEvents={setEventsDb} gamePlans={gamePlans} setGamePlans={setGamePlansDb} players={players} lineups={lineups} setLineups={setLineupsDb} teamId={profile?.team_id} canAccess={canAccess} session={session} onUpgrade={()=>setShowUpgrade(true)}/>}
             {tab==="plans"    && (canAccess() ? <PracticePlans customPlans={customPlans} setCustomPlans={setCustomPlansDb}/> : <PaywallGate feature="Practice Plans" onUpgrade={()=>setShowUpgrade(true)}/>)}
             {tab==="msgs"     && <MessagesTab players={players} messages={messages} unread={unread} onOpen={(ch)=>{setActiveChat(ch);markRead(ch);}} onBroadcast={(text, channelIds)=>{ channelIds.forEach(ch=>sendMsg(ch, text, {id:session?.user?.id||"coach",name:profile?.full_name||"Coach"})); }} teamLogo={teamLogo} teamName={teamDisplayName}/>}
             {tab==="player"   && selectedPlayer && <PlayerDetail player={players.find(p=>p.id===selectedPlayer.id)||selectedPlayer} assignments={assignments} setAsgn={setAsgnDb} setPlayers={setPlayersDb} skillSnapshots={skillSnapshots} setSkillSnapshots={setSnapshotsDb} drillVideos={drillVideos} setDrillVideos={setDrillVideos} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} playerPhotos={playerPhotos} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)} teamId={profile?.team_id} onDelete={()=>setTab("roster")} customDrills={customDrills}/>}
@@ -3796,7 +3796,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 // ─── SCHEDULE ─────────────────────────────────────────────────────────────────
 const PITCH_TYPES = ["Fastball","Two-Seam","Curveball","Slider","Changeup","Sinker","Cutter","Splitter"];
 
-function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId,canAccess=()=>true,onUpgrade=()=>{}}) {
+function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId,canAccess=()=>true,onUpgrade=()=>{},session=null}) {
   const [view,      setView]      = useState("list"); // "list" | "form"
   const [formTab,   setFormTab]   = useState("info"); // "info"|"lineup"|"pitching"|"situations"
   const [editId,    setEditId]    = useState(null);
