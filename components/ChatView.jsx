@@ -223,7 +223,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
               }}
               onTouchEnd={(e)=>{
                 clearTimeout(e.currentTarget._lpt);
-                if(e.currentTarget._lpFired){e.preventDefault();}
+                if(e.currentTarget._lpFired){e.preventDefault();e.currentTarget._lpFired=false;}
               }}
               onTouchMove={(e)=>{clearTimeout(e.currentTarget._lpt);}}
               onTouchCancel={(e)=>{clearTimeout(e.currentTarget._lpt);}}
