@@ -2259,8 +2259,9 @@ function AppInner() {
         />
         {activeChat
           ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
-          : <ParentView player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
+          : <ParentView onSupport={()=>setShowSupport(true)} player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
         }
+        {showSupport && <SupportModal session={session} profile={profile} onClose={()=>setShowSupport(false)}/>}
       </div>
     );
   }
@@ -3083,7 +3084,7 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
   );
 }
 
-function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
+function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSupport=()=>{}}) {
   const [form, setForm] = useState({
     name: teamData.name || teamName || "",
     age_group: teamData.age_group || "",
@@ -3163,6 +3164,16 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel}) {
           </button>
         </div>
       </div>
+
+      {/* Help & Support */}
+      <button onClick={onSupport} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:C.cardAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginTop:20,cursor:"pointer",textAlign:"left"}}>
+        <div style={{width:36,height:36,borderRadius:10,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🛟</div>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,letterSpacing:0.5}}>Help & Support</div>
+          <div style={{fontSize:11,color:C.textDim}}>Report a bug or ask a question</div>
+        </div>
+        <div style={{color:C.textDim,fontSize:15}}>›</div>
+      </button>
 
       <div style={{display:"flex",gap:10,marginTop:20}}>
         <button className="btn-press" onClick={()=>onSave(form)} disabled={!form.name.trim()} style={{flex:1,padding:"14px 0",borderRadius:12,background:form.name.trim()?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",color:form.name.trim()?"#fff":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:15,letterSpacing:2,textTransform:"uppercase",cursor:form.name.trim()?"pointer":"default",minHeight:52,boxShadow:form.name.trim()?`0 6px 20px ${C.red}40`:"none"}}>
@@ -3257,21 +3268,12 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
 
   return (
     <div>
-      {/* Help & Support */}
-      <button onClick={onSupport} className="card-hover" style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px",marginBottom:16,cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:40,height:40,borderRadius:11,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🛟</div>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:C.text,letterSpacing:0.5}}>Need Help?</div>
-          <div style={{fontSize:12,color:C.textDim}}>Report a bug or ask a question — we reply by email</div>
-        </div>
-        <div style={{color:C.textDim,fontSize:16}}>›</div>
-      </button>
-
       {/* Team Settings Modal */}
       {showSettings && (
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
           <div style={{width:"100%",maxWidth:500,background:C.bg,borderRadius:"20px 20px 0 0",padding:"24px 20px 40px",boxShadow:"0 -8px 40px #000a",maxHeight:"85vh",overflowY:"auto"}}>
             <TeamSettingsPanel
+              onSupport={onSupport}
               teamData={teamData}
               teamName={teamName}
               onSave={(data)=>{onTeamSettingsSave(data);setShowSettings(false);}}
@@ -5430,7 +5432,7 @@ function ParentDrillLibrary({customDrills=[]}) {
 }
 
 // ─── PARENT VIEW ──────────────────────────────────────────────────────────────
-function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,dmChannel="",drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName="",canAccess=()=>true,customDrills=[]}) {
+function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,parentUserId,dmChannel="",onSupport=()=>{},drillVideos,skillSnapshots=[],playerVideos={},setPlayerVideos=()=>{},gamePlans={},lineups={},players=[],playerPhotos={},setPlayerPhotos=()=>{},onPhotoUpload=null,teamLogo=null,teamName="",canAccess=()=>true,customDrills=[]}) {
   const teamInitials = teamName
     ? teamName.split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join("")
     : "TC";
@@ -6082,6 +6084,16 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
           ))}
         </div>
       )}
+
+      {/* Help & Support */}
+      <button onClick={onSupport} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px",marginTop:16,cursor:"pointer",textAlign:"left"}}>
+        <div style={{width:36,height:36,borderRadius:10,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🛟</div>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,letterSpacing:0.5}}>Help & Support</div>
+          <div style={{fontSize:11,color:C.textDim}}>Report a bug or ask a question</div>
+        </div>
+        <div style={{color:C.textDim,fontSize:15}}>›</div>
+      </button>
     </div>
   );
 }
