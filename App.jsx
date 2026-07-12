@@ -13,7 +13,6 @@ const supabase = createClient(
 
 // ─── FOUNDER ADMIN + USAGE TRACKING ──────────────────────────────────────────
 const FOUNDER_ID = "75c3ef3c-789e-422f-a9b7-e3a0a82a6e3c";
-const LOADER_MIN_MS = 4500; // holds until the logo lands in the animation (~4.2s) plus a beat. Lower if it ever feels slow.
 const _trackedRecently = {};
 async function trackUsage(userId, teamId, feature) {
   try {
@@ -1097,260 +1096,21 @@ function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode, teamI
 
 // ─── LAUNCH SCREEN ────────────────────────────────────────────────────────────
 function LaunchScreen({ onDone }) {
-  const [phase, setPhase] = useState("pitch"); // "pitch" → "impact" → "reveal" → "out"
-  const [progress, setProgress] = useState(0);
-
+  // Rolling baseball intro video — holds until the logo lands (~4.2s), then hands off.
   useEffect(() => {
-    // Phase timeline
-    const t0 = setTimeout(() => setPhase("impact"), 600);   // ball lands
-    const t1 = setTimeout(() => setPhase("reveal"), 900);   // text reveals
-    const t2 = setTimeout(() => {
-      // Start progress bar
-      const start = Date.now();
-      const dur = 1200;
-      const raf = () => {
-        const p = Math.min((Date.now() - start) / dur, 1);
-        setProgress(p);
-        if (p < 1) requestAnimationFrame(raf);
-      };
-      requestAnimationFrame(raf);
-    }, 1000);
-    const t3 = setTimeout(() => setPhase("out"), 2600);
-    const t4 = setTimeout(() => onDone(), 3100);
-    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    const t = setTimeout(onDone, 4500);
+    return () => clearTimeout(t);
   }, []);
-
   return (
-    <div style={{
-      position:"fixed", inset:0, zIndex:9999,
-      background: C.bg,
-      display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center",
-      opacity: phase === "out" ? 0 : 1,
-      transition: phase === "out" ? "opacity 0.5s ease" : "none",
-      overflow:"hidden",
-    }}>
+    <div style={{position:"fixed",inset:0,background:C.bg,zIndex:9999,overflow:"hidden"}}>
       <style>{FONTS}</style>
-      <style>{`
-        @keyframes lsPitch {
-          0%   { opacity:0; transform: translate(320px, -200px) scale(0.3) rotate(0deg); }
-          60%  { opacity:1; transform: translate(40px, -30px) scale(0.7) rotate(540deg); }
-          85%  { transform: translate(-5px, 5px) scale(1.15) rotate(700deg); }
-          100% { transform: translate(0, 0) scale(1) rotate(720deg); }
-        }
-        @keyframes lsImpact {
-          0%   { transform: scale(0); opacity: 0.9; }
-          50%  { transform: scale(2.5); opacity: 0.4; }
-          100% { transform: scale(4); opacity: 0; }
-        }
-        @keyframes lsShake {
-          0%, 100% { transform: translate(0,0); }
-          15% { transform: translate(-6px, 3px); }
-          30% { transform: translate(5px, -4px); }
-          45% { transform: translate(-3px, 2px); }
-          60% { transform: translate(2px, -1px); }
-          75% { transform: translate(-1px, 1px); }
-        }
-        @keyframes lsFlash {
-          0%   { opacity: 0; }
-          15%  { opacity: 0.6; }
-          100% { opacity: 0; }
-        }
-        @keyframes lsShimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        @keyframes lsTextUp {
-          from { opacity:0; transform: translateY(20px) scale(0.95); }
-          to   { opacity:1; transform: translateY(0) scale(1); }
-        }
-        @keyframes lsLogoSettle {
-          0%   { transform: scale(1.15); filter: drop-shadow(0 0 40px rgba(232,25,44,0.8)); }
-          40%  { transform: scale(0.95); filter: drop-shadow(0 0 20px rgba(232,25,44,0.5)); }
-          70%  { transform: scale(1.02); }
-          100% { transform: scale(1); filter: drop-shadow(0 0 12px rgba(232,25,44,0.3)); }
-        }
-        @keyframes lsStitchSpin {
-          from { transform: rotate(720deg); }
-          to   { transform: rotate(720deg); }
-        }
-        @keyframes lsStreakLeft {
-          0%   { opacity:0; transform: translateX(60px); width: 0; }
-          30%  { opacity:0.7; }
-          100% { opacity:0; transform: translateX(-120px); width: 120px; }
-        }
-        @keyframes lsStreakRight {
-          0%   { opacity:0; transform: translateX(-60px); width: 0; }
-          30%  { opacity:0.7; }
-          100% { opacity:0; transform: translateX(120px); width: 120px; }
-        }
-        @keyframes lsProgressGlow {
-          0%, 100% { box-shadow: 0 0 6px rgba(232,25,44,0.5); }
-          50%      { box-shadow: 0 0 14px rgba(245,197,24,0.7); }
-        }
-        @keyframes lsDiamond {
-          0%   { opacity:0; transform: rotate(45deg) scale(0); }
-          50%  { opacity:0.15; transform: rotate(45deg) scale(1); }
-          100% { opacity:0; transform: rotate(45deg) scale(1.5); }
-        }
-      `}</style>
-
-      {/* Diagonal stripe overlay */}
-      <div style={{ position:"absolute", inset:0, background: C.stripe, pointerEvents:"none" }}/>
-
-      {/* Red top accent bar */}
-      <div style={{
-        position:"absolute", top:0, left:0, right:0, height:3,
-        background:`linear-gradient(90deg, ${C.red}, ${C.gold}, ${C.red})`,
-      }}/>
-
-      {/* Screen shake wrapper */}
-      <div style={{
-        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-        animation: phase === "impact" || phase === "reveal" ? "lsShake 0.4s ease both" : "none",
-        position:"relative",
-      }}>
-
-        {/* Impact shockwave ring */}
-        {(phase === "impact" || phase === "reveal") && (
-          <div style={{
-            position:"absolute", width:120, height:120, borderRadius:"50%",
-            border:`3px solid ${C.red}`,
-            animation: "lsImpact 0.6s ease-out both",
-            pointerEvents:"none",
-          }}/>
-        )}
-
-        {/* Impact flash */}
-        {(phase === "impact" || phase === "reveal") && (
-          <div style={{
-            position:"absolute", inset:-100,
-            background: `radial-gradient(circle at center, ${C.red}40 0%, transparent 60%)`,
-            animation: "lsFlash 0.5s ease both",
-            pointerEvents:"none",
-          }}/>
-        )}
-
-        {/* Diamond burst shapes */}
-        {(phase === "impact" || phase === "reveal") && [0,1,2,3].map(i => (
-          <div key={i} style={{
-            position:"absolute",
-            width: 60 + i * 20, height: 60 + i * 20,
-            border: `1px solid ${i % 2 === 0 ? C.red : C.gold}`,
-            animation: `lsDiamond 0.8s ${i * 0.1}s ease both`,
-            pointerEvents:"none",
-          }}/>
-        ))}
-
-        {/* Speed streaks on pitch */}
-        {phase === "pitch" && (
-          <>
-            <div style={{ position:"absolute", top:-20, right:0, height:2, background:`linear-gradient(90deg, transparent, ${C.red}60)`, animation:"lsStreakLeft 0.5s 0.1s ease both", pointerEvents:"none" }}/>
-            <div style={{ position:"absolute", top:10, right:-20, height:1.5, background:`linear-gradient(90deg, transparent, ${C.gold}50)`, animation:"lsStreakLeft 0.5s 0.2s ease both", pointerEvents:"none" }}/>
-            <div style={{ position:"absolute", top:-8, right:20, height:1, background:`linear-gradient(90deg, transparent, #fff3)`, animation:"lsStreakLeft 0.5s 0.05s ease both", pointerEvents:"none" }}/>
-          </>
-        )}
-
-        {/* Logo — flies in like a baseball */}
-        <div style={{
-          width:120, height:120, borderRadius:"50%",
-          background: "#fff",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          boxShadow: phase === "pitch"
-            ? `0 0 30px ${C.red}60, 0 0 60px ${C.red}30`
-            : `0 0 40px ${C.red}50, 0 0 80px ${C.red}20, inset 0 0 30px rgba(255,255,255,0.1)`,
-          animation: phase === "pitch"
-            ? "lsPitch 0.6s cubic-bezier(0.25,0.1,0.25,1) both"
-            : (phase === "impact" ? "lsLogoSettle 0.5s cubic-bezier(0.22,1,0.36,1) both" : "none"),
-          position:"relative", zIndex:2,
-          marginBottom:24,
-        }}>
-          <img src={LOGO} alt="logo" style={{
-            width:96, height:96, borderRadius:"50%", objectFit:"cover",
-          }}/>
-          {/* Baseball stitch glow ring */}
-          <div style={{
-            position:"absolute", inset:-4, borderRadius:"50%",
-            border:`2px solid ${C.red}60`,
-            boxShadow: `0 0 20px ${C.red}40`,
-            opacity: phase !== "pitch" ? 1 : 0,
-            transition: "opacity 0.3s ease",
-          }}/>
-        </div>
-
-        {/* Text content — reveals after impact */}
-        <div style={{
-          textAlign:"center",
-          opacity: phase === "reveal" || phase === "out" ? 1 : 0,
-          animation: phase === "reveal" ? "lsTextUp 0.5s cubic-bezier(0.22,1,0.36,1) both" : "none",
-        }}>
-          <div style={{
-            fontFamily:"Bebas Neue, sans-serif",
-            fontSize:38, letterSpacing:6,
-            color: C.text,
-            lineHeight:1,
-            textShadow:`0 2px 20px rgba(232,25,44,0.4), 0 0 40px rgba(232,25,44,0.15)`,
-          }}>COACHCONNECT</div>
-          <div style={{
-            fontFamily:"Bebas Neue, sans-serif",
-            fontSize:38, letterSpacing:8,
-            lineHeight:1,
-            background: `linear-gradient(90deg, ${C.red} 20%, ${C.gold} 50%, ${C.red} 80%)`,
-            backgroundSize: "200% auto",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            animation: "lsShimmer 2s 1s linear infinite",
-          }}>PRO</div>
-          <div style={{
-            fontFamily:"Barlow Condensed, sans-serif", fontWeight:700,
-            fontSize:11, letterSpacing:5,
-            color: C.textMid,
-            marginTop:10,
-            textTransform:"uppercase",
-          }}>Youth Baseball Development</div>
-        </div>
-
-        {/* Progress bar */}
-        <div style={{
-          width:180, height:3,
-          background:"rgba(255,255,255,0.06)",
-          borderRadius:3, overflow:"hidden",
-          marginTop:24,
-          opacity: phase === "reveal" || phase === "out" ? 1 : 0,
-          transition: "opacity 0.3s ease 0.2s",
-        }}>
-          <div style={{
-            height:"100%", borderRadius:3,
-            background:`linear-gradient(90deg, ${C.red}, ${C.gold}, ${C.red})`,
-            backgroundSize:"200% 100%",
-            width:`${progress * 100}%`,
-            transition:"width 0.05s linear",
-            animation: progress > 0 ? "lsProgressGlow 1.5s ease infinite" : "none",
-          }}/>
-        </div>
-      </div>
-
-      {/* Bottom tagline */}
-      <div style={{
-        position:"absolute", bottom:48,
-        fontFamily:"Barlow Condensed, sans-serif", fontWeight:700,
-        fontSize:10, letterSpacing:4,
-        color: C.textDim,
-        textTransform:"uppercase",
-        opacity: phase === "reveal" || phase === "out" ? 1 : 0,
-        transition: "opacity 0.4s ease 0.5s",
-      }}>⚾ Built for the game</div>
-
-      {/* Bottom accent bar */}
-      <div style={{
-        position:"absolute", bottom:0, left:0, right:0, height:2,
-        background:`linear-gradient(90deg, transparent, ${C.red}60, ${C.gold}60, transparent)`,
-      }}/>
+      <video autoPlay muted playsInline preload="auto" poster="/loader-poster.jpg" src="/baseball-loader.mp4"
+        style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",background:C.bg}}/>
     </div>
   );
 }
 
-// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+
 function AppInner() {
   const [session,  setSession]  = useState(null);   // Supabase session
   const [showSupport, setShowSupport] = useState(false); // Help & Support modal
@@ -1705,13 +1465,6 @@ function AppInner() {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [chatReports, setChatReports]   = useState([]);
   const [dataLoaded, setDataLoaded]   = useState(false);
-  const [minLoaderDone, setMinLoaderDone] = useState(false);
-  useEffect(()=>{
-    if(authReady && session && profile && !minLoaderDone){
-      const t = setTimeout(()=>setMinLoaderDone(true), LOADER_MIN_MS);
-      return ()=>clearTimeout(t);
-    }
-  },[authReady, session, profile]);
 
   // Keep a ref so DB functions always have the current profile
   const profileRef = useRef(null);
@@ -2199,15 +1952,13 @@ function AppInner() {
     </div>
   );
 
-  if (authReady && session && profile && (!dataLoaded || !minLoaderDone)) return (
-    <div style={{minHeight:"100vh",background:C.bg,position:"relative",overflow:"hidden"}}>
+  if (authReady && session && profile && !dataLoaded) return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <style>{FONTS}</style>
-      <video autoPlay muted loop playsInline preload="auto" poster="/loader-poster.jpg" src="/baseball-loader.mp4"
-        style={{position:"fixed",inset:0,width:"100%",height:"100%",objectFit:"cover",background:C.bg}}/>
-      <div style={{position:"fixed",left:0,right:0,bottom:"10%",textAlign:"center",zIndex:1,padding:"0 20px"}}>
-        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.text,marginBottom:8,textShadow:"0 2px 10px rgba(0,0,0,0.9)"}}>Loading Team Data…</div>
-        <div style={{fontSize:13,color:C.textMid,textShadow:"0 1px 6px rgba(0,0,0,0.9)"}}>Getting your roster, drills, and schedule</div>
-        <div style={{fontSize:12,color:C.textDim,marginTop:16,textShadow:"0 1px 6px rgba(0,0,0,0.9)"}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.teal,marginBottom:8}}>Loading Team Data…</div>
+        <div style={{fontSize:13,color:C.textDim}}>Getting your roster, drills, and schedule</div>
+        <div style={{fontSize:12,color:C.textDim,marginTop:16}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
       </div>
     </div>
   );
