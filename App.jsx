@@ -17,6 +17,7 @@ const _trackedRecently = {};
 async function trackUsage(userId, teamId, feature) {
   try {
     if (!userId || !feature) return;
+    if (userId === FOUNDER_ID) return; // don't track the founder — keeps analytics honest
     const now = Date.now();
     if (_trackedRecently[feature] && now - _trackedRecently[feature] < 60000) return;
     _trackedRecently[feature] = now;
