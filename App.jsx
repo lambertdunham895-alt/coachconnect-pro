@@ -2192,12 +2192,14 @@ function AppInner() {
   );
 
   if (authReady && session && profile && !dataLoaded) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{minHeight:"100vh",background:C.bg,position:"relative",overflow:"hidden"}}>
       <style>{FONTS}</style>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.teal,marginBottom:8}}>Loading Team Data…</div>
-        <div style={{fontSize:13,color:C.textDim}}>Getting your roster, drills, and schedule</div>
-        <div style={{fontSize:12,color:C.textDim,marginTop:16}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
+      <video autoPlay muted loop playsInline preload="auto" poster="/loader-poster.jpg" src="/baseball-loader.mp4"
+        style={{position:"fixed",inset:0,width:"100%",height:"100%",objectFit:"cover",background:C.bg}}/>
+      <div style={{position:"fixed",left:0,right:0,bottom:"10%",textAlign:"center",zIndex:1,padding:"0 20px"}}>
+        <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:3,color:C.text,marginBottom:8,textShadow:"0 2px 10px rgba(0,0,0,0.9)"}}>Loading Team Data…</div>
+        <div style={{fontSize:13,color:C.textMid,textShadow:"0 1px 6px rgba(0,0,0,0.9)"}}>Getting your roster, drills, and schedule</div>
+        <div style={{fontSize:12,color:C.textDim,marginTop:16,textShadow:"0 1px 6px rgba(0,0,0,0.9)"}}>If this takes too long, <button onClick={()=>window.location.reload()} style={{background:"none",border:"none",color:C.blue,cursor:"pointer",fontSize:12,fontFamily:"inherit",textDecoration:"underline",padding:0}}>tap here to reload</button></div>
       </div>
     </div>
   );
