@@ -1098,7 +1098,7 @@ function DrillVideoBlock({drillId, drillVideos, setDrillVideos, coachMode, teamI
 function LaunchScreen({ onDone }) {
   // Rolling baseball intro video — holds until the logo lands (~4.2s), then hands off.
   useEffect(() => {
-    const t = setTimeout(onDone, 4500);
+    const t = setTimeout(onDone, 5500);
     return () => clearTimeout(t);
   }, []);
   return (
