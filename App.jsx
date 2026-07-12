@@ -13,7 +13,7 @@ const supabase = createClient(
 
 // ─── FOUNDER ADMIN + USAGE TRACKING ──────────────────────────────────────────
 const FOUNDER_ID = "75c3ef3c-789e-422f-a9b7-e3a0a82a6e3c";
-const LOADER_MIN_MS = 6000; // minimum loading-screen time — full baseball animation. Lower (e.g. 2500) if it ever feels slow.
+const LOADER_MIN_MS = 4500; // holds until the logo lands in the animation (~4.2s) plus a beat. Lower if it ever feels slow.
 const _trackedRecently = {};
 async function trackUsage(userId, teamId, feature) {
   try {
