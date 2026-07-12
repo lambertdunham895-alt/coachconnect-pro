@@ -13,6 +13,7 @@ const supabase = createClient(
 
 // ─── FOUNDER ADMIN + USAGE TRACKING ──────────────────────────────────────────
 const FOUNDER_ID = "75c3ef3c-789e-422f-a9b7-e3a0a82a6e3c";
+const LOADER_MIN_MS = 6000; // minimum loading-screen time — full baseball animation. Lower (e.g. 2500) if it ever feels slow.
 const _trackedRecently = {};
 async function trackUsage(userId, teamId, feature) {
   try {
@@ -1704,6 +1705,13 @@ function AppInner() {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [chatReports, setChatReports]   = useState([]);
   const [dataLoaded, setDataLoaded]   = useState(false);
+  const [minLoaderDone, setMinLoaderDone] = useState(false);
+  useEffect(()=>{
+    if(authReady && session && profile && !minLoaderDone){
+      const t = setTimeout(()=>setMinLoaderDone(true), LOADER_MIN_MS);
+      return ()=>clearTimeout(t);
+    }
+  },[authReady, session, profile]);
 
   // Keep a ref so DB functions always have the current profile
   const profileRef = useRef(null);
@@ -2191,7 +2199,7 @@ function AppInner() {
     </div>
   );
 
-  if (authReady && session && profile && !dataLoaded) return (
+  if (authReady && session && profile && (!dataLoaded || !minLoaderDone)) return (
     <div style={{minHeight:"100vh",background:C.bg,position:"relative",overflow:"hidden"}}>
       <style>{FONTS}</style>
       <video autoPlay muted loop playsInline preload="auto" poster="/loader-poster.jpg" src="/baseball-loader.mp4"
