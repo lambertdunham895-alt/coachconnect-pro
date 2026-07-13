@@ -2416,6 +2416,10 @@ function NavIcon({id, size=20}) {
     plans:    <><path {...p} d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline {...p} points="14 2 14 8 20 8"/><line {...p} x1="16" y1="13" x2="8" y2="13"/><line {...p} x1="16" y1="17" x2="8" y2="17"/></>,
     msgs:     <path {...p} d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z"/>,
     admin:    <><line {...p} x1="18" y1="20" x2="18" y2="10"/><line {...p} x1="12" y1="20" x2="12" y2="4"/><line {...p} x1="6" y1="20" x2="6" y2="14"/></>,
+    report:   <><path {...p} d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect {...p} x="8" y="2" width="8" height="4" rx="1"/><line {...p} x1="9" y1="12" x2="15" y2="12"/><line {...p} x1="9" y1="16" x2="13" y2="16"/></>,
+    stats:    <><line {...p} x1="18" y1="20" x2="18" y2="10"/><line {...p} x1="12" y1="20" x2="12" y2="4"/><line {...p} x1="6" y1="20" x2="6" y2="14"/></>,
+    baseball: <><circle {...p} cx="12" cy="12" r="10"/><path {...p} d="M6.2 4.5a14.5 14.5 0 0 1 0 15"/><path {...p} d="M17.8 4.5a14.5 14.5 0 0 0 0 15"/></>,
+    library:  <><path {...p} d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path {...p} d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24">{icons[id]||null}</svg>;
 }
@@ -5335,12 +5339,12 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
   };
 
   const sections=[
-    {id:"report",  icon:"📋", label:"Report"},
-    {id:"stats",   icon:"📊", label:"Stats"},
-    {id:"drills",  icon:"⚾", label:"Drills"},
-    {id:"library", icon:"📚", label:"Library"},
-    {id:"schedule",label:"Schedule"},
-    {id:"chat",    label:"Chat", badge:unread},
+    {id:"report",  ic:"report",   label:"Report"},
+    {id:"stats",   ic:"stats",    label:"Stats"},
+    {id:"drills",  ic:"baseball", label:"Drills"},
+    {id:"library", ic:"library",  label:"Library"},
+    {id:"schedule",ic:"schedule", label:"Schedule"},
+    {id:"chat",    ic:"msgs",     label:"Chat", badge:unread},
   ];
 
   return (
@@ -5423,7 +5427,7 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
               style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.15s,transform 0.15s"}}>
               {active&&<div style={{position:"absolute",top:0,left:"10%",right:"10%",height:2,background:`linear-gradient(90deg,transparent,${C.red},transparent)`,borderRadius:"0 0 4px 4px"}}/>}
               <div style={{position:"relative"}}>
-                <span style={{fontSize:16,filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-block"}}>{s.icon}</span>
+                <span style={{filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-flex"}}><NavIcon id={s.ic}/></span>
                 {s.badge>0&&<div className="badge-pulse" style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{s.badge>9?"9+":s.badge}</div>}
               </div>
               <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,textTransform:"uppercase"}}>{s.label}</span>
