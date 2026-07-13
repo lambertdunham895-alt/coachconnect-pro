@@ -925,47 +925,51 @@ function Tip({text, inline}) {
 // ── New Coach Welcome Card ────────────────────────────────────────────────────
 const COACH_PAGE_TIPS = {
   home: {
-    icon:"🏠", title:"Welcome to your Coach Dashboard",
+    icon:"\U0001F3E0", title:"Welcome to your Coach Dashboard",
     tips:[
       "Your team's drill progress and upcoming events live here at a glance.",
       "The gold alert card appears when a player completes a drill and needs your review.",
       "Tap any player's name in Drill Progress to jump straight to their profile.",
+      "Need a hand? Tap the gear icon, then Help & Support — we reply by email.",
     ]
   },
   roster: {
-    icon:"👥", title:"Managing Your Roster",
+    icon:"\U0001F465", title:"Managing Your Roster",
     tips:[
-      "Tap '+ Add Player' to add a new player — include their parents' contact info so they can be invited.",
+      "Fastest way to build your roster: tap SCAN and snap a photo of your sign-up sheet — AI reads names, numbers, and parent contacts for you.",
+      "Or tap '+ Add Player' to add players one at a time — include parent contact info so they can be invited.",
       "Tap a player's card to open their full profile: drills, progress, goals and badges.",
-      "You can edit player details, position, jersey number and batting/throwing hand anytime.",
     ]
   },
   drills: {
-    icon:"🏋️", title:"Assigning Drills",
+    icon:"\U0001F3CB\uFE0F", title:"Assigning Drills",
     tips:[
       "Browse the drill library by category, then tap a player's name to assign it to them.",
+      "Attach a demo video to any drill so players can see exactly how it's done.",
       "Parents see assigned drills instantly and can mark them complete from their view.",
       "When a player uploads a practice video it shows up in your Needs Review queue — watch it and send feedback.",
     ]
   },
   schedule: {
-    icon:"📅", title:"Schedule & Events",
+    icon:"\U0001F4C5", title:"Schedule & Events",
     tips:[
-      "Add practices and games with '+ Add Event' — parents see upcoming events automatically.",
+      "Got a printed league schedule? Tap SCAN, snap a photo, and import the whole season at once.",
+      "Or add practices and games one at a time with '+ Add Event' — parents see upcoming events automatically.",
       "Tap any game to open the Game Plan and set your lineup and field positions.",
       "Once you mark a lineup as shared, parents and players can see their batting slot and position.",
     ]
   },
   msgs: {
-    icon:"💬", title:"Messaging Parents",
+    icon:"\U0001F4AC", title:"Messaging Parents",
     tips:[
       "Team Chat goes to every parent at once — great for announcements and cancellations.",
       "Each parent also has a private DM channel for one-on-one conversations.",
+      "Press and hold any message to react with an emoji.",
       "Use 'Message All Parents' to broadcast the same message to every parent DM simultaneously.",
     ]
   },
   plans: {
-    icon:"📝", title:"Practice Plans",
+    icon:"\U0001F4DD", title:"Practice Plans",
     tips:[
       "Choose from pre-built 90-minute plans or create your own from scratch.",
       "Each plan has a built-in timer — tap 'Start Timer' to run your practice block by block.",
@@ -975,7 +979,7 @@ const COACH_PAGE_TIPS = {
 };
 
 function NewCoachCard({page="home", setTab}) {
-  const storageKey = `ccp_tips_dismissed_${page}`;
+  const storageKey = `ccp_tips_dismissed_v2_${page}`;
   const [dismissed, setDismissed] = useState(()=>{try{return localStorage.getItem(storageKey)==='true'}catch(e){return false}});
   const [expanded,  setExpanded]  = useState(false);
   const tip = COACH_PAGE_TIPS[page] || COACH_PAGE_TIPS.home;
