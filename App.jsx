@@ -925,7 +925,7 @@ function Tip({text, inline}) {
 // ── New Coach Welcome Card ────────────────────────────────────────────────────
 const COACH_PAGE_TIPS = {
   home: {
-    icon:"\U0001F3E0", title:"Welcome to your Coach Dashboard",
+    title:"Welcome to your Coach Dashboard",
     tips:[
       "Your team's drill progress and upcoming events live here at a glance.",
       "The gold alert card appears when a player completes a drill and needs your review.",
@@ -934,7 +934,7 @@ const COACH_PAGE_TIPS = {
     ]
   },
   roster: {
-    icon:"\U0001F465", title:"Managing Your Roster",
+    title:"Managing Your Roster",
     tips:[
       "Fastest way to build your roster: tap SCAN and snap a photo of your sign-up sheet — AI reads names, numbers, and parent contacts for you.",
       "Or tap '+ Add Player' to add players one at a time — include parent contact info so they can be invited.",
@@ -942,7 +942,7 @@ const COACH_PAGE_TIPS = {
     ]
   },
   drills: {
-    icon:"\U0001F3CB\uFE0F", title:"Assigning Drills",
+    title:"Assigning Drills",
     tips:[
       "Browse the drill library by category, then tap a player's name to assign it to them.",
       "Attach a demo video to any drill so players can see exactly how it's done.",
@@ -951,7 +951,7 @@ const COACH_PAGE_TIPS = {
     ]
   },
   schedule: {
-    icon:"\U0001F4C5", title:"Schedule & Events",
+    title:"Schedule & Events",
     tips:[
       "Got a printed league schedule? Tap SCAN, snap a photo, and import the whole season at once.",
       "Or add practices and games one at a time with '+ Add Event' — parents see upcoming events automatically.",
@@ -960,7 +960,7 @@ const COACH_PAGE_TIPS = {
     ]
   },
   msgs: {
-    icon:"\U0001F4AC", title:"Messaging Parents",
+    title:"Messaging Parents",
     tips:[
       "Team Chat goes to every parent at once — great for announcements and cancellations.",
       "Each parent also has a private DM channel for one-on-one conversations.",
@@ -969,7 +969,7 @@ const COACH_PAGE_TIPS = {
     ]
   },
   plans: {
-    icon:"\U0001F4DD", title:"Practice Plans",
+    title:"Practice Plans",
     tips:[
       "Choose from pre-built 90-minute plans or create your own from scratch.",
       "Each plan has a built-in timer — tap 'Start Timer' to run your practice block by block.",
@@ -988,7 +988,6 @@ function NewCoachCard({page="home", setTab}) {
   return (
     <div className="fade-up" style={{background:`linear-gradient(135deg,#0a1f12,${C.card})`,border:`1px solid ${C.teal}40`,borderRadius:16,marginBottom:16,overflow:"hidden",boxShadow:`0 4px 24px ${C.teal}15`}}>
       <button onClick={()=>setExpanded(e=>!e)} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left"}}>
-        <div style={{fontSize:22,flexShrink:0}}>{tip.icon}</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:15,color:C.teal,letterSpacing:0.5}}>{tip.title}</div>
           <div style={{fontSize:12,color:C.textDim,marginTop:1}}>Tap to see quick tips for this page</div>
@@ -2259,7 +2258,7 @@ function SupportModal({session, profile, onClose}) {
       // Notify the founder's devices — fire and forget
       supabase.functions.invoke("send-notification", { body: {
         user_id: FOUNDER_ID,
-        title: "\ud83d\udee5 New Support Ticket",
+        title: "New Support Ticket",
         body: (profile?.full_name||session?.user?.email||"Someone") + ": " + subject.trim(),
         tag: "support",
         url: "/"
@@ -2275,7 +2274,6 @@ function SupportModal({session, profile, onClose}) {
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:3,color:C.text,marginBottom:4}}>Help & Support</div>
         {done ? (
           <div style={{textAlign:"center",padding:"24px 0"}}>
-            <div style={{fontSize:40,marginBottom:10}}>&#9989;</div>
             <div style={{color:C.text,fontSize:15,marginBottom:6,fontWeight:600}}>Message sent!</div>
             <div style={{color:C.textMid,fontSize:13,marginBottom:18}}>We'll get back to you at {session?.user?.email||"your email"} as soon as possible.</div>
             <button onClick={onClose} style={{padding:"12px 28px",borderRadius:10,border:"none",background:C.red,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}>Done</button>
@@ -2410,11 +2408,11 @@ function AdminPanel({session}) {
 function BottomNav({tab,setTab,totalUnread,isFounder=false}) {
   const items = [
     {id:"home",     icon:"▦",  label:"Home"},
-    {id:"roster",   icon:"👥", label:"Roster"},
-    {id:"schedule", icon:"📅", label:"Schedule"},
+    {id:"roster",   label:"Roster"},
+    {id:"schedule", label:"Schedule"},
     {id:"drills",   icon:"📋", label:"Drills"},
-    {id:"plans",    icon:"📝", label:"Practice"},
-    {id:"msgs",     icon:"💬", label:"Chat"},
+    {id:"plans",    label:"Practice"},
+    {id:"msgs",     label:"Chat"},
   ];
   if(isFounder) items.push({id:"admin", icon:"📊", label:"Admin"});
 
@@ -2941,7 +2939,6 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSuppor
 
       {/* Help & Support */}
       <button onClick={onSupport} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:C.cardAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginTop:20,cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:36,height:36,borderRadius:10,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🛟</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,letterSpacing:0.5}}>Help & Support</div>
           <div style={{fontSize:11,color:C.textDim}}>Report a bug or ask a question</div>
@@ -3016,7 +3013,7 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
       const label = e.type==="game"
         ? `Game${e.opponent?` vs. ${e.opponent}`:""} added to schedule`
         : `Practice added to schedule`;
-      items.push({ key:`ev-${e.id}`, order:250-i, icon:"📅", color:C.blue, title:label, tab:"schedule" });
+      items.push({ key:`ev-${e.id}`, order:250-i, color:C.blue, title:label, tab:"schedule" });
     });
     // Newest drill assignments, grouped by drill (not player-specific)
     const seenDrills = new Set();
@@ -5327,8 +5324,8 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     {id:"stats",   icon:"📊", label:"Stats"},
     {id:"drills",  icon:"⚾", label:"Drills"},
     {id:"library", icon:"📚", label:"Library"},
-    {id:"schedule",icon:"📅", label:"Schedule"},
-    {id:"chat",    icon:"💬", label:"Chat", badge:unread},
+    {id:"schedule",label:"Schedule"},
+    {id:"chat",    label:"Chat", badge:unread},
   ];
 
   return (
@@ -5861,7 +5858,6 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
 
       {/* Help & Support */}
       <button onClick={onSupport} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px",marginTop:16,cursor:"pointer",textAlign:"left"}}>
-        <div style={{width:36,height:36,borderRadius:10,background:`${C.blue}20`,border:`1px solid ${C.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🛟</div>
         <div style={{flex:1}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,letterSpacing:0.5}}>Help & Support</div>
           <div style={{fontSize:11,color:C.textDim}}>Report a bug or ask a question</div>
@@ -6491,11 +6487,11 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
   };
 
   const FEATURES = [
-    { icon:"🏋️", label:"Full Drill Library", sub:"69 pro drills across 9 categories" },
+    { label:"Full Drill Library", sub:"69 pro drills across 9 categories" },
     { icon:"📈", label:"Progress Tracking", sub:"Skill charts, streaks & snapshots" },
     { icon:"📋", label:"Game Builder",    sub:"Batting order & field positions" },
-    { icon:"💬", label:"Team Messaging",    sub:"Group chat & parent DMs" },
-    { icon:"📅", label:"Schedule Manager",  sub:"Games, practices & RSVP" },
+    { label:"Team Messaging",    sub:"Group chat & parent DMs" },
+    { label:"Schedule Manager",  sub:"Games, practices & RSVP" },
     { icon:"🎬", label:"Video per Drill",   sub:"Attach YouTube or any video link" },
   ];
 
@@ -6888,7 +6884,7 @@ const BADGES = [
     check:(p,asgn,snaps,streak)=>streak>=7 },
   { id:"drills10",      icon:"💪", name:"10 Drills Done",    desc:"Completed 10 total drills",           color:"#1e7bd4",
     check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=10 },
-  { id:"drills25",      icon:"🏋️", name:"Grinder",           desc:"Completed 25 total drills",           color:"#1e7bd4",
+  { id:"drills25",      name:"Grinder",           desc:"Completed 25 total drills",           color:"#1e7bd4",
     check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=25 },
   { id:"allstar_rating",icon:"⭐", name:"All-Star",          desc:"Any skill rated Excellent by coach",   color:"#f5c518",
     check:(p,asgn,snaps)=>snaps.filter(s=>s.playerId===p.id).some(s=>Object.values(s.rubric||{}).some(r=>r>=4)) },
@@ -6900,7 +6896,7 @@ const BADGES = [
     check:(p,asgn)=>{const cats=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed).map(a=>{const d=findDrill(a.drillId);return d?.category;}));return cats.size>=4;} },
   { id:"team_player",   icon:"🤝", name:"Team Player",       desc:"Part of a scheduled game",            color:"#06b6d4",
     check:(p,asgn,snaps,streak,events)=>(events||[]).filter(e=>e.type==="game").length>=1 },
-  { id:"consistency",   icon:"📅", name:"Consistent",        desc:"Completed drills in 3 different weeks", color:"#ec4899",
+  { id:"consistency",   name:"Consistent",        desc:"Completed drills in 3 different weeks", color:"#ec4899",
     check:(p,asgn)=>{const weeks=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed&&a.assignedDate).map(a=>{const d=new Date(a.assignedDate+"T12:00:00");const jan=new Date(d.getFullYear(),0,1);return Math.ceil(((d-jan)/86400000+jan.getDay()+1)/7);}));return weeks.size>=3;} },
   { id:"overachiever",  icon:"🏆", name:"Overachiever",      desc:"Earned 5+ other badges",              color:"#f5c518",
     check:()=>false }, // computed after others
