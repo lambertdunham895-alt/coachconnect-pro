@@ -2405,16 +2405,31 @@ function AdminPanel({session}) {
   );
 }
 
+// ─── NAV ICONS (clean line style) ────────────────────────────────────────────
+function NavIcon({id, size=20}) {
+  const p = {fill:"none", stroke:"currentColor", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round"};
+  const icons = {
+    home:     <><path {...p} d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline {...p} points="9 22 9 12 15 12 15 22"/></>,
+    roster:   <><path {...p} d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle {...p} cx="9" cy="7" r="4"/><path {...p} d="M23 21v-2a4 4 0 0 0-3-3.87"/><path {...p} d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    schedule: <><rect {...p} x="3" y="4" width="18" height="18" rx="2"/><line {...p} x1="16" y1="2" x2="16" y2="6"/><line {...p} x1="8" y1="2" x2="8" y2="6"/><line {...p} x1="3" y1="10" x2="21" y2="10"/></>,
+    drills:   <><path {...p} d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect {...p} x="8" y="2" width="8" height="4" rx="1"/><line {...p} x1="12" y1="11" x2="16" y2="11"/><line {...p} x1="12" y1="16" x2="16" y2="16"/><line {...p} x1="8" y1="11" x2="8.01" y2="11"/><line {...p} x1="8" y1="16" x2="8.01" y2="16"/></>,
+    plans:    <><path {...p} d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline {...p} points="14 2 14 8 20 8"/><line {...p} x1="16" y1="13" x2="8" y2="13"/><line {...p} x1="16" y1="17" x2="8" y2="17"/></>,
+    msgs:     <path {...p} d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 1 1 16.1-3.8z"/>,
+    admin:    <><line {...p} x1="18" y1="20" x2="18" y2="10"/><line {...p} x1="12" y1="20" x2="12" y2="4"/><line {...p} x1="6" y1="20" x2="6" y2="14"/></>,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24">{icons[id]||null}</svg>;
+}
+
 function BottomNav({tab,setTab,totalUnread,isFounder=false}) {
   const items = [
-    {id:"home",     icon:"▦",  label:"Home"},
+    {id:"home",     label:"Home"},
     {id:"roster",   label:"Roster"},
     {id:"schedule", label:"Schedule"},
-    {id:"drills",   icon:"📋", label:"Drills"},
+    {id:"drills",   label:"Drills"},
     {id:"plans",    label:"Practice"},
     {id:"msgs",     label:"Chat"},
   ];
-  if(isFounder) items.push({id:"admin", icon:"📊", label:"Admin"});
+  if(isFounder) items.push({id:"admin", label:"Admin"});
 
   return (
     <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:100,background:`${C.bg}f2`,backdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",paddingBottom:"env(safe-area-inset-bottom)",height:"calc(66px + env(safe-area-inset-bottom))"}}>
@@ -2429,7 +2444,7 @@ function BottomNav({tab,setTab,totalUnread,isFounder=false}) {
             style={{flex:1,background:"none",border:"none",color:active?C.red:C.textDim,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,cursor:"pointer",position:"relative",transition:"color 0.15s,transform 0.15s"}}>
             {active&&<div style={{position:"absolute",top:0,left:"10%",right:"10%",height:2,background:`linear-gradient(90deg,transparent,${C.red},transparent)`,borderRadius:"0 0 4px 4px"}}/>}
             <div style={{position:"relative"}}>
-              <span style={{fontSize:16,filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-block"}}>{item.icon}</span>
+              <span style={{filter:active?`drop-shadow(0 0 8px ${C.red}bb)`:"none",transition:"filter 0.2s",transform:active?"scale(1.1)":"scale(1)",display:"inline-flex"}}><NavIcon id={item.id}/></span>
               {badge&&<div className="badge-pulse" style={{position:"absolute",top:-4,right:-6,width:16,height:16,borderRadius:"50%",background:C.red,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,color:"#fff"}}>{totalUnread>9?"9+":totalUnread}</div>}
             </div>
             <span style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:8,letterSpacing:1,textTransform:"uppercase"}}>{item.label}</span>
