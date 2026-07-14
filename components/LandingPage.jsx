@@ -101,6 +101,9 @@ function LandingPage({onAuth}) {
         </div>
         {/* Content overlay */}
         <div style={{position:"relative",zIndex:2,padding:"60px 20px 56px",maxWidth:880,margin:"0 auto",minHeight:520,display:"flex",flexDirection:"column",justifyContent:"flex-end",textAlign:"center"}}>
+          <div className="fade-up-1" style={{marginBottom:16}}>
+            <img src="/logo-full.webp" alt="CoachConnect Pro" style={{width:"min(60vw, 280px)",height:"auto",display:"block",margin:"0 auto",filter:"drop-shadow(0 12px 32px rgba(0,0,0,0.6))"}}/>
+          </div>
           <div className="fade-up-1"><Eyebrow color={C.gold}>Built for Youth Baseball Coaches</Eyebrow></div>
           <div className="fade-up-2" style={{fontFamily:"Bebas Neue, sans-serif",fontSize:56,letterSpacing:1,color:"#fff",lineHeight:1,marginBottom:20,textShadow:"0 4px 24px rgba(0,0,0,0.7)"}}>
             One App.<br/>
