@@ -2239,12 +2239,58 @@ function TopBar({title,sub,onBack,backLabel,onLogout,trialBadge,onUpgrade}) {
 
 // ─── BOTTOM NAV ──────────────────────────────────────────────────────────────
 
+// Resize/compress an image File to a JPEG blob so support-screenshot uploads stay small
+function compressImage(file, maxDim=1400, quality=0.8){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let width=img.width, height=img.height;
+      if(width>maxDim||height>maxDim){
+        if(width>=height){ height=Math.round(height*maxDim/width); width=maxDim; }
+        else { width=Math.round(width*maxDim/height); height=maxDim; }
+      }
+      const canvas=document.createElement("canvas");
+      canvas.width=width; canvas.height=height;
+      canvas.getContext("2d").drawImage(img,0,0,width,height);
+      canvas.toBlob(b=>{ b?resolve(b):reject(new Error("compress failed")); }, "image/jpeg", quality);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+    img.src=url;
+  });
+}
+
 // ─── SUPPORT MODAL (users send help requests to the founder inbox) ───────────
 function SupportModal({session, profile, onClose}) {
   const [subject,setSubject]=useState("");
   const [message,setMessage]=useState("");
   const [sending,setSending]=useState(false);
   const [done,setDone]=useState(false);
+  const [shots,setShots]=useState([]); // {id, preview, url, uploading, error}
+  const uid = session?.user?.id;
+  const addFiles = async (fileList) => {
+    const files = Array.from(fileList||[]).slice(0, 3 - shots.length);
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+      const id = Math.random().toString(36).slice(2);
+      const preview = URL.createObjectURL(file);
+      setShots(prev=>[...prev,{id,preview,url:null,uploading:true,error:false}]);
+      try {
+        const blob = await compressImage(file);
+        const path = `${uid||"anon"}_${Date.now()}_${id}.jpg`;
+        const {error} = await supabase.storage.from("support-screenshots").upload(path, blob, {upsert:true, contentType:"image/jpeg"});
+        if (error) throw error;
+        const {data:{publicUrl}} = supabase.storage.from("support-screenshots").getPublicUrl(path);
+        setShots(prev=>prev.map(s=>s.id===id?{...s,url:publicUrl,uploading:false}:s));
+      } catch(err) {
+        console.error("screenshot upload failed", err);
+        setShots(prev=>prev.map(s=>s.id===id?{...s,uploading:false,error:true}:s));
+      }
+    }
+  };
+  const removeShot = (id) => setShots(prev=>prev.filter(s=>s.id!==id));
+  const anyUploading = shots.some(s=>s.uploading);
   const submit=async()=>{
     if(!subject.trim()||!message.trim())return;
     setSending(true);
@@ -2252,7 +2298,8 @@ function SupportModal({session, profile, onClose}) {
       const {error}=await supabase.from("support_tickets").insert({
         user_id:session?.user?.id, team_id:profile?.team_id||null,
         email:session?.user?.email||"", name:profile?.full_name||"",
-        subject:subject.trim(), message:message.trim()
+        subject:subject.trim(), message:message.trim(),
+        screenshot_urls: shots.filter(s=>s.url).map(s=>s.url)
       });
       if(error)throw error;
       // Notify the founder's devices — fire and forget
@@ -2283,8 +2330,28 @@ function SupportModal({session, profile, onClose}) {
             <div style={{color:C.textMid,fontSize:13,marginBottom:16}}>Found a bug? Have a question? Send us a message and we'll reply by email.</div>
             <input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="What do you need help with?" style={{...inpStyle,marginBottom:10}}/>
             <textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Tell us what's going on..." rows={5} style={{...inpStyle,resize:"vertical",marginBottom:14,fontFamily:"inherit"}}/>
+            {/* Screenshot attachments (optional) */}
+            <div style={{marginBottom:14}}>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:shots.length?10:0}}>
+                {shots.map(s=>(
+                  <div key={s.id} style={{position:"relative",width:64,height:64,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`,background:C.cardAlt}}>
+                    <img src={s.preview} alt="" style={{width:"100%",height:"100%",objectFit:"cover",opacity:s.uploading?0.4:1}}/>
+                    {s.uploading && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:C.text}}>…</div>}
+                    {s.error && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:C.red,textAlign:"center",padding:2}}>failed</div>}
+                    <button onClick={()=>removeShot(s.id)} style={{position:"absolute",top:2,right:2,width:18,height:18,borderRadius:9,border:"none",background:"rgba(0,0,0,0.7)",color:"#fff",fontSize:13,lineHeight:"18px",padding:0,cursor:"pointer"}}>×</button>
+                  </div>
+                ))}
+              </div>
+              {shots.length<3 && (
+                <label style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 14px",borderRadius:9,border:`1px dashed ${C.border}`,background:"transparent",color:C.textMid,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  Add screenshot
+                  <input type="file" accept="image/*" multiple onChange={e=>{addFiles(e.target.files); e.target.value="";}} style={{display:"none"}}/>
+                </label>
+              )}
+            </div>
             <div style={{display:"flex",gap:10}}>
-              <button onClick={submit} disabled={sending||!subject.trim()||!message.trim()} style={{flex:1,padding:"13px",borderRadius:10,border:"none",background:sending?C.textDim:C.red,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:(!subject.trim()||!message.trim())?0.5:1}}>{sending?"Sending...":"Send Message"}</button>
+              <button onClick={submit} disabled={sending||anyUploading||!subject.trim()||!message.trim()} style={{flex:1,padding:"13px",borderRadius:10,border:"none",background:(sending||anyUploading)?C.textDim:C.red,color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer",opacity:(!subject.trim()||!message.trim())?0.5:1}}>{sending?"Sending...":anyUploading?"Uploading…":"Send Message"}</button>
               <button onClick={onClose} style={{padding:"13px 18px",borderRadius:10,border:`1px solid ${C.border}`,background:"transparent",color:C.textMid,fontWeight:600,fontSize:14,cursor:"pointer"}}>Cancel</button>
             </div>
           </>
@@ -2347,6 +2414,15 @@ function AdminPanel({session}) {
       </div>
       <div style={{fontSize:12,color:C.textMid,marginBottom:8}}>{t.name||"Unknown"} · {t.email||"no email"}</div>
       <div style={{fontSize:13,color:C.text,lineHeight:1.5,marginBottom:12,whiteSpace:"pre-wrap"}}>{t.message}</div>
+      {Array.isArray(t.screenshot_urls) && t.screenshot_urls.length>0 && (
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>
+          {t.screenshot_urls.map((u,i)=>(
+            <a key={i} href={u} target="_blank" rel="noreferrer" style={{display:"block",width:72,height:72,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+              <img src={u} alt={"screenshot "+(i+1)} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            </a>
+          ))}
+        </div>
+      )}
       <div style={{display:"flex",gap:8}}>
         {t.email && <a href={`mailto:${t.email}?subject=${encodeURIComponent("Re: "+t.subject+" — CoachConnect Pro Support")}`} style={{flex:1,textAlign:"center",padding:"10px",borderRadius:9,background:`${C.blue}22`,border:`1px solid ${C.blue}55`,color:C.blue,fontWeight:700,fontSize:12,textDecoration:"none"}}>Reply by Email</a>}
         {t.status==="open"
