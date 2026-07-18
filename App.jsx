@@ -4160,7 +4160,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       {/* ── INFO TAB (always shown for practice; tab for game) ── */}
       {(!isGame||formTab==="info")&&(
         <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:12}}>
             <Inp label="Date" value={form.date} type="date" onChange={e=>ff("date",e.target.value)}/>
             <Inp label="Time" value={form.time} onChange={e=>ff("time",e.target.value)} placeholder="5:30 PM"/>
           </div>
@@ -4484,9 +4484,9 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
                         </select>
                         <button onClick={()=>removeScannedEvent(ev._localId)} style={{marginLeft:"auto",background:"transparent",border:"none",color:C.red+"99",fontSize:16,cursor:"pointer",padding:4}}>🗑</button>
                       </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                        <input type="date" value={ev.date} onChange={e=>updateScannedEvent(ev._localId,"date",e.target.value)} style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={ev.time} onChange={e=>updateScannedEvent(ev._localId,"time",e.target.value)} placeholder="5:30 PM" style={{padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                      <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)",gap:8,marginBottom:8}}>
+                        <input type="date" value={ev.date} onChange={e=>updateScannedEvent(ev._localId,"date",e.target.value)} style={{width:"100%",minWidth:0,boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
+                        <input value={ev.time} onChange={e=>updateScannedEvent(ev._localId,"time",e.target.value)} placeholder="5:30 PM" style={{width:"100%",minWidth:0,boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
                       </div>
                       {ev.type==="game" && <input value={ev.opponent} onChange={e=>updateScannedEvent(ev._localId,"opponent",e.target.value)} placeholder="Opponent" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>}
                       <input value={ev.fieldName} onChange={e=>updateScannedEvent(ev._localId,"fieldName",e.target.value)} placeholder="Field / Location" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
