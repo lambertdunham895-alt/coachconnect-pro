@@ -2501,6 +2501,8 @@ function NavIcon({id, size=20}) {
     clock:    <><circle {...p} cx="12" cy="12" r="10"/><polyline {...p} points="12 6 12 12 16 14"/></>,
     flame:    <path {...p} d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>,
     tag:      <><path {...p} d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><line {...p} x1="7" y1="7" x2="7.01" y2="7"/></>,
+    check:    <polyline {...p} points="20 6 9 17 4 12"/>,
+    flag:     <><path {...p} d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line {...p} x1="4" y1="22" x2="4" y2="15"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24">{icons[id]||null}</svg>;
 }
@@ -3100,12 +3102,12 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
     const items = [];
     // Newest players (tail of array = most recently added)
     players.slice(-4).reverse().forEach((p,i)=>{
-      items.push({ key:`pl-${p.id}`, order:300-i, icon:"👤", color:C.red,
+      items.push({ key:`pl-${p.id}`, order:300-i, iconId:"roster", color:C.red,
         title:`${p.name} was added to the roster`, tab:"roster" });
     });
     // Newest practice plans
     customPlans.slice(-4).reverse().forEach((p,i)=>{
-      items.push({ key:`cp-${p.id}`, order:200-i, icon:"📋", color:C.gold,
+      items.push({ key:`cp-${p.id}`, order:200-i, iconId:"plans", color:C.gold,
         title:`Practice plan "${p.title||'Untitled'}" created`, tab:"plans" });
     });
     // Newest scheduled events (events ordered by date asc; tail = latest date)
@@ -3113,7 +3115,7 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
       const label = e.type==="game"
         ? `Game${e.opponent?` vs. ${e.opponent}`:""} added to schedule`
         : `Practice added to schedule`;
-      items.push({ key:`ev-${e.id}`, order:250-i, color:C.blue, title:label, tab:"schedule" });
+      items.push({ key:`ev-${e.id}`, order:250-i, iconId:"schedule", color:C.blue, title:label, tab:"schedule" });
     });
     // Newest drill assignments, grouped by drill (not player-specific)
     const seenDrills = new Set();
@@ -3345,11 +3347,11 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {recentActivity.length===0
-          ? <EmptyState icon="📋" title="No activity yet" body="As you add players, schedule games, and assign drills, your recent activity will show up here." action="Add a Player" onAction={()=>setTab("roster")}/>
+          ? <EmptyState icon={<span style={{color:C.textMid,display:"flex"}}><NavIcon id="plans" size={44}/></span>} title="No activity yet" body="As you add players, schedule games, and assign drills, your recent activity will show up here." action="Add a Player" onAction={()=>setTab("roster")}/>
           : recentActivity.map((a,i)=>(
             <button key={a.key} onClick={()=>setTab(a.tab)} className={`card-hover fade-up-${Math.min(i+2,5)}`} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",textAlign:"left",width:"100%",minHeight:60,backgroundImage:C.stripe,position:"relative",overflow:"hidden",boxShadow:"0 4px 16px #00000040",display:"flex",alignItems:"center",gap:14}}>
               <div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:`linear-gradient(180deg,${a.color},${a.color}40)`}}/>
-              <div style={{width:40,height:40,borderRadius:11,background:`${a.color}1f`,border:`1px solid ${a.color}45`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,marginLeft:6}}>{a.icon}</div>
+              <div style={{width:40,height:40,borderRadius:11,background:`${a.color}1f`,border:`1px solid ${a.color}45`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:a.color,flexShrink:0,marginLeft:6}}>{a.iconId?<NavIcon id={a.iconId} size={18}/>:a.icon}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:600,fontSize:14,color:C.text,lineHeight:1.35}}>{a.title}</div>
               </div>
@@ -3365,7 +3367,7 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
           <SectionHead accent>Chat Reports ({chatReports.filter(r=>!r.resolved).length} open)</SectionHead>
           {chatReports.filter(r=>!r.resolved).length===0 ? (
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 16px",textAlign:"center"}}>
-              <div style={{fontSize:28,marginBottom:6}}>✅</div>
+              <div style={{color:C.teal,display:"flex",justifyContent:"center",marginBottom:6}}><NavIcon id="check" size={26}/></div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid}}>All reports resolved</div>
             </div>
           ) : (
@@ -3376,7 +3378,7 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
                     <div style={{flex:1,minWidth:0,paddingLeft:6}}>
                       <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
-                        <Tag label={`🚩 ${r.reason}`} color={C.red}/>
+                        <Tag label={r.reason} color={C.red}/>
                         <span style={{fontFamily:"Barlow Condensed, sans-serif",fontSize:11,color:C.textDim,letterSpacing:0.5}}>{new Date(r.createdAt).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</span>
                       </div>
                       <div style={{fontSize:12,color:C.textMid,marginBottom:4}}>
