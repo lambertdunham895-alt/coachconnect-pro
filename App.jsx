@@ -2496,6 +2496,11 @@ function NavIcon({id, size=20}) {
     stats:    <><line {...p} x1="18" y1="20" x2="18" y2="10"/><line {...p} x1="12" y1="20" x2="12" y2="4"/><line {...p} x1="6" y1="20" x2="6" y2="14"/></>,
     baseball: <><circle {...p} cx="12" cy="12" r="10"/><path {...p} d="M6.2 4.5a14.5 14.5 0 0 1 0 15"/><path {...p} d="M17.8 4.5a14.5 14.5 0 0 0 0 15"/></>,
     library:  <><path {...p} d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path {...p} d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+    play:     <><circle {...p} cx="12" cy="12" r="10"/><polygon {...p} points="10 8 16 12 10 16 10 8"/></>,
+    lock:     <><rect {...p} x="3" y="11" width="18" height="11" rx="2"/><path {...p} d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
+    clock:    <><circle {...p} cx="12" cy="12" r="10"/><polyline {...p} points="12 6 12 12 16 14"/></>,
+    flame:    <path {...p} d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>,
+    tag:      <><path {...p} d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><line {...p} x1="7" y1="7" x2="7.01" y2="7"/></>,
   };
   return <svg width={size} height={size} viewBox="0 0 24 24">{icons[id]||null}</svg>;
 }
@@ -6555,9 +6560,9 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
   const [error, setError] = useState("");
 
   const plans = [
-    {id:"founding_monthly", name:"Founding Coach", price:"14.99", interval:"mo", desc:"Locked-in rate for early supporters", badge:"🔥 Limited — First 50 Coaches", badgeColor:C.gold},
+    {id:"founding_monthly", name:"Founding Coach", price:"14.99", interval:"mo", desc:"Locked-in rate for early supporters", badge:"Limited — First 50 Coaches", badgeIcon:"flame", badgeColor:C.gold},
     {id:"pro_monthly",      name:"Pro Monthly",    price:"24.99", interval:"mo", desc:"Full access, billed monthly",       badge:null},
-    {id:"pro_yearly",       name:"Pro Annual",     price:"20.83", interval:"mo", desc:"$249.99/year — save $50/year",       badge:"💰 Best Value", badgeColor:C.teal},
+    {id:"pro_yearly",       name:"Pro Annual",     price:"20.83", interval:"mo", desc:"$249.99/year — save $50/year",       badge:"Best Value", badgeIcon:"tag", badgeColor:C.teal},
   ];
 
   const handleCheckout = async () => {
@@ -6582,12 +6587,12 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
   };
 
   const FEATURES = [
-    { label:"Full Drill Library", sub:"69 pro drills across 9 categories" },
-    { icon:"📈", label:"Progress Tracking", sub:"Skill charts, streaks & snapshots" },
-    { icon:"📋", label:"Game Builder",    sub:"Batting order & field positions" },
-    { label:"Team Messaging",    sub:"Group chat & parent DMs" },
-    { label:"Schedule Manager",  sub:"Games, practices & RSVP" },
-    { icon:"🎬", label:"Video per Drill",   sub:"Attach YouTube or any video link" },
+    { icon:"library",  label:"Full Drill Library", sub:"69 pro drills across 9 categories" },
+    { icon:"stats",    label:"Progress Tracking", sub:"Skill charts, streaks & snapshots" },
+    { icon:"drills",   label:"Game Builder",    sub:"Batting order & field positions" },
+    { icon:"msgs",     label:"Team Messaging",    sub:"Group chat & parent DMs" },
+    { icon:"schedule", label:"Schedule Manager",  sub:"Games, practices & RSVP" },
+    { icon:"play",     label:"Video per Drill",   sub:"Attach YouTube or any video link" },
   ];
 
   const sel = plans.find(p=>p.id===selectedPlan);
@@ -6599,7 +6604,7 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
         {/* Header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
           <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:3,color:C.text}}>
-            {step==="success" ? "Welcome to Pro! 🎉" : "Upgrade to Pro"}
+            {step==="success" ? "Welcome to Pro!" : "Upgrade to Pro"}
           </div>
           {step!=="success"&&<button onClick={onClose} style={{background:"none",border:"none",color:C.textDim,fontSize:24,cursor:"pointer",padding:4,minWidth:36,minHeight:36}}>×</button>}
         </div>
@@ -6607,12 +6612,12 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
         {/* ── PLANS STEP ── */}
         {step==="plans" && (<>
           {isTrial&&<div style={{background:`${C.gold}15`,border:`1px solid ${C.gold}40`,borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",gap:12,alignItems:"center"}}>
-            <div style={{fontSize:20}}>⏳</div>
+            <div style={{color:C.gold,display:"flex",flexShrink:0}}><NavIcon id="clock" size={20}/></div>
             <div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.gold,letterSpacing:1}}>YOUR TRIAL ENDS IN {daysLeft} DAY{daysLeft!==1?"S":""}</div>
             <div style={{fontSize:12,color:C.textMid}}>Subscribe now to keep everything without interruption</div></div>
           </div>}
           {isExpired&&<div style={{background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",gap:12,alignItems:"center"}}>
-            <div style={{fontSize:20}}>🔒</div>
+            <div style={{color:C.red,display:"flex",flexShrink:0}}><NavIcon id="lock" size={20}/></div>
             <div><div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.red,letterSpacing:1}}>YOUR TRIAL HAS ENDED</div>
             <div style={{fontSize:12,color:C.textMid}}>Reactivate now to regain full access</div></div>
           </div>}
@@ -6624,7 +6629,7 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
               return (
                 <button key={p.id} onClick={()=>setSelectedPlan(p.id)} style={{background:active?`linear-gradient(135deg,#100c1a,${C.card})`:C.card,border:`2px solid ${active?C.red+"80":C.border}`,borderRadius:16,padding:"16px 18px",cursor:"pointer",textAlign:"left",position:"relative",overflow:"hidden",transition:"all 0.2s",boxShadow:active?`0 0 24px ${C.red}20`:"none"}}>
                   {active&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.red},${C.gold},${C.red})`}}/>}
-                  {p.badge&&<div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:p.badgeColor||C.textMid,textTransform:"uppercase",marginBottom:6}}>{p.badge}</div>}
+                  {p.badge&&<div style={{display:"flex",alignItems:"center",gap:5,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:p.badgeColor||C.textMid,textTransform:"uppercase",marginBottom:6}}>{p.badgeIcon&&<NavIcon id={p.badgeIcon} size={12}/>}{p.badge}</div>}
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:active?C.text:C.textMid,letterSpacing:1}}>{p.name}</div>
@@ -6646,7 +6651,7 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {FEATURES.map(f=>(
                 <div key={f.label} style={{display:"flex",gap:12,alignItems:"center"}}>
-                  <div style={{width:32,height:32,borderRadius:8,background:`${C.teal}18`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{f.icon}</div>
+                  <div style={{width:32,height:32,borderRadius:8,background:`${C.teal}18`,border:`1px solid ${C.teal}30`,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal,flexShrink:0}}><NavIcon id={f.icon} size={16}/></div>
                   <div>
                     <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,color:C.text}}>{f.label}</div>
                     <div style={{fontSize:11,color:C.textDim}}>{f.sub}</div>
