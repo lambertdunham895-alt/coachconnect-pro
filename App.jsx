@@ -11,6 +11,13 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYWRsa21lamRla2hiZ2Z2eWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4OTg1MjIsImV4cCI6MjA4ODQ3NDUyMn0.PlHlQX5b5ts7SnXd7hWfuWi01Y_aK6QnWvzZPVb54Ko"
 );
 
+// AI scan endpoints require a logged-in coach (they spend real AI credits, so
+// they are no longer callable anonymously). This attaches the coach token.
+const scanAuthHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return { "Content-Type": "application/json", ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}) };
+};
+
 // ─── FOUNDER ADMIN + USAGE TRACKING ──────────────────────────────────────────
 const FOUNDER_ID = "75c3ef3c-789e-422f-a9b7-e3a0a82a6e3c";
 const _trackedRecently = {};
@@ -3434,7 +3441,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
       });
       const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-roster`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: await scanAuthHeaders(),
         body: JSON.stringify({
           imageBase64: base64,
           mediaType: file.type || "image/jpeg",
@@ -3919,7 +3926,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
       });
       const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-schedule`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: await scanAuthHeaders(),
         body: JSON.stringify({
           imageBase64: base64,
           mediaType: file.type || "image/jpeg",
@@ -6168,7 +6175,7 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
       });
       const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-roster`, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: await scanAuthHeaders(),
         body: JSON.stringify({
           imageBase64: base64,
           mediaType: file.type || "image/jpeg",
