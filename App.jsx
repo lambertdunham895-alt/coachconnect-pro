@@ -5318,6 +5318,27 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
     : "TC";
   const [section,setSection]=useState("drills");
   const [selEvId,setSelEvId]=useState(null);
+  const [showDeleteAcct,setShowDeleteAcct]=useState(false);
+  const [deletingAcct,setDeletingAcct]=useState(false);
+  const [delAcctError,setDelAcctError]=useState("");
+  const handleDeleteAccount = async () => {
+    setDeletingAcct(true); setDelAcctError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not signed in — please sign in again.");
+      const res = await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || data.error) throw new Error(data.error || "Could not delete account. Please try again or contact support.");
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (e) {
+      setDelAcctError(String(e.message || e));
+      setDeletingAcct(false);
+    }
+  };
   if(!player)return (
     <div style={{padding:40,textAlign:"center"}}>
       <div style={{fontSize:40,marginBottom:12}}>⚾</div>
@@ -5973,6 +5994,34 @@ function ParentView({player,parent,assignments,events,setAsgn,unread,onOpenChat,
         </div>
         <div style={{color:C.textDim,fontSize:15}}>›</div>
       </button>
+
+      {/* Delete My Account */}
+      <button onClick={()=>{setShowDeleteAcct(true);setDelAcctError("");}} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:"transparent",border:`1px solid ${C.red}30`,borderRadius:14,padding:"14px",marginTop:10,cursor:"pointer",textAlign:"left"}}>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.red,letterSpacing:0.5}}>Delete My Account</div>
+          <div style={{fontSize:11,color:C.textDim}}>Permanently remove your login and personal data</div>
+        </div>
+        <div style={{color:C.textDim,fontSize:15}}>›</div>
+      </button>
+
+      {showDeleteAcct && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={()=>!deletingAcct&&setShowDeleteAcct(false)}>
+          <div style={{background:C.card,border:`1px solid ${C.red}50`,borderRadius:16,padding:"22px 18px",maxWidth:420,width:"100%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1.5,color:C.red,marginBottom:10}}>DELETE MY ACCOUNT</div>
+            <div style={{fontSize:13,color:C.text,lineHeight:1.6,marginBottom:10}}>
+              This permanently deletes your parent account: your login, chat messages, notification settings, and your connection to {player?.name||"your player"}. This cannot be undone.
+            </div>
+            <div style={{fontSize:12,color:C.textDim,lineHeight:1.6,marginBottom:14}}>
+              Note: {player?.name||"your player"}'s roster information belongs to the team and is not deleted here. To remove it, ask your coach to delete the player, or contact support.
+            </div>
+            {delAcctError && <div style={{fontSize:12,color:C.red,background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,padding:"8px 10px",marginBottom:12}}>{delAcctError}</div>}
+            <div style={{display:"flex",gap:10}}>
+              <button disabled={deletingAcct} onClick={()=>setShowDeleteAcct(false)} style={{flex:1,padding:"12px 0",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer"}}>Cancel</button>
+              <button disabled={deletingAcct} onClick={handleDeleteAccount} style={{flex:1,padding:"12px 0",borderRadius:10,background:deletingAcct?`${C.red}50`:C.red,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:deletingAcct?"wait":"pointer"}}>{deletingAcct?"Deleting…":"Delete Permanently"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
