@@ -263,6 +263,7 @@ const catMeta = {
   Conditioning:   { color:"#06b6d4", icon:"⚡" },
   "Mental Skills":{ color:"#ec4899", icon:"🧠" },
   "Catching a Ball":{ color:"#a3e635", icon:"🫴" },
+  "At Home":      { color:"#22c55e", icon:"🏠" },
 };
 const catColor = c => catMeta[c]?.color||"#888";
 const catIcon  = c => catMeta[c]?.icon ||"▸";
@@ -497,6 +498,44 @@ const DRILL_LIBRARY = [
   {id:"cb12",name:"Basket vs. Traditional Catch",category:"Catching a Ball", duration:"10 min",
    desc:"Practice both techniques: basket catch (waist level, palms up) for balls directly overhead and traditional catch (hands above head) for balls in front. Explain when each is appropriate and situationally safest.",
    results:"Provides options based on ball trajectory and situation, teaches when each technique is safest and most effective, and develops versatility in catching approach."},
+
+  // ─── AT HOME — parent + player, minimal equipment ───────────────────────────
+  {id:"hm1",name:"Wall Ball Fielding",           category:"At Home",       duration:"15 min",
+   desc:"Player throws a tennis ball against a garage door, brick wall, or porch steps and fields the rebound. Start with easy straight throws, then mix in angles for short hops and one-handed picks. Work 3 rounds of 20: forehand, backhand, and charging the ball. Parent can call \"runner!\" on random reps to add a quick throw back to the wall.",
+   results:"Builds soft hands, reaction time, and glove work with zero special equipment. The ball never stops — players get more fielding reps in 15 minutes than in most team practices."},
+  {id:"hm2",name:"Driveway Tee Work",            category:"At Home",       duration:"15 min",
+   desc:"Set a tee in front of a fence, net, or hung blanket and hit wiffle or soft-training balls. Work 3 rounds of 10 swings: tee inside, middle, and outside — pulling the inside pitch, driving the middle pitch straight, and taking the outside pitch the other way. Parent watches for a level swing and a balanced finish.",
+   results:"Grooves swing mechanics and plate coverage with daily repetitions the season schedule can't provide. Wiffle balls make it safe for any backyard or garage."},
+  {id:"hm3",name:"Sock-Ball Mirror Swings",      category:"At Home",       duration:"10 min",
+   desc:"Roll a pair of socks into a ball for fully indoor swing work. Player takes 20 slow-motion swings in front of a mirror, pausing at load, contact, and finish while a parent checks each position. Then 20 swings at game speed hitting the sock ball off a parent's soft toss from one knee.",
+   results:"Develops swing awareness and muscle memory safely indoors — perfect for rainy days and winter. Slow-motion mirror work catches habits full-speed swings hide."},
+  {id:"hm4",name:"Short-Hop Hands",              category:"At Home",       duration:"10 min",
+   desc:"Player kneels on both knees, glove out front. Parent kneels 8-10 feet away and firmly bounces a tennis ball just in front of the glove — the dreaded in-between hop. Work 3 rounds of 15, moving the bounce point glove-side, backhand-side, and at the body. Emphasize soft hands giving with the ball, not stabbing at it.",
+   results:"Turns the scariest hop in baseball into a comfortable one. Kneeling removes footwork so all focus goes to glove action and tracking the bounce."},
+  {id:"hm5",name:"Footwork Box",                 category:"At Home",       duration:"10 min",
+   desc:"Draw a 3x3-foot chalk square on the driveway (or lay out a towel square indoors). Player does quick-feet patterns around and through it: two-feet-in-two-out, lateral shuffles side to side, and forward-back hops — 30 seconds each with 30 seconds rest, twice through. Parent times and counts touches, trying to beat last session's score.",
+   results:"Builds the first-step quickness and light feet behind every good defensive play. The score-beating format turns conditioning into a game kids ask to repeat."},
+  {id:"hm6",name:"Backyard Catch Ladder",        category:"At Home",       duration:"15 min",
+   desc:"Classic catch with a plan. Start 15 feet apart with 10 throws focused on a four-seam grip and hitting the chest. Step back 10 feet after each clean round of 10. When a throw misses badly, step back in one level. Finish with 5 throws at max comfortable distance using a crow hop.",
+   results:"Turns everyday catch into structured arm strength and accuracy development. The ladder format gives a clear goal and shows progress week over week."},
+  {id:"hm7",name:"Quick-Transfer Countdown",     category:"At Home",       duration:"10 min",
+   desc:"Player holds the ball in their glove, and on \"go\" makes as many clean glove-to-throwing-hand transfers as possible in 30 seconds, finishing each in throwing position without actually throwing. Parent counts. Three rounds, resting between, trying to beat the record. Then repeat with the parent tossing the ball in from 5 feet for catch-and-transfer reps.",
+   results:"Develops the fast, clean exchange that turns close plays into outs. Perfect for middle infielders and catchers, and requires nothing but a ball, a glove, and a timer."},
+  {id:"hm8",name:"Balance & Mirror Pitching",    category:"At Home",       duration:"10 min",
+   desc:"In front of a mirror with no ball, player works their pitching delivery in three pauses: leg lift held for 3 full seconds at the balance point, stride landing checked for direction and alignment, and full finish with chest over the landing knee. Ten reps at each pause point, then five smooth full-speed deliveries.",
+   results:"Builds a repeatable, balanced delivery without throwing a single pitch — protecting young arms while improving mechanics. The pauses expose balance problems immediately."},
+  {id:"hm9",name:"Stairs & Curb Quick Feet",     category:"At Home",       duration:"10 min",
+   desc:"Using the bottom porch step or a curb: quick alternating toe taps for 30 seconds, both-feet up-and-down hops for 30 seconds, and lateral step-up shuffles for 30 seconds. Rest one minute; repeat 3 rounds. Parent keeps time and counts the last round out loud.",
+   results:"Builds leg drive, foot speed, and conditioning in any driveway. Short timed bursts match the explosive efforts baseball actually demands."},
+  {id:"hm10",name:"Watch-and-Call",              category:"At Home",       duration:"20 min",
+   desc:"Watch an inning of any baseball game together — TV or a local field. Before each pitch, player calls out what they'd do as a chosen fielder if the ball came to them: \"runner on first, ground ball to me, I'm going to second.\" Parent picks random moments to ask \"what if it's hit to the right fielder?\" Rotate positions each half-inning.",
+   results:"Builds game IQ and situational awareness faster than any physical drill — the same read-and-react thinking Diamond Minds trains, applied to live baseball. Also quality couch time that counts as practice."},
+  {id:"hm11",name:"Grip Flips",                  category:"At Home",       duration:"10 min",
+   desc:"Player lies on their back on a bed or couch and flips the ball straight up 2-3 feet using only a proper four-seam grip and wrist snap, catching it bare-handed. 3 sets of 20 flips. The ball should have tight backspin and go straight up — sideways spin means the grip or release is off. Parent checks the grip before each set.",
+   results:"Ingrains the four-seam grip and clean wrist action behind every accurate throw. Ten relaxed minutes at night adds up to thousands of correct releases a season."},
+  {id:"hm12",name:"Bare-Hand Rollers",           category:"At Home",       duration:"10 min",
+   desc:"No gloves. Parent rolls a tennis ball firmly across grass or carpet from 15 feet. Player fields it bare-handed with wide fingers, soft wrists, and eyes following the ball all the way in — 3 rounds of 12, then the last round mixing in slow rollers the player must charge and scoop on the run.",
+   results:"Removes the glove to force true soft hands and full ball-tracking. Fielding confidence transfers immediately when the glove goes back on."},
 ];
 
 // ─── SKILL TRACKING ──────────────────────────────────────────────────────────
@@ -671,7 +710,7 @@ const uid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
   const r = Math.random() * 16 | 0;
   return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
 });
-const CATEGORIES = ["Mental Skills","Hitting","Fielding","Throwing","Pitching","Catching","Base Running","Conditioning","Catching a Ball"];
+const CATEGORIES = ["At Home","Mental Skills","Hitting","Fielding","Throwing","Pitching","Catching","Base Running","Conditioning","Catching a Ball"];
 
 // Global mutable ref for custom drills — updated by App when loaded from Supabase
 let _customDrillsRef = [];
