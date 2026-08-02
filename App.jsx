@@ -2274,8 +2274,9 @@ function TopBar({title,sub,onBack,backLabel,onLogout,trialBadge,onUpgrade}) {
           </button>
         )}
         {onLogout&&(
-          <button onClick={onLogout} title="Log out" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,width:36,height:36,display:"flex",alignItems:"center",justifyContent:"center",color:C.textMid,cursor:"pointer",flexShrink:0,fontSize:15}}>
-            ⏏
+          <button onClick={onLogout} title="Sign out" aria-label="Sign out" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,height:36,padding:"0 10px",display:"flex",alignItems:"center",justifyContent:"center",gap:5,color:C.textMid,cursor:"pointer",flexShrink:0,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.2,textTransform:"uppercase",whiteSpace:"nowrap"}}>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
           </button>
         )}
       </div>
