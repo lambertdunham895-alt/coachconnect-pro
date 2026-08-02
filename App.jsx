@@ -3005,7 +3005,25 @@ function MessagesTab({players,messages,unread,onOpen,onBroadcast,teamLogo,teamNa
   );
 }
 
-function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSupport=()=>{}}) {
+function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSupport=()=>{}, teamLogo=null, onTeamLogoChange=null}) {
+  const [logoBusy, setLogoBusy] = useState(false);
+  const handleLogoPick = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !onTeamLogoChange) return;
+    setLogoBusy(true);
+    try {
+      const blob = await compressImage(file, 512, 0.85);
+      const reader = new FileReader();
+      reader.onload = (ev) => { onTeamLogoChange(ev.target.result); setLogoBusy(false); };
+      reader.onerror = () => { toast.error("Couldn't read that image."); setLogoBusy(false); };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      toast.error("Couldn't process that image. Try another photo.");
+      setLogoBusy(false);
+    }
+  };
+  const teamInitialsS = (form0 => form0)((teamData.name || teamName || "TC").split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()).slice(0,3).join(""));
   const [form, setForm] = useState({
     name: teamData.name || teamName || "",
     age_group: teamData.age_group || "",
@@ -3050,6 +3068,35 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSuppor
       </div>
 
       <div style={{display:"flex",flexDirection:"column",gap:16}}>
+        {/* Team Logo */}
+        {onTeamLogoChange && (
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:C.gold,textTransform:"uppercase",marginBottom:14}}>Team Logo</div>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:72,height:72,borderRadius:"50%",overflow:"hidden",flexShrink:0,border:`2px solid ${teamLogo?C.red+"cc":C.border}`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":"linear-gradient(145deg,#1a3a7a,#0a1f50)"}}>
+                {teamLogo
+                  ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:24,letterSpacing:1,color:"#fff"}}>{teamInitialsS}</span>}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,color:C.textDim,lineHeight:1.5,marginBottom:10}}>
+                  {teamLogo ? "Shown on your dashboard, in chat, and on the parent view." : "Add your team logo — it appears on your dashboard, in chat, and on the parent view."}
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <label style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 12px",borderRadius:9,background:"transparent",border:`1px solid ${C.red}70`,color:C.red,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.2,textTransform:"uppercase",cursor:logoBusy?"wait":"pointer",opacity:logoBusy?0.6:1}}>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    {logoBusy ? "Uploading…" : (teamLogo ? "Change Logo" : "Upload Logo")}
+                    <input type="file" accept="image/*" onChange={handleLogoPick} disabled={logoBusy} style={{display:"none"}}/>
+                  </label>
+                  {teamLogo && (
+                    <button onClick={()=>onTeamLogoChange(null)} disabled={logoBusy} style={{padding:"8px 12px",borderRadius:9,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.2,textTransform:"uppercase",cursor:"pointer"}}>Remove</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Team Info */}
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16}}>
           <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:3,color:C.red,textTransform:"uppercase",marginBottom:14}}>⚾ Team Info</div>
@@ -3178,14 +3225,6 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
     return items.sort((a,b)=>b.order-a.order).slice(0,6);
   })();
 
-  const handleLogoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => onTeamLogoChange(ev.target.result);
-    reader.readAsDataURL(file);
-  };
-
   return (
     <div>
       {/* Team Settings Modal */}
@@ -3196,6 +3235,8 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
               onSupport={onSupport}
               teamData={teamData}
               teamName={teamName}
+              teamLogo={teamLogo}
+              onTeamLogoChange={onTeamLogoChange}
               onSave={(data)=>{onTeamSettingsSave(data);setShowSettings(false);}}
               onCancel={()=>setShowSettings(false)}
             />
@@ -3227,17 +3268,15 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
         <div style={{position:"relative",zIndex:3,maxWidth:640,margin:"0 auto",padding:"24px 20px 22px"}}>
           {/* Top row: logo + greeting + team name */}
           <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
-            {/* Logo */}
-            <label style={{cursor:"pointer",flexShrink:0,position:"relative"}}>
+            {/* Logo — display only; change it in Team Settings */}
+            <div onClick={()=>{ if(onTeamSettingsSave) setShowSettings(true); }} style={{cursor:onTeamSettingsSave?"pointer":"default",flexShrink:0,position:"relative"}} title={onTeamSettingsSave?"Change logo in Team Settings":undefined}>
               <div style={{width:84,height:84,borderRadius:"50%",overflow:"hidden",border:`3px solid ${teamLogo?C.red+"cc":"#ffffff40"}`,boxShadow:teamLogo?`0 0 0 4px ${C.red}25, 0 8px 32px ${C.red}40`:`0 0 0 4px #ffffff10, 0 8px 28px #00000080`,display:"flex",alignItems:"center",justifyContent:"center",background:teamLogo?"#000":`linear-gradient(145deg,#1a3a7a,#0a1f50)`}}>
                 {teamLogo
                   ? <img src={teamLogo} alt="Team logo" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                   : <span style={{fontFamily:"Bebas Neue, sans-serif",fontSize:30,letterSpacing:1,color:"#fff",textShadow:`0 0 16px ${C.red}80`}}>{teamInitials}</span>
                 }
               </div>
-              <div style={{position:"absolute",bottom:-2,right:-2,width:24,height:24,borderRadius:"50%",background:`linear-gradient(135deg,${C.red},${C.redDim})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,boxShadow:`0 2px 10px ${C.red}80`,border:`2px solid #06111f`,zIndex:2}}>📷</div>
-              <input type="file" accept="image/*" onChange={handleLogoUpload} style={{display:"none"}}/>
-            </label>
+            </div>
 
             {/* Greeting + name */}
             <div style={{flex:1,minWidth:0}}>
