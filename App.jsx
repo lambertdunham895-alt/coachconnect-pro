@@ -3826,9 +3826,8 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
           {["All",...CATEGORIES].map(c=>{
             const color = c==="All" ? C.red : catColor(c);
             const active = cat===c;
-            const isMental = c==="Mental Skills";
             return (
-              <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,cursor:"pointer",whiteSpace:"nowrap",minHeight:36,flexShrink:0,transition:"all 0.15s",border:`${isMental&&!active?"2px":"1px"} solid ${active?color:isMental?"#ec489980":C.border}`,background:active?`${color}28`:isMental?"#ec489910":"transparent",color:active?color:isMental?"#ec4899aa":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",boxShadow:active?`0 0 12px ${color}40`:isMental?"0 0 8px #ec489920":"none"}}>
+              <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,cursor:"pointer",whiteSpace:"nowrap",minHeight:36,flexShrink:0,transition:"all 0.15s",border:`1px solid ${active?color:C.border}`,background:active?`${color}28`:"transparent",color:active?color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,textTransform:"uppercase",boxShadow:active?`0 0 12px ${color}40`:"none"}}>
                 {c}
               </button>
             );
