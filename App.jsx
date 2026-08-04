@@ -529,7 +529,7 @@ const DRILL_LIBRARY = [
    results:"Builds leg drive, foot speed, and conditioning in any driveway. Short timed bursts match the explosive efforts baseball actually demands."},
   {id:"hm10",name:"Watch-and-Call",              category:"At Home",       duration:"20 min",
    desc:"Watch an inning of any baseball game together — TV or a local field. Before each pitch, player calls out what they'd do as a chosen fielder if the ball came to them: \"runner on first, ground ball to me, I'm going to second.\" Parent picks random moments to ask \"what if it's hit to the right fielder?\" Rotate positions each half-inning.",
-   results:"Builds game IQ and situational awareness faster than any physical drill — the same read-and-react thinking Diamond Minds trains, applied to live baseball. Also quality couch time that counts as practice."},
+   results:"Builds game IQ and situational awareness faster than any physical drill — the same read-and-react thinking the Positioning Trainer builds, applied to live baseball. Also quality couch time that counts as practice."},
   {id:"hm11",name:"Grip Flips",                  category:"At Home",       duration:"10 min",
    desc:"Player lies on their back on a bed or couch and flips the ball straight up 2-3 feet using only a proper four-seam grip and wrist snap, catching it bare-handed. 3 sets of 20 flips. The ball should have tight backspin and go straight up — sideways spin means the grip or release is off. Parent checks the grip before each set.",
    results:"Ingrains the four-seam grip and clean wrist action behind every accurate throw. Ten relaxed minutes at night adds up to thousands of correct releases a season."},
@@ -2702,7 +2702,7 @@ function ReviewsSection() {
 // ─── LANDING PAGE ─────────────────────────────────────────────────────────────
 // ─── UNLINKED PARENT HUB ───
 // Shown when a parent signs up but hasn't been invited to a team yet.
-// Gives them value (free resources, drill library, Diamond Minds) AND a way
+// Gives them value (free resources, drill library, Positioning Trainer) AND a way
 // to invite their coach to sign up.
 function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOut, customDrills=[]}) {
   const [view, setView] = useState("home"); // "home" | "drills" | "invite"
