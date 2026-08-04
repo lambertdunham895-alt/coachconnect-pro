@@ -285,6 +285,7 @@ var POS=['P','C','1B','2B','SS','3B','LF','CF','RF'];
 var NUM={P:'1',C:'2','1B':'3','2B':'4',SS:'6','3B':'5',LF:'7',CF:'8',RF:'9'};
 var FULL={P:'Pitcher',C:'Catcher','1B':'First Base','2B':'Second Base',SS:'Shortstop','3B':'Third Base',LF:'Left Field',CF:'Center Field',RF:'Right Field'};
 var JOBC={ball:'#e8192c',bag:'#2f7fd4',backup:'#00d4aa'};
+var C_BORDER='#1b2942';
 var JOBL={ball:'Get it',bag:'Cover it',backup:'Back it up'};
 
 /* ────────── PLAY DATA ──────────
@@ -517,17 +518,22 @@ function renderLens(){
 function setLens(p){ lens=p; renderLens(); renderJobs(); render(); }
 function renderJobs(){
   var jh=document.getElementById('jobsHead');
-  if(jh) jh.textContent = lens ? ('Your job as the '+FULL[lens]+' — and everyone else, dimmed') : 'All nine jobs on this play';
+  if(jh) jh.textContent = lens ? ('Your job as the '+FULL[lens]) : 'All nine jobs on this play';
   var h='';
-  POS.forEach(function(p){
+  // When a position is chosen, show only that job — the other eight collapse
+  // so the play list is a short scroll away instead of a long one.
+  var list = lens ? [lens] : POS;
+  list.forEach(function(p){
     var j=cur.jobs[p]; if(!j) return;
-    var dim = lens && lens!==p;
-    h+='<div class="job'+(dim?' dim':'')+'">'+
+    h+='<div class="job">'+
        '<div class="num" style="background:'+JOBC[j.type]+'22;border:1px solid '+JOBC[j.type]+'80;color:'+JOBC[j.type]+'">'+NUM[p]+'</div>'+
        '<div class="bd"><div class="nm"><strong>'+FULL[p]+'</strong>'+
        '<span class="tag" style="background:'+JOBC[j.type]+'22;color:'+JOBC[j.type]+'">'+JOBL[j.type]+'</span></div>'+
        '<p>'+j.txt+'</p></div></div>';
   });
+  if(lens){
+    h+='<button onclick="setLens(null)" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;background:transparent;border:1px dashed '+C_BORDER+';color:var(--mid);font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer">Show all nine jobs</button>';
+  }
   document.getElementById('jobs').innerHTML=h;
 }
 function renderList(){
