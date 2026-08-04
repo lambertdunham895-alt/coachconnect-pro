@@ -2868,11 +2868,13 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
       {/* Free Resources */}
       <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>📚 Free Resources</div>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:18}}>
-        <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
-          <div style={{fontSize:24}}>🧠</div>
+        <a href="/positioning.html" target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:12,textDecoration:"none",color:"inherit"}}>
+          <div style={{width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",color:C.teal}}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M4.9 4.9c2.4 2 3.9 5 3.9 7.1s-1.5 5.1-3.9 7.1"/><path d="M19.1 4.9c-2.4 2-3.9 5-3.9 7.1s1.5 5.1 3.9 7.1"/></svg>
+          </div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>Diamond Minds</div>
-            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Interactive baseball IQ trainer</div>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>Positioning Trainer</div>
+            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Watch all 9 players move on 73 plays — then test yourself</div>
           </div>
           <div style={{color:C.teal,fontSize:14}}>↗</div>
         </a>
