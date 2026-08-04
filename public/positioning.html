@@ -144,6 +144,13 @@ footer a{color:var(--mid)}
   #printHead{display:block!important}
 }
 #printHead{display:none}
+.steplbl{display:flex;align-items:center;gap:8px;padding:13px 13px 0}
+.steplbl .n{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;flex:0 0 auto}
+.steplbl .t{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1.8px;text-transform:uppercase;color:var(--text)}
+.steplbl .h{font-size:11px;color:var(--dim);margin-left:auto;text-align:right}
+.sec-h .n{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -156,7 +163,7 @@ footer a{color:var(--mid)}
 
 <main class="wrap">
   <h1>Teach every kid <em>where to go</em> on every play.</h1>
-  <p class="lede">Watch all nine defenders move through real game situations — then test yourself before the answer shows. Free, no signup, built for a phone in the dugout.</p>
+  <p class="lede">Pick your position, pick a play, and watch all nine defenders move through it — then test yourself before the answer shows. Free, no signup, built for a phone in the dugout.</p>
 
   <div class="rule">
     <span class="pill"><i class="dot" style="background:var(--ball)"></i>Get it</span>
@@ -180,10 +187,10 @@ footer a{color:var(--mid)}
       <svg class="field" id="svg" viewBox="0 0 1000 880" xmlns="http://www.w3.org/2000/svg" aria-label="Baseball field diagram"></svg>
     </div>
 
-    <div class="narr" id="narr"><b>Ready</b><span id="narrTxt">Pick a play below, then press Watch the Play.</span></div>
+    <div class="narr" id="narr"><b>Ready</b><span id="narrTxt">Pick a play below, then press Watch the Play to see all nine defenders move.</span></div>
 
     <div class="ctrls">
-      <button class="btn primary" id="playBtn" onclick="togglePlay()">
+      <button class="btn primary" id="playBtn" onclick="togglePlay()" title="Step 3 — watch the play">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg>
         <span id="playLbl">Watch the Play</span>
       </button>
@@ -198,9 +205,11 @@ footer a{color:var(--mid)}
       </button>
     </div>
 
+    <div class="steplbl"><span class="n">1</span><span class="t">Choose your position</span><span class="h">or keep All 9</span></div>
     <div class="lens" id="lens"></div>
 
     <div id="studyPane">
+      <div id="jobsHead" style="padding:12px 13px 2px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)">All nine jobs on this play</div>
       <div class="jobs" id="jobs"></div>
     </div>
 
@@ -241,7 +250,7 @@ footer a{color:var(--mid)}
     </div>
   </div>
 
-  <div class="sec-h"><i class="bar"></i><h2>The Plays</h2></div>
+  <div class="sec-h"><span class="n">2</span><h2>Choose a Play</h2></div>
   <p class="lede" style="margin-bottom:12px">Every ground ball and fly ball, against every base situation — the whole map, not a highlight reel. <span id="cnt"></span></p>
   <div class="cats" id="cats"></div>
   <div class="list" id="list"></div>
@@ -507,6 +516,8 @@ function renderLens(){
 }
 function setLens(p){ lens=p; renderLens(); renderJobs(); render(); }
 function renderJobs(){
+  var jh=document.getElementById('jobsHead');
+  if(jh) jh.textContent = lens ? ('Your job as the '+FULL[lens]+' — and everyone else, dimmed') : 'All nine jobs on this play';
   var h='';
   POS.forEach(function(p){
     var j=cur.jobs[p]; if(!j) return;
