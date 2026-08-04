@@ -86,7 +86,10 @@ function LandingPage({onAuth}) {
       {/* Top nav */}
       <div style={{padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,background:`${C.bg}f0`,backdropFilter:"blur(10px)",zIndex:100}}>
         <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:2.5,color:"#fff"}}>CoachConnect Pro</div>
-        <button onClick={()=>setShowLogin(true)} style={{padding:"8px 18px",borderRadius:8,background:"transparent",border:`1px solid ${C.gold}80`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:1.5,cursor:"pointer",textTransform:"uppercase"}}>Sign In</button>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <a href="/positioning.html" target="_blank" rel="noopener noreferrer" style={{padding:"8px 14px",borderRadius:8,background:`${C.teal}1a`,border:`1px solid ${C.teal}80`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:1.2,textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap"}}>Free Trainer</a>
+          <button onClick={()=>setShowLogin(true)} style={{padding:"8px 18px",borderRadius:8,background:"transparent",border:`1px solid ${C.gold}80`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:12,letterSpacing:1.5,cursor:"pointer",textTransform:"uppercase"}}>Sign In</button>
+        </div>
       </div>
 
       {/* HERO — image with text overlay */}
@@ -116,6 +119,13 @@ function LandingPage({onAuth}) {
             <button onClick={()=>setShowLogin(true)} className="hero-cta-glow" style={{padding:"15px 32px",borderRadius:12,background:`linear-gradient(135deg,${C.red},${C.redDim})`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",boxShadow:`0 8px 32px ${C.red}80`,minWidth:200}}>Start Free Trial</button>
             <button onClick={()=>setShowLogin(true)} style={{padding:"15px 32px",borderRadius:12,background:"rgba(0,0,0,0.4)",backdropFilter:"blur(8px)",border:`1px solid ${C.gold}`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,letterSpacing:2.5,cursor:"pointer",textTransform:"uppercase",minWidth:200}}>Sign In</button>
           </div>
+          <div className="fade-up-5" style={{marginTop:16,display:"flex",justifyContent:"center"}}>
+            <a href="/positioning.html" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:9,padding:"13px 22px",borderRadius:12,background:`${C.teal}1f`,backdropFilter:"blur(8px)",border:`1px solid ${C.teal}`,color:C.teal,textDecoration:"none",fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13.5,letterSpacing:1.8,textTransform:"uppercase",boxShadow:`0 6px 22px ${C.teal}33`}}>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="6 4 20 12 6 20"/></svg>
+              Free Positioning Trainer — No Signup
+            </a>
+          </div>
+          <div className="fade-up-5" style={{fontSize:11.5,color:"#c9d2e0",marginTop:9,letterSpacing:0.3,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>73 animated plays · watch all 9 players move · test yourself</div>
           <div className="fade-up-5" style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
         </div>
       </div>
