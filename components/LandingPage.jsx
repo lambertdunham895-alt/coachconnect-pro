@@ -201,7 +201,7 @@ function LandingPage({onAuth}) {
       <Section narrow style={{paddingTop:64,paddingBottom:64}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:36,alignItems:"center"}}>
           <div style={{borderRadius:14,overflow:"hidden",boxShadow:`0 16px 50px rgba(0,0,0,0.5), 0 0 0 1px ${C.border}`}}>
-            <img src="/boy-using-app.jpg" alt="Young player using Diamond Minds at home on couch" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
+            <img src="/boy-using-app.jpg" alt="Young player using the Positioning Trainer at home on the couch" style={{width:"100%",height:"auto",display:"block",objectFit:"cover"}}/>
           </div>
           <div>
             <Eyebrow color={C.teal}>For Players, Too</Eyebrow>
@@ -209,7 +209,7 @@ function LandingPage({onAuth}) {
               Training that follows them <span style={{color:C.gold}}>home.</span>
             </div>
             <div style={{fontSize:15,color:C.textMid,lineHeight:1.6}}>
-              While you plan practices and run games, your players sharpen their baseball IQ on the couch. Diamond Minds turns 10 minutes of screen time into smarter defensive instincts — quiz mode, real game situations, badges to earn. Parents love it. Kids actually use it.
+              While you plan practices and run games, your players sharpen their baseball IQ on the couch. The Positioning Trainer turns 10 minutes of screen time into smarter defensive instincts — 73 animated plays, quiz mode, badges to earn. Parents love it. Kids actually use it.
             </div>
           </div>
         </div>
@@ -263,14 +263,14 @@ function LandingPage({onAuth}) {
               <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>16-page coaching guide for the mental side of youth baseball — failure recovery, confidence building, parent communication.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>Download →</div>
             </a>
-            <a href="/diamond-minds.html" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
+            <a href="/positioning.html" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.teal}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${C.teal},${C.blue})`}}/>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                 <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:10,letterSpacing:2,color:C.teal,textTransform:"uppercase"}}>Free Tool</div>
                 <div style={{padding:"2px 7px",borderRadius:5,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>New</div>
               </div>
-              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>Diamond Minds</div>
-              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Interactive baseball IQ trainer. Quiz mode for defensive positioning. Earn XP, level up, unlock badges. Built for players ages 8-14.</div>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>Positioning Trainer</div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Watch all nine defenders move through 73 real plays, then test yourself before the answer shows. Earn XP, level up, unlock badges. Built for players ages 8-14.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.teal,textTransform:"uppercase"}}>Play Free →</div>
             </a>
             <a href="/Youth_Baseball_Parent_Guide.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
