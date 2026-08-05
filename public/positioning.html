@@ -90,11 +90,11 @@ svg.field{display:block;width:100%;height:auto}
   font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer;white-space:nowrap}
 .cats button.on{border-color:var(--red);color:var(--red);background:#e8192c1c}
 .list{display:flex;flex-direction:column;gap:9px}
-.pl{display:flex;align-items:center;gap:11px;padding:13px;border-radius:13px;border:1px solid var(--border);background:var(--card);cursor:pointer;text-align:left;width:100%}
+.pl{display:flex;align-items:center;gap:11px;padding:13px;border-radius:13px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;text-align:left;width:100%;font-family:'Plus Jakarta Sans',system-ui,sans-serif}
 .pl.on{border-color:var(--red);box-shadow:0 0 0 1px #e8192c40}
 .pl .bd{flex:1;min-width:0}
-.pl .t{font-weight:700;font-size:13.5px;margin-bottom:3px}
-.pl .s{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .t{font-weight:700;font-size:13.5px;margin-bottom:3px;color:var(--text)}
+.pl .s{font-size:11.5px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pl .meta{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--mid);margin-top:5px}
 .chk{width:20px;height:20px;border-radius:6px;border:1px solid var(--border);flex:0 0 auto;display:flex;align-items:center;justify-content:center}
 .chk.done{background:var(--teal);border-color:var(--teal)}
@@ -144,6 +144,13 @@ footer a{color:var(--mid)}
   #printHead{display:block!important}
 }
 #printHead{display:none}
+.steplbl{display:flex;align-items:center;gap:8px;padding:13px 13px 0}
+.steplbl .n{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;flex:0 0 auto}
+.steplbl .t{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1.8px;text-transform:uppercase;color:var(--text)}
+.steplbl .h{font-size:11px;color:var(--dim);margin-left:auto;text-align:right}
+.sec-h .n{width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -156,7 +163,7 @@ footer a{color:var(--mid)}
 
 <main class="wrap">
   <h1>Teach every kid <em>where to go</em> on every play.</h1>
-  <p class="lede">Watch all nine defenders move through real game situations — then test yourself before the answer shows. Free, no signup, built for a phone in the dugout.</p>
+  <p class="lede">Pick your position, pick a play, and watch all nine defenders move through it — then test yourself before the answer shows. Free, no signup, built for a phone in the dugout.</p>
 
   <div class="rule">
     <span class="pill"><i class="dot" style="background:var(--ball)"></i>Get it</span>
@@ -180,7 +187,7 @@ footer a{color:var(--mid)}
       <svg class="field" id="svg" viewBox="0 0 1000 880" xmlns="http://www.w3.org/2000/svg" aria-label="Baseball field diagram"></svg>
     </div>
 
-    <div class="narr" id="narr"><b>Ready</b><span id="narrTxt">Pick a play below, then press Watch the Play.</span></div>
+    <div class="narr" id="narr"><b>Ready</b><span id="narrTxt">Pick a play below, then press Watch the Play to see all nine defenders move.</span></div>
 
     <div class="ctrls">
       <button class="btn primary" id="playBtn" onclick="togglePlay()">
@@ -198,9 +205,11 @@ footer a{color:var(--mid)}
       </button>
     </div>
 
+    <div class="steplbl"><span class="n">1</span><span class="t">Choose your position</span><span class="h">or keep All 9</span></div>
     <div class="lens" id="lens"></div>
 
     <div id="studyPane">
+      <div id="jobsHead" style="padding:12px 13px 2px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;letter-spacing:1.8px;text-transform:uppercase;color:var(--gold)">All nine jobs on this play</div>
       <div class="jobs" id="jobs"></div>
     </div>
 
@@ -241,7 +250,7 @@ footer a{color:var(--mid)}
     </div>
   </div>
 
-  <div class="sec-h"><i class="bar"></i><h2>The Plays</h2></div>
+  <div class="sec-h"><span class="n">2</span><h2>Choose a Play</h2></div>
   <p class="lede" style="margin-bottom:12px">Every ground ball and fly ball, against every base situation — the whole map, not a highlight reel. <span id="cnt"></span></p>
   <div class="cats" id="cats"></div>
   <div class="list" id="list"></div>
@@ -276,6 +285,7 @@ var POS=['P','C','1B','2B','SS','3B','LF','CF','RF'];
 var NUM={P:'1',C:'2','1B':'3','2B':'4',SS:'6','3B':'5',LF:'7',CF:'8',RF:'9'};
 var FULL={P:'Pitcher',C:'Catcher','1B':'First Base','2B':'Second Base',SS:'Shortstop','3B':'Third Base',LF:'Left Field',CF:'Center Field',RF:'Right Field'};
 var JOBC={ball:'#e8192c',bag:'#2f7fd4',backup:'#00d4aa'};
+var C_BORDER='#1b2942';
 var JOBL={ball:'Get it',bag:'Cover it',backup:'Back it up'};
 
 /* ────────── PLAY DATA ──────────
@@ -507,16 +517,23 @@ function renderLens(){
 }
 function setLens(p){ lens=p; renderLens(); renderJobs(); render(); }
 function renderJobs(){
+  var jh=document.getElementById('jobsHead');
+  if(jh) jh.textContent = lens ? ('Your job as the '+FULL[lens]) : 'All nine jobs on this play';
   var h='';
-  POS.forEach(function(p){
+  // When a position is chosen, show only that job — the other eight collapse
+  // so the play list is a short scroll away instead of a long one.
+  var list = lens ? [lens] : POS;
+  list.forEach(function(p){
     var j=cur.jobs[p]; if(!j) return;
-    var dim = lens && lens!==p;
-    h+='<div class="job'+(dim?' dim':'')+'">'+
+    h+='<div class="job">'+
        '<div class="num" style="background:'+JOBC[j.type]+'22;border:1px solid '+JOBC[j.type]+'80;color:'+JOBC[j.type]+'">'+NUM[p]+'</div>'+
        '<div class="bd"><div class="nm"><strong>'+FULL[p]+'</strong>'+
        '<span class="tag" style="background:'+JOBC[j.type]+'22;color:'+JOBC[j.type]+'">'+JOBL[j.type]+'</span></div>'+
        '<p>'+j.txt+'</p></div></div>';
   });
+  if(lens){
+    h+='<button onclick="setLens(null)" style="width:100%;margin-top:10px;padding:11px;border-radius:10px;background:transparent;border:1px dashed '+C_BORDER+';color:var(--mid);font-family:\'Barlow Condensed\',sans-serif;font-weight:700;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer">Show all nine jobs</button>';
+  }
   document.getElementById('jobs').innerHTML=h;
 }
 function renderList(){
