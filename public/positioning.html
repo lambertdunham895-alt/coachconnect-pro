@@ -187,7 +187,7 @@ footer a{color:var(--mid)}
       <div style="font-size:9pt;margin-top:6px;color:#555">coachconnectpro.net — Positioning Trainer</div>
     </div>
     <div class="fieldwrap">
-      <svg class="field" id="svg" viewBox="150 175 700 690" xmlns="http://www.w3.org/2000/svg" aria-label="Baseball field diagram"></svg>
+      <svg class="field" id="svg" viewBox="150 175 700 690" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-label="Baseball field diagram"></svg>
     </div>
 
     <div class="narr" id="narr"><b>Ready</b><span id="narrTxt">Pick a play below, then press Watch the Play to see all nine defenders move.</span></div>
@@ -383,71 +383,21 @@ function save(){try{localStorage.setItem('ccpPos',JSON.stringify(store))}catch(e
 function drawField(){
   var s=document.getElementById('svg');
   var h=HOME, b1=B1, b2=B2, b3=B3, m=MOUND;
-  // foul lines run off the edge of the frame — the outfield fills the whole view
-  var L=[h[0]-620, h[1]-620], R=[h[0]+620, h[1]-620];
-
-  // infield grass = the diamond between the base paths, inset off the paths
-  var k=0.90, cx=(h[0]+b2[0])/2, cy=(h[1]+b2[1])/2;
-  var ins=function(p){ return [cx+(p[0]-cx)*k, cy+(p[1]-cy)*k]; };
-  var ih=ins(h), i1=ins(b1), i2=ins(b2), i3=ins(b3);
-  var idia='M '+ih[0]+' '+ih[1]+' L '+i1[0]+' '+i1[1]+' L '+i2[0]+' '+i2[1]+' L '+i3[0]+' '+i3[1]+' Z';
-
+  // Real field photo, fitted so its bases land on the coordinates the plays use.
   s.innerHTML=
    '<defs>'+
-     // diamond checkerboard mow pattern
-     '<pattern id="turf" width="64" height="64" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'+
-       '<rect width="64" height="64" fill="#2c8f4c"/>'+
-       '<rect width="32" height="32" fill="#249245"/>'+
-       '<rect x="32" y="32" width="32" height="32" fill="#249245"/>'+
-     '</pattern>'+
-     '<pattern id="turfIn" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'+
-       '<rect width="46" height="46" fill="#2f9a52"/>'+
-       '<rect width="23" height="23" fill="#279a4b"/>'+
-       '<rect x="23" y="23" width="23" height="23" fill="#279a4b"/>'+
-     '</pattern>'+
-     '<radialGradient id="turfShade" cx="50%" cy="72%" r="78%">'+
-       '<stop offset="55%" stop-color="#000" stop-opacity="0"/>'+
-       '<stop offset="100%" stop-color="#02170c" stop-opacity="0.42"/></radialGradient>'+
-     '<radialGradient id="dirt" cx="50%" cy="38%" r="70%">'+
-       '<stop offset="0%" stop-color="#cfa46c"/><stop offset="100%" stop-color="#b0824c"/></radialGradient>'+
+     '<radialGradient id="turfShade" cx="50%" cy="70%" r="80%">'+
+       '<stop offset="58%" stop-color="#000" stop-opacity="0"/>'+
+       '<stop offset="100%" stop-color="#02170c" stop-opacity="0.45"/></radialGradient>'+
      '<filter id="soft" x="-30%" y="-30%" width="160%" height="160%">'+
        '<feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/></filter>'+
    '</defs>'+
-
-   // turf across the entire frame
-   '<rect x="0" y="0" width="1000" height="880" fill="url(#turf)"/>'+
-
-   // infield dirt arc, centred on the mound
-   '<circle cx="'+m[0]+'" cy="'+m[1]+'" r="288" fill="url(#dirt)"/>'+
-
-   // foul lines
-   '<line x1="'+h[0]+'" y1="'+h[1]+'" x2="'+L[0]+'" y2="'+L[1]+'" stroke="#f6f9f4" stroke-width="4" opacity=".95"/>'+
-   '<line x1="'+h[0]+'" y1="'+h[1]+'" x2="'+R[0]+'" y2="'+R[1]+'" stroke="#f6f9f4" stroke-width="4" opacity=".95"/>'+
-
-   // base paths
-   '<path d="M '+h[0]+' '+h[1]+' L '+b1[0]+' '+b1[1]+' L '+b2[0]+' '+b2[1]+' L '+b3[0]+' '+b3[1]+' Z" fill="none" stroke="url(#dirt)" stroke-width="20"/>'+
-
-   // infield grass
-   '<path d="'+idia+'" fill="url(#turfIn)"/>'+
-   '<path d="'+idia+'" fill="none" stroke="#f6f9f4" stroke-width="1.5" opacity=".18"/>'+
-
-   // mound + rubber
-   '<circle cx="'+m[0]+'" cy="'+m[1]+'" r="28" fill="url(#dirt)"/>'+
-   '<rect x="'+(m[0]-8)+'" y="'+(m[1]-3)+'" width="16" height="5.5" rx="1" fill="#f4f4ef"/>'+
-
-   // home plate area
-   '<circle cx="'+h[0]+'" cy="'+h[1]+'" r="54" fill="url(#dirt)"/>'+
-   '<rect x="'+(h[0]-40)+'" y="'+(h[1]-17)+'" width="27" height="46" fill="none" stroke="#f6f9f4" stroke-width="2.5" opacity=".85"/>'+
-   '<rect x="'+(h[0]+13)+'" y="'+(h[1]-17)+'" width="27" height="46" fill="none" stroke="#f6f9f4" stroke-width="2.5" opacity=".85"/>'+
-   '<polygon points="'+(h[0]-9)+','+(h[1]-8)+' '+(h[0]+9)+','+(h[1]-8)+' '+(h[0]+9)+','+(h[1]+3)+' '+h[0]+','+(h[1]+11)+' '+(h[0]-9)+','+(h[1]+3)+'" fill="#fff"/>'+
-
-   bag(b1)+bag(b2)+bag(b3)+
+   '<rect x="0" y="0" width="1000" height="880" fill="#2b7d40"/>'+
+   '<image href="/field-diagram.jpg" xlink:href="/field-diagram.jpg" x="-134" y="-201" width="1254" height="1360" preserveAspectRatio="none"/>'+
    '<rect x="0" y="0" width="1000" height="880" fill="url(#turfShade)" pointer-events="none"/>'+
    '<g id="paths"></g><g id="runners"></g><g id="fielders"></g><g id="ballg"></g>';
 }
-function bag(p){
-  return '<g filter="url(#soft)"><rect x="'+(p[0]-9)+'" y="'+(p[1]-9)+'" width="18" height="18" rx="2" fill="#f7f9f5" transform="rotate(45 '+p[0]+' '+p[1]+')"/></g>';
-}
+function bag(p){ return ''; }  // the photo already has the bases
 
 function fielderEl(id,p,job,dim){
   var c=JOBC[job]||'#8fa3c0', r=26;
