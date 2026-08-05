@@ -1222,6 +1222,22 @@ function AppInner() {
 
   const [teamDisplayName, setTeamDisplayName] = useState("");
 
+  // A single stalled request used to hang the whole load screen forever on a
+  // flaky connection. Each query now times out, retries once, then gives up
+  // with empty data so the app still opens instead of freezing.
+  const q = async (make, label) => {
+    for (let i = 0; i < 2; i++) {
+      try {
+        return await Promise.race([
+          make(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 9000)),
+        ]);
+      } catch (e) {
+        if (i === 1) { console.error('query failed:', label, e.message); return { data: [] }; }
+      }
+    }
+  };
+
   const loadTeamData = async (teamId, userId) => {
     try {
       const [
@@ -1232,21 +1248,23 @@ function AppInner() {
         {data:buData},
         {data:crData},
       ] = await Promise.all([
-        supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),
-        supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),
-        supabase.from('events').select('*').eq('team_id',teamId).order('date'),
-        supabase.from('messages').select('*').eq('team_id',teamId).order('created_at'),
-        supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),
-        supabase.from('lineups').select('*').eq('team_id',teamId),
-        supabase.from('game_plans').select('*').eq('team_id',teamId),
-        supabase.from('drill_videos').select('*').eq('team_id',teamId),
-        supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),
-        supabase.from('player_photos').select('*').eq('team_id' , teamId),
-        supabase.from('chat_read_status').select('*').eq('team_id',teamId),
-        supabase.from('player_videos').select('*').eq('team_id',teamId),
-        supabase.from('custom_drills').select('*').eq('team_id',teamId).order('created_at'),
-        supabase.from('blocked_users').select('*').eq('team_id',teamId),
-        supabase.from('chat_reports').select('*').eq('team_id',teamId).order('created_at',{ascending:false}),
+        q(()=>supabase.from('players').select('*').eq('team_id',teamId).order('created_at'),'players'),
+        q(()=>supabase.from('assignments').select('*').eq('team_id',teamId).order('created_at'),'assignments'),
+        q(()=>supabase.from('events').select('*').eq('team_id',teamId).order('date'),'events'),
+        // Newest 400 messages only — chat used to load the entire team history
+        // on every single app open, which grew without limit all season.
+        q(()=>supabase.from('messages').select('*').eq('team_id',teamId).order('created_at',{ascending:false}).limit(400),'messages'),
+        q(()=>supabase.from('skill_snapshots').select('*').eq('team_id',teamId).order('date'),'skill_snapshots'),
+        q(()=>supabase.from('lineups').select('*').eq('team_id',teamId),'lineups'),
+        q(()=>supabase.from('game_plans').select('*').eq('team_id',teamId),'game_plans'),
+        q(()=>supabase.from('drill_videos').select('*').eq('team_id',teamId),'drill_videos'),
+        q(()=>supabase.from('custom_plans').select('*').eq('team_id',teamId).order('created_at'),'custom_plans'),
+        q(()=>supabase.from('player_photos').select('*').eq('team_id' , teamId),'player_photos'),
+        q(()=>supabase.from('chat_read_status').select('*').eq('team_id',teamId),'chat_read_status'),
+        q(()=>supabase.from('player_videos').select('*').eq('team_id',teamId),'player_videos'),
+        q(()=>supabase.from('custom_drills').select('*').eq('team_id',teamId).order('created_at'),'custom_drills'),
+        q(()=>supabase.from('blocked_users').select('*').eq('team_id',teamId),'blocked_users'),
+        q(()=>supabase.from('chat_reports').select('*').eq('team_id',teamId).order('created_at',{ascending:false}),'chat_reports'),
       ]);
 
     // Build players
@@ -1282,7 +1300,7 @@ function AppInner() {
     // Parent links — scoped to THIS team's players (previously fetched the whole
     // table across all teams, relying on RLS alone and growing with every team).
     const {data:ppData} = loadedPlayers.length
-      ? await supabase.from('parent_players').select('*').in('player_id', loadedPlayers.map(p=>p.id))
+      ? await q(()=>supabase.from('parent_players').select('*').in('player_id', loadedPlayers.map(p=>p.id)),'parent_players')
       : {data: []};
     // Map dm-{authUserId} → dm-{parentInfoId} using parent_players links
     (ppData||[]).forEach(pp => {
@@ -1295,7 +1313,7 @@ function AppInner() {
     });
 
     const msgMap = {};
-    (mData||[]).forEach(m=>{
+    ((mData||[]).slice().reverse()).forEach(m=>{
       let ch = m.channel;
       if(channelRemap[ch]) ch = channelRemap[ch];
       if(!msgMap[ch]) msgMap[ch]=[];
