@@ -788,10 +788,11 @@ drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
       '</div>'+
       btn('edNext','PLAY &#8594;')+
     '</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px">'+
       btn('edRun','RUN','border:0;background:#e8192c;color:#fff')+
       btn('edUndo','UNDO')+
       btn('edSnap','SNAP ON')+
+      btn('edNext2','FLAGGED','border:1px solid #7a2230;background:transparent;color:#ff6b7d')+
       btn('edExp','EXPORT','border:0;background:#f5c518;color:#2b2200')+
     '</div>';
   document.body.appendChild(bar);
@@ -935,6 +936,11 @@ drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
     if(ED.notes.length){
       txt += '\n\nNOTES\n' + ED.notes.map(function(n){ return n.play+' | step '+n.step+' | '+n.text; }).join('\n');
     }
+    if(window.__reviewVerdicts && window.__reviewVerdicts().length){
+      txt += '\n\nREVIEW VERDICTS\n' + window.__reviewVerdicts().map(function(v){
+        return v.play+' | '+v.who+' | '+v.src+' -> '+(v.verdict==='ok'?'LOOKS RIGHT':'NEEDS CHANGE');
+      }).join('\n');
+    }
     var w=document.createElement('div');
     w.style.cssText='position:fixed;inset:0;z-index:10004;background:#060a12;padding:18px;overflow:auto;font-family:Barlow Condensed,sans-serif';
     w.innerHTML='<div style="color:#f5c518;font-weight:800;letter-spacing:2px;font-size:13px;margin-bottom:10px">CHANGES ('+d.length+')</div>'+
@@ -964,7 +970,16 @@ drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
     el('edTitle').textContent=p.title;
     pick(p.id);
     stepLabel(); refreshCount();
+    if(window.__setEdIndex) window.__setEdIndex(ED.i);
   }
+  el('edNext2').onclick=function(){
+    var n=PLAYS.length;
+    for(var s=1;s<=n;s++){
+      var k=(ED.i+s)%n, f=(typeof REVIEW_FLAGS!=='undefined')&&REVIEW_FLAGS[PLAYS[k].id];
+      if(f&&f.length){ show(k); return; }
+    }
+    flash('No flagged plays found.');
+  };
   el('edPrev').onclick=function(){ show(ED.i-1); };
   el('edNext').onclick=function(){ show(ED.i+1); };
   el('edSm').onclick=function(){ if(phaseIx<=0){ resetPlay(); } else { jumpTo(phaseIx-1); } stepLabel(); };
@@ -994,6 +1009,77 @@ drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
   setTimeout(function(){ show(0); }, 350);
 })();
 
+
+var REVIEW_FLAGS={"r2-single-lf-home":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"xb-lf-runneronfirst":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"xb-leftcenter-runneronfirst":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"xb-rightcenter-runneronfirst":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"xb-rf-runneronfirst":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"r3-grounder-check":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"loaded-force-home":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"fly-cf-runneronsecond":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"fly-rf-runneronsecond":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"sacfly-lf":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"sacfly-cf":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"sacfly-rf":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"loaded-gb-ss":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"loaded-gb-2b":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"loaded-gb-3b":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"loaded-gb-1b":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"cut-cf-home":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"cut-rf-home":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"double-steal-corners":[{"who":"P","why":"Pitcher is sent behind the plate to back up the throw. Saulsbury's 12U playbook says to do this; Baseball Positive says a small-diamond backstop is close enough that the pitcher should be the cut-relay instead. Sources disagree — your call.","src":"conflict"}],"xb-rightcenter-norunners":[{"who":"P","why":"Wording is Claude's. Puts the pitcher in foul ground to read the play instead of committing to a base.","src":"unsourced"}],"xb-rf-norunners":[{"who":"P","why":"Wording is Claude's. Puts the pitcher in foul ground to read the play instead of committing to a base.","src":"unsourced"}],"gb-3b-runneronfirst":[{"who":"P","why":"Wording is Claude's. Says the pitcher cannot beat the throw and should stay central. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"P","why":"Wording is Claude's. Says the pitcher should not chase third because the shortstop is closer. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-3b-runneronsecond":[{"who":"P","why":"Wording is Claude's. Says the pitcher cannot beat the throw and should stay central. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"P","why":"Wording is Claude's. Says the pitcher should not chase third because the shortstop is closer. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-3b-runnerson1st2nd":[{"who":"P","why":"Wording is Claude's. Says the pitcher cannot beat the throw and should stay central. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"P","why":"Wording is Claude's. Says the pitcher should not chase third because the shortstop is closer. You confirmed the idea; the phrasing is unverified.","src":"unsourced"},{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-2b-runneronfirst":[{"who":"P","why":"Wording is Claude's. Says the pitcher cannot beat the throw and should stay central. You confirmed the idea; the phrasing is unverified.","src":"unsourced"}],"gb-2b-runneronsecond":[{"who":"P","why":"Wording is Claude's. Says the pitcher cannot beat the throw and should stay central. You confirmed the idea; the phrasing is unverified.","src":"unsourced"}],"gb-1b-norunners":[{"who":"2B","why":"Wording is Claude's, not from a source or from you. The second baseman is told to hold the middle rather than back up first. Nobody backs up first on this play as a result.","src":"unsourced"}],"gb-1b-runneronsecond":[{"who":"2B","why":"Wording is Claude's, not from a source or from you. The second baseman is told to hold the middle rather than back up first. Nobody backs up first on this play as a result.","src":"unsourced"}],"gb-1b-runnerson1st2nd":[{"who":"2B","why":"Wording is Claude's, not from a source or from you. The second baseman is told to hold the middle rather than back up first. Nobody backs up first on this play as a result.","src":"unsourced"}],"dp-6-4-3":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"steal-2nd-rhh":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"wild-pitch-r3":[{"who":"P","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-3b-norunners":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-ss-norunners":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-ss-runneronsecond":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"gb-ss-runnerson1st2nd":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"fly-lf-runneronfirst":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"fly-lf-runneronsecond":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"fly-cf-runneronfirst":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"fly-rf-runneronfirst":[{"who":"2B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"steal-3rd":[{"who":"3B","why":"Instruction says straddle the bag. Baseball Positive says do not teach straddling at 12U — stand beside the base, on the side the ball is coming from. Unresolved.","src":"conflict"}],"bunt-3b-side":[{"who":"P","why":"Quiz answer is 'Get it', but the ball never comes to him in the animation — another fielder takes it. Should this be 'Back it up'?","src":"audit"}],"bunt-1b-side":[{"who":"P","why":"Quiz answer is 'Get it', but the ball never comes to him in the animation — another fielder takes it. Should this be 'Back it up'?","src":"audit"},{"who":"—","why":"Coverage gap, not a play error: 51 of 73 plays are 0 outs. Every rulebook says the out count changes the right answer (runner on first with 0 outs = double play; with 2 outs = just get the batter). New plays, not edits.","src":"gap"}],"bunt-wheel-1st2nd":[{"who":"P","why":"Quiz answer is 'Get it', but the ball never comes to him in the animation — another fielder takes it. Should this be 'Back it up'?","src":"audit"},{"who":"1B","why":"Quiz answer is 'Get it', but the ball never comes to him in the animation — another fielder takes it. Should this be 'Back it up'?","src":"audit"}],"squeeze":[{"who":"1B","why":"Quiz answer is 'Get it', but the ball never comes to him in the animation — another fielder takes it. Should this be 'Back it up'?","src":"audit"}]};
+
+/* ══════════ REVIEW FLAGS — editor only ══════════ */
+(function(){
+  var COLOR={conflict:'#e8192c',unsourced:'#f5c518',audit:'#39a0ff',gap:'#9a7bd6'};
+  var LABEL={conflict:'SOURCES DISAGREE',unsourced:'UNVERIFIED WORDING',audit:'QUIZ ANSWER',gap:'COVERAGE GAP'};
+  var done={}, verdicts=[];
+  function ids(){ return PLAYS.map(function(p){return p.id;}); }
+  function open_(pid){
+    var items=REVIEW_FLAGS[pid]||[]; if(!items.length) return;
+    var w=document.createElement('div');
+    w.style.cssText='position:fixed;inset:0;z-index:10005;background:#060a12;padding:18px;overflow:auto;'+
+      'font-family:Barlow Condensed,sans-serif;color:#e6edf7';
+    var h='<div style="color:#f5c518;font-weight:800;letter-spacing:2px;font-size:13px;margin-bottom:4px">NEEDS YOUR REVIEW</div>'+
+      '<div style="color:#93a6c4;font-size:13px;margin-bottom:14px">'+pid+'</div>';
+    items.forEach(function(it,ix){
+      var c=COLOR[it.src]||'#93a6c4';
+      h+='<div style="border:1px solid #1b2942;border-left:3px solid '+c+';border-radius:9px;padding:12px;margin-bottom:11px">'+
+         '<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px">'+
+           '<span style="background:'+c+';color:#08111f;font-weight:800;font-size:10.5px;letter-spacing:1.2px;padding:3px 7px;border-radius:4px">'+(LABEL[it.src]||'')+'</span>'+
+           '<span style="color:#f5c518;font-weight:800;font-size:13px;letter-spacing:1px">'+it.who+'</span>'+
+         '</div>'+
+         '<div style="color:#c8d5ea;font-size:13.5px;line-height:1.5">'+it.why+'</div>'+
+         '<div style="display:flex;gap:7px;margin-top:10px">'+
+           '<button data-v="ok" data-i="'+ix+'" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1b2942;background:transparent;color:#7fd48a;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer">LOOKS RIGHT</button>'+
+           '<button data-v="fix" data-i="'+ix+'" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1b2942;background:transparent;color:#e8192c;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer">NEEDS CHANGE</button>'+
+         '</div></div>';
+    });
+    h+='<button id="rvClose" style="width:100%;padding:14px;border-radius:9px;border:1px solid #1b2942;background:transparent;color:#93a6c4;font-family:inherit;font-weight:800;letter-spacing:1.2px;font-size:14px;cursor:pointer">BACK TO THE PLAY</button>';
+    w.innerHTML=h; document.body.appendChild(w);
+    w.querySelectorAll('button[data-v]').forEach(function(b){
+      b.onclick=function(){
+        var it=items[+b.dataset.i];
+        verdicts=verdicts.filter(function(v){ return !(v.play===pid&&v.who===it.who&&v.src===it.src); });
+        verdicts.push({play:pid,who:it.who,src:it.src,verdict:b.dataset.v});
+        done[pid+'|'+it.who+'|'+it.src]=b.dataset.v;
+        b.parentNode.querySelectorAll('button').forEach(function(x){ x.style.background='transparent'; x.style.color=x.dataset.v==='ok'?'#7fd48a':'#e8192c'; });
+        b.style.background = b.dataset.v==='ok' ? '#7fd48a' : '#e8192c';
+        b.style.color='#08111f';
+        badge();
+      };
+    });
+    document.getElementById('rvClose').onclick=function(){ w.remove(); };
+  }
+  /* badge on the editor bar */
+  var b=document.createElement('button');
+  b.id='rvBtn';
+  b.style.cssText='position:fixed;right:11px;top:34px;z-index:9999;padding:7px 11px;border-radius:8px;border:0;'+
+    'font-family:Barlow Condensed,sans-serif;font-weight:800;font-size:12px;letter-spacing:1.2px;cursor:pointer;display:none';
+  document.body.appendChild(b);
+  b.onclick=function(){ open_(PLAYS[EDI()].id); };
+  var _EDI=0;
+  window.__setEdIndex=function(n){ _EDI=n; badge(); };
+  function EDI(){ return _EDI; }
+  function badge(){
+    var pid=PLAYS[EDI()].id, items=REVIEW_FLAGS[pid]||[];
+    if(!items.length){ b.style.display='none'; return; }
+    var left=items.filter(function(it){ return !done[pid+'|'+it.who+'|'+it.src]; }).length;
+    b.style.display='block';
+    b.style.background = left ? '#e8192c' : '#7fd48a';
+    b.style.color = left ? '#fff' : '#08111f';
+    b.textContent = left ? ('REVIEW '+left) : 'REVIEWED';
+  }
+  window.__reviewVerdicts=function(){ return verdicts; };
+  window.__reviewTotal=function(){
+    var n=0; for(var k in REVIEW_FLAGS) n+=REVIEW_FLAGS[k].length; return n;
+  };
+  window.__reviewBadge=badge;
+  setTimeout(badge,120);
+})();
 </script>
 <div id="buildstamp">PT v15 EDITOR</div>
 </body>
