@@ -32,6 +32,37 @@ async function trackUsage(userId, teamId, feature) {
   } catch (_) { /* analytics must never break the app */ }
 }
 
+// ─── PRIVATE-STORAGE MEDIA HELPERS ───────────────────────────────────────────
+// All media buckets are PRIVATE (2026-08-15 security fix). Files are served via
+// short-lived signed URLs instead of public URLs. These helpers turn a storage
+// path — or a legacy public URL stored in older DB rows — into a fresh signed
+// URL. Signed URLs expire, so resolve at load/render time and store PATHS in
+// the database, never URLs.
+const SIGNED_URL_TTL = 60 * 60; // seconds — 1 hour
+
+function parseStorageUrl(url){
+  const m = String(url||"").match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/([^?]+)/);
+  return m ? { bucket: m[1], path: decodeURIComponent(m[2]) } : null;
+}
+async function signedUrl(bucket, path, ttl = SIGNED_URL_TTL){
+  try {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, ttl);
+    if (error) { console.error("signedUrl:", bucket, path, error.message); return null; }
+    return data?.signedUrl || null;
+  } catch { return null; }
+}
+async function resolveMediaUrl(defaultBucket, pathOrUrl){
+  if (!pathOrUrl) return null;
+  const v = String(pathOrUrl);
+  if (/^(data:|blob:)/.test(v)) return v;
+  if (/^https?:/.test(v)) {
+    const p = parseStorageUrl(v);
+    if (!p) return v;                       // external URL (e.g. YouTube) — untouched
+    return await signedUrl(p.bucket, p.path);
+  }
+  return await signedUrl(defaultBucket, v);
+}
+
 const LOGO = "/logo.png";
 
 // ─── PUSH NOTIFICATIONS ──────────────────────────────────────────────────────
@@ -1362,24 +1393,31 @@ function AppInner() {
       desc:d.description, results:d.results, isCustom:true,
     })));
 
+    // Buckets are private: sign all photo paths in ONE batched call.
+    // Each signed URL carries a unique token, so no cache-buster is needed.
     const photoMap = {};
-    (phData||[]).forEach(ph=>{
-      if(ph.player_id && ph.storage_path) {
-        const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(ph.storage_path);
-        photoMap[ph.player_id] = publicUrl + '?t=' + Date.now();
-      }
-    });
+    const photoRows = (phData||[]).filter(ph=>ph.player_id && ph.storage_path);
+    if (photoRows.length) {
+      const {data:signedPhotos} = await supabase.storage.from('player-photos')
+        .createSignedUrls(photoRows.map(r=>r.storage_path), SIGNED_URL_TTL);
+      photoRows.forEach((ph,i)=>{
+        const u = signedPhotos?.[i]?.signedUrl;
+        if (u) photoMap[ph.player_id] = u;
+      });
+    }
     setPlayerPhotos(photoMap);
 
     // Load player videos from DB
     const pvMap = {};
-    (pvData||[]).forEach(pv=>{
-      if(pv.player_id && pv.drill_id && pv.storage_path) {
-        const {data:{publicUrl}} = supabase.storage.from('player-videos').getPublicUrl(pv.storage_path);
+    const videoRows = (pvData||[]).filter(pv=>pv.player_id && pv.drill_id && pv.storage_path);
+    if (videoRows.length) {
+      const {data:signedVids} = await supabase.storage.from('player-videos')
+        .createSignedUrls(videoRows.map(r=>r.storage_path), SIGNED_URL_TTL);
+      videoRows.forEach((pv,i)=>{
         const key = `${pv.player_id}_${pv.drill_id}`;
-        pvMap[key] = { url: publicUrl, storagePath: pv.storage_path, uploadedAt: new Date(pv.uploaded_at).getTime(), feedback: [] };
-      }
-    });
+        pvMap[key] = { url: signedVids?.[i]?.signedUrl || null, storagePath: pv.storage_path, uploadedAt: new Date(pv.uploaded_at).getTime(), feedback: [] };
+      });
+    }
     setPlayerVideos(pvMap);
 
     // Load blocked users and chat reports
@@ -1426,7 +1464,12 @@ function AppInner() {
       if (data?.team_id) {
         const {data:td} = await supabase.from("teams").select("*").eq("id",data.team_id).single();
         if (td?.name) setTeamDisplayName(td.name);
-        if (td?.logo_url) setTeamLogo(td.logo_url);
+        if (td?.logo_url) {
+          // Older rows stored a full public URL (now dead); newer rows store the
+          // storage path. resolveMediaUrl handles both. Fire-and-forget so the
+          // logo never blocks team data loading.
+          resolveMediaUrl('player-photos', td.logo_url).then(u=>{ if (u) setTeamLogo(u); });
+        }
         if (td) setTeamData(td);
         await loadTeamData(data.team_id, userId);
         if(data.role === 'parent' && data.player_id) {
@@ -1765,8 +1808,8 @@ function AppInner() {
       const path = `${playerId}.${ext}`;
       const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
       if (error) { console.error('Player photo upload error:', error.message); return; }
-      const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
-      setPlayerPhotos(prev=>({...prev,[playerId]:publicUrl + '?t=' + Date.now()}));
+      const signed = await signedUrl('player-photos', path);
+      if (signed) setPlayerPhotos(prev=>({...prev,[playerId]:signed}));
       await supabase.from('player_photos').upsert({
         player_id:playerId, team_id:teamId, storage_path:path,
         uploaded_by:session?.user?.id||null,
@@ -1802,9 +1845,10 @@ function AppInner() {
       const path = `team-logos/${teamId}_${Date.now()}.${ext}`;
       const {error} = await supabase.storage.from('player-photos').upload(path, blob, {upsert:true});
       if (!error) {
-        const {data:{publicUrl}} = supabase.storage.from('player-photos').getPublicUrl(path);
-        await supabase.from('teams').update({logo_url:publicUrl}).eq('id',teamId);
-        setTeamLogo(publicUrl);
+        // Store the storage PATH (signed URLs expire; paths do not).
+        await supabase.from('teams').update({logo_url:path}).eq('id',teamId);
+        const signed = await signedUrl('player-photos', path);
+        if (signed) setTeamLogo(signed);
       } else {
         console.error('Logo upload error:',error);
       }
@@ -2346,8 +2390,8 @@ function SupportModal({session, profile, onClose}) {
         const path = `${uid||"anon"}_${Date.now()}_${id}.jpg`;
         const {error} = await supabase.storage.from("support-screenshots").upload(path, blob, {upsert:true, contentType:"image/jpeg"});
         if (error) throw error;
-        const {data:{publicUrl}} = supabase.storage.from("support-screenshots").getPublicUrl(path);
-        setShots(prev=>prev.map(s=>s.id===id?{...s,url:publicUrl,uploading:false}:s));
+        // Store the storage PATH on the ticket; the admin view signs it to display.
+        setShots(prev=>prev.map(s=>s.id===id?{...s,url:path,uploading:false}:s));
       } catch(err) {
         console.error("screenshot upload failed", err);
         setShots(prev=>prev.map(s=>s.id===id?{...s,uploading:false,error:true}:s));
@@ -2482,9 +2526,13 @@ function AdminPanel({session}) {
       {Array.isArray(t.screenshot_urls) && t.screenshot_urls.length>0 && (
         <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:12}}>
           {t.screenshot_urls.map((u,i)=>(
-            <a key={i} href={u} target="_blank" rel="noreferrer" style={{display:"block",width:72,height:72,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
-              <img src={u} alt={"screenshot "+(i+1)} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-            </a>
+            <SignedMedia key={i} bucket="support-screenshots" pathOrUrl={u}>
+              {url=>(
+                <a href={url} target="_blank" rel="noreferrer" style={{display:"block",width:72,height:72,borderRadius:8,overflow:"hidden",border:`1px solid ${C.border}`}}>
+                  <img src={url} alt={"screenshot "+(i+1)} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                </a>
+              )}
+            </SignedMedia>
           ))}
         </div>
       )}
@@ -6842,6 +6890,20 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
   );
 }
 
+// ─── SIGNED MEDIA (render prop) ──────────────────────────────────────────────
+// Resolves a storage path or legacy public URL to a fresh signed URL at render
+// time. Renders nothing until resolved; renders nothing at all on failure.
+function SignedMedia({bucket, pathOrUrl, children}){
+  const [url, setUrl] = useState(null);
+  useEffect(()=>{
+    let live = true;
+    resolveMediaUrl(bucket, pathOrUrl).then(u=>{ if (live) setUrl(u); });
+    return ()=>{ live=false; };
+  },[bucket, pathOrUrl]);
+  if (!url) return null;
+  return children(url);
+}
+
 // ─── PARENT VIDEO UPLOAD ─────────────────────────────────────────────────────
 function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlayerVideos}) {
   const key = `${playerId}_${drillId}`;
@@ -6872,9 +6934,8 @@ function ParentVideoUpload({playerId, drillId, drillName, playerVideos, setPlaye
       const { error: uploadError } = await supabase.storage.from('player-videos').upload(storagePath, file, { cacheControl: '3600', upsert: true });
       if (uploadError) { console.error('Upload error:', uploadError); toast.error('Upload failed. Check your connection and try again.'); setLoading(false); return; }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage.from('player-videos').getPublicUrl(storagePath);
-      const publicUrl = urlData?.publicUrl;
+      // Buckets are private — get a signed URL for immediate playback.
+      const publicUrl = await signedUrl('player-videos', storagePath);
 
       // Save to DB
       setUploadProgress('Saving...');
@@ -7472,4 +7533,4 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
 }
 
 // ─── SHARED EXPORTS (used by component files) ────────────────────────────────
-export { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast };
+export { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast, signedUrl, resolveMediaUrl, SignedMedia, SIGNED_URL_TTL };
