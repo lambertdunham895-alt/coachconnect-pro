@@ -2801,11 +2801,17 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
         status: "pending",
       });
       if(dbErr) throw dbErr;
-      // Try to send email via edge function (won't fail the flow if it errors)
+      // Try to send email via edge function (won't fail the flow if it errors).
+      // The function now requires a signed-in caller (it is rate limited and,
+      // once RESEND_API_KEY is set, sends real email), so pass the session token.
       try {
+        const { data: { session: inviteSession } } = await supabase.auth.getSession();
         await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/send-coach-invite", {
           method: "POST",
-          headers: {"Content-Type":"application/json"},
+          headers: {
+            "Content-Type":"application/json",
+            ...(inviteSession ? { Authorization: `Bearer ${inviteSession.access_token}` } : {}),
+          },
           body: JSON.stringify({
             invite_id: id,
             coach_email: coachEmail.toLowerCase().trim(),
