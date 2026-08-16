@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { C, inp, FONTS, LOGO, supabase } from "../App";
+import { C, inp, FONTS, LOGO, supabase, uid } from "../App";
 
 // ─── LANDING PAGE — clean, emoji-free design ─────────────────────────────────
 function LandingPage({onAuth}) {
@@ -423,7 +423,7 @@ function LoginScreen({onAuth, onBack=null}) {
       const refCode = localStorage.getItem('ccp_ref');
       if(refCode){
         await supabase.from("referrals").insert({
-          id: Date.now().toString(36)+Math.random().toString(36).slice(2),
+          id: uid(),
           ref_code: refCode,
           user_id: userId,
           user_email: email,
