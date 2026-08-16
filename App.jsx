@@ -1331,6 +1331,7 @@ function AppInner() {
       position:p.position||'', number:p.number||'',
       bats:p.bats||'R', throws:p.throws||'R',
       goals:p.goals||[], parents:p.parents_info||[],
+      createdAt: p.created_at ? new Date(p.created_at).getTime() : 0,
     }));
     setPlayers(loadedPlayers);
 
@@ -1339,12 +1340,14 @@ function AppInner() {
       assignedDate:a.assigned_date, completed:a.completed||false,
       coachRating:a.coach_rating||null, notes:a.notes||'',
       acknowledged:a.acknowledged||false,
+      createdAt: a.created_at ? new Date(a.created_at).getTime() : 0,
     })));
     setEvents((eData||[]).map(e=>({
       id:e.id, type:e.type, date:e.date, time:e.time||'',
       location:[e.field_name,e.address].filter(Boolean).join(' — '),
       fieldName:e.field_name||'', address:e.address||'',
       notes:e.notes||'', opponent:e.opponent||'', uniform:e.uniform||'',
+      createdAt: e.created_at ? new Date(e.created_at).getTime() : 0,
     })));
 
     // Build channel ID mapping: old formats → new per-parent format
@@ -1413,6 +1416,7 @@ function AppInner() {
     setCustomPlans((cpData||[]).map(p=>({
       id:p.id, title:p.title||'', focus:p.focus||'', ageGroup:p.age_group||'',
       duration:p.duration||'', blocks:p.blocks||[], isCustom:true,
+      createdAt: p.created_at ? new Date(p.created_at).getTime() : 0,
     })));
 
     setCustomDrills((cdData||[]).map(d=>({
@@ -3293,37 +3297,46 @@ function CoachHome({onSupport=()=>{},players,assignments,events,customPlans=[],g
   })).filter(x=>x.items.length>0);
 
   // ── Recent Activity feed (derived from existing data; arrays are created_at-ordered) ──
+  // Genuinely chronological. This used to rank by CATEGORY (players 300,
+  // events 250, plans 200, drills 150) rather than by time — so players always
+  // occupied the top 4 slots and a new practice plan or drill assignment could
+  // never surface at all. Now every item carries its real created_at and the
+  // feed is sorted on that.
   const recentActivity = (()=>{
     const items = [];
-    // Newest players (tail of array = most recently added)
-    players.slice(-4).reverse().forEach((p,i)=>{
-      items.push({ key:`pl-${p.id}`, order:300-i, iconId:"roster", color:C.red,
+    const when = (o) => o?.createdAt || 0;
+
+    players.forEach(p=>{
+      items.push({ key:`pl-${p.id}`, at:when(p), iconId:"roster", color:C.red,
         title:`${p.name} was added to the roster`, tab:"roster" });
     });
-    // Newest practice plans
-    customPlans.slice(-4).reverse().forEach((p,i)=>{
-      items.push({ key:`cp-${p.id}`, order:200-i, iconId:"plans", color:C.gold,
+
+    customPlans.forEach(p=>{
+      items.push({ key:`cp-${p.id}`, at:when(p), iconId:"plans", color:C.gold,
         title:`Practice plan "${p.title||'Untitled'}" created`, tab:"plans" });
     });
-    // Newest scheduled events (events ordered by date asc; tail = latest date)
-    events.slice(-4).reverse().forEach((e,i)=>{
+
+    events.forEach(e=>{
       const label = e.type==="game"
         ? `Game${e.opponent?` vs. ${e.opponent}`:""} added to schedule`
         : `Practice added to schedule`;
-      items.push({ key:`ev-${e.id}`, order:250-i, iconId:"schedule", color:C.blue, title:label, tab:"schedule" });
+      items.push({ key:`ev-${e.id}`, at:when(e), iconId:"schedule", color:C.blue, title:label, tab:"schedule" });
     });
-    // Newest drill assignments, grouped by drill (not player-specific)
-    const seenDrills = new Set();
-    [...assignments].reverse().forEach(a=>{
-      if(seenDrills.has(a.drillId)) return;
-      seenDrills.add(a.drillId);
-      if(seenDrills.size>3) return;
-      const d = findDrill(a.drillId);
-      items.push({ key:`as-${a.drillId}`, order:150-seenDrills.size, icon:"⚾", color:C.teal,
+
+    // Drill assignments collapse by drill: assigning one drill to nine players
+    // is one activity, not nine. Keep the most recent assignment per drill.
+    const byDrill = new Map();
+    assignments.forEach(a=>{
+      const prev = byDrill.get(a.drillId);
+      if(!prev || when(a) > when(prev)) byDrill.set(a.drillId, a);
+    });
+    byDrill.forEach((a, drillId)=>{
+      const d = findDrill(drillId);
+      items.push({ key:`as-${drillId}`, at:when(a), icon:"⚾", color:C.teal,
         title:`Drill "${d?.name||'Drill'}" assigned`, tab:"drills" });
     });
-    // Sort by our recency proxy and cap the feed
-    return items.sort((a,b)=>b.order-a.order).slice(0,6);
+
+    return items.sort((a,b)=>b.at-a.at).slice(0,6);
   })();
 
   return (
@@ -3672,6 +3685,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
         throws: p.throws||"R",
         parents,
         goals: [],
+        createdAt: Date.now(),
       };
     });
     // setPlayers is the DB-aware setter — it persists each new player and surfaces save errors itself.
@@ -3686,7 +3700,7 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
     const pid=uid();
     if(form.parent1.trim()) parents.push({id:pid+"a",name:form.parent1.trim(),phone:form.parent1phone.trim(),email:form.parent1email.trim()});
     if(form.parent2.trim()) parents.push({id:pid+"b",name:form.parent2.trim(),phone:form.parent2phone.trim(),email:form.parent2email.trim()});
-    const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:form.goals.split("\n").filter(Boolean)};
+    const newPlayer = {id:pid,name:form.name,age:parseInt(form.age)||0,ageGroup:form.ageGroup,position:form.position,number:form.number,bats:form.bats,throws:form.throws,parents,goals:form.goals.split("\n").filter(Boolean),createdAt:Date.now()};
     // setPlayers is the DB-aware setter — it persists the insert and surfaces any save error itself.
     setPlayers(prev=>[...prev,newPlayer]);
     setForm({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
@@ -3905,7 +3919,7 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
       // setAsgn is the DB-aware setter — it persists the delete itself.
       setAsgn(prev => prev.filter(a => !(a.playerId===pid && a.drillId===selectedDrill.id)));
     } else {
-      const newA = {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false};
+      const newA = {id:uid(), playerId:pid, drillId:selectedDrill.id, assignedDate:new Date().toISOString().slice(0,10), completed:false, coachRating:null, notes:"", acknowledged:false, createdAt:Date.now()};
       // setAsgn is the DB-aware setter — it persists the insert AND sends the parent push notification itself.
       setAsgn(prev => [...prev, newA]);
     }
@@ -4157,6 +4171,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     }
     const newEvents = fresh.map(ev => ({
       id: uid(),
+      createdAt: Date.now(),
       type: ev.type==="game"?"game":"practice",
       date: ev.date,
       time: ev.time||"",
@@ -4241,7 +4256,7 @@ function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],
     if(editId){
       setEvents(prev=>prev.map(e=>e.id===editId?{...e,...snapForm,location}:e));
     } else {
-      setEvents(prev=>[...prev,{id:evId,...snapForm,location}]);
+      setEvents(prev=>[...prev,{id:evId,...snapForm,location,createdAt:Date.now()}]);
     }
     setView("list");
 
