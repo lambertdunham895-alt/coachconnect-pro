@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { C, Avatar, supabase, fmtTime, avatarColor, toast, signedUrl, SignedMedia } from "../App";
+import { C, Avatar, supabase, fmtTime, avatarColor, toast, signedUrl, SignedMedia, uid, randomToken } from "../App";
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
 function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId,blockedUsers=[],onBlock=()=>{},onUnblock=()=>{},onReport=()=>{}}) {
@@ -54,7 +54,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
       setReactions(prev=>({...prev,[msgId]:(prev[msgId]||[]).filter(r=>r.id!==existing.id)}));
     } else {
       // Add reaction
-      const id = Date.now().toString(36)+Math.random().toString(36).slice(2);
+      const id = uid();
       const row = {id,message_id:msgId,user_id:myId,user_name:myName,emoji,team_id:teamId};
       await supabase.from("message_reactions").insert(row);
       setReactions(prev=>({...prev,[msgId]:[...(prev[msgId]||[]),{emoji,userId:myId,userName:myName,id}]}));
@@ -109,7 +109,7 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
     if(pendingFile) {
       setUploading(true);
       const ext = pendingFile.name.split('.').pop();
-      const path = `${teamId||'local'}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${teamId||'local'}/${Date.now()}_${randomToken(10)}.${ext}`;
       const { error } = await supabase.storage.from('chat-attachments').upload(path, pendingFile.file);
       if(!error) {
         // Buckets are private and signed URLs expire, so the message stores the
