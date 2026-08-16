@@ -737,10 +737,37 @@ const extraAssignments = [
 ];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-const uid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-  const r = Math.random() * 16 | 0;
-  return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-});
+// IDs are database primary keys, so they come from the crypto RNG rather than
+// Math.random() (which is not cryptographically secure and can be predictable).
+// crypto.randomUUID needs a secure context; the fallback still uses real
+// entropy via getRandomValues, and only the last resort touches Math.random.
+const uid = () => {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 0x0f) | 0x40;               // version 4
+      b[8] = (b[8] & 0x3f) | 0x80;               // RFC 4122 variant
+      const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+      return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+    }
+  } catch (_) { /* fall through */ }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+};
+
+// Short opaque token for filenames and local React keys — not a database key.
+const randomToken = (len = 10) => {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const b = crypto.getRandomValues(new Uint8Array(len));
+      return [...b].map(x => (x % 36).toString(36)).join('');
+    }
+  } catch (_) { /* fall through */ }
+  return Math.random().toString(36).slice(2, 2 + len);
+};
 const CATEGORIES = ["Mental Skills","At Home","Hitting","Fielding","Throwing","Pitching","Catching","Base Running","Conditioning","Catching a Ball"];
 
 // Global mutable ref for custom drills — updated by App when loaded from Supabase
@@ -2382,7 +2409,7 @@ function SupportModal({session, profile, onClose}) {
     const files = Array.from(fileList||[]).slice(0, 3 - shots.length);
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
-      const id = Math.random().toString(36).slice(2);
+      const id = randomToken(10);
       const preview = URL.createObjectURL(file);
       setShots(prev=>[...prev,{id,preview,url:null,uploading:true,error:false}]);
       try {
@@ -2788,7 +2815,7 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
     setError("");
     setSending(true);
     try {
-      const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      const id = uid();
       const {error:dbErr} = await supabase.from("coach_invites").insert({
         id,
         invited_by_parent_id: parentId,
@@ -7539,4 +7566,4 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
 }
 
 // ─── SHARED EXPORTS (used by component files) ────────────────────────────────
-export { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast, signedUrl, resolveMediaUrl, SignedMedia, SIGNED_URL_TTL };
+export { C, uid, randomToken, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast, signedUrl, resolveMediaUrl, SignedMedia, SIGNED_URL_TTL };
