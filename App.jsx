@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import PracticePlans, { BLOCK_COLORS } from "./components/PracticePlans";
+import PracticePlans from "./components/PracticePlans";
 import LandingPage from "./components/LandingPage";
 import ChatView from "./components/ChatView";
+import RosterScanner from "./components/RosterScanner";
+import { C, FONTS } from "./theme";
+import { DRILL_LIBRARY, catMeta, CATEGORIES } from "./data/drills";
 import { createClient } from "@supabase/supabase-js";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -111,463 +114,22 @@ async function sendPushNotification(teamId, title, body, excludeUserId=null) {
   } catch(err) { console.error('Push send error:', err); }
 }
 
-const FONTS = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@400;600;700;800&display=swap');
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-body { margin: 0; padding: 0; background: #060a12; }
-input, select, textarea { font-size: 16px !important; }
+// FONTS moved to theme.js
 
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(18px) scale(0.98); }
-  to   { opacity:1; transform:translateY(0) scale(1); }
-}
-@keyframes popIn {
-  0%   { opacity:0; transform:scale(0.82) translateY(8px); }
-  70%  { opacity:1; transform:scale(1.02) translateY(-1px); }
-  100% { opacity:1; transform:scale(1) translateY(0); }
-}
-@keyframes slideUp {
-  from { opacity:0; transform:translateY(100%); }
-  to   { opacity:1; transform:translateY(0); }
-}
-@keyframes slideInRight {
-  from { opacity:0; transform:translateX(24px); }
-  to   { opacity:1; transform:translateX(0); }
-}
-@keyframes pulseBadge {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(232,25,44,0.5); }
-  50%      { box-shadow: 0 0 0 6px rgba(232,25,44,0); }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-@keyframes glowPulse {
-  0%, 100% { filter: drop-shadow(0 0 4px currentColor); }
-  50%      { filter: drop-shadow(0 0 10px currentColor); }
-}
-@keyframes scoreFlash {
-  0%   { background-color: rgba(245,197,24,0.15); }
-  100% { background-color: transparent; }
-}
-@keyframes spin {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.fade-up   { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-up-1 { animation: fadeUp 0.35s 0.05s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-up-2 { animation: fadeUp 0.35s 0.10s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-up-3 { animation: fadeUp 0.35s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-up-4 { animation: fadeUp 0.35s 0.20s cubic-bezier(0.22,1,0.36,1) both; }
-.fade-up-5 { animation: fadeUp 0.35s 0.25s cubic-bezier(0.22,1,0.36,1) both; }
-.pop-in    { animation: popIn  0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
-.slide-in  { animation: slideInRight 0.3s cubic-bezier(0.22,1,0.36,1) both; }
-
-/* Enhanced card hover with smoother lift and gradient glow */
-.card-hover { transition:transform 0.22s cubic-bezier(0.22,1,0.36,1),box-shadow 0.22s ease,border-color 0.22s ease; cursor:pointer; }
-.card-hover:hover { transform:translateY(-3px); box-shadow:0 12px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04); }
-.card-hover:active { transform:scale(0.98) translateY(0); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
-
-/* Glassmorphism — frosted glass cards */
-.glass {
-  background: rgba(20,30,50,0.55);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-.glass-strong {
-  background: rgba(15,25,45,0.75);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.10);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
-}
-.glass-card {
-  background: linear-gradient(145deg, rgba(30,45,75,0.45), rgba(15,25,45,0.55));
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid rgba(255,255,255,0.07);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
-}
-
-/* Skeleton loaders */
-@keyframes skeletonShimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-.skeleton {
-  background: linear-gradient(90deg, #1a2745 25%, #243558 50%, #1a2745 75%);
-  background-size: 200% 100%;
-  animation: skeletonShimmer 1.5s ease-in-out infinite;
-  border-radius: 8px;
-}
-
-/* Animated number / counter effect */
-@keyframes numberPop {
-  0% { transform:scale(1); }
-  40% { transform:scale(1.15); }
-  100% { transform:scale(1); }
-}
-.number-pop { animation: numberPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both; }
-
-/* Tap ripple effect */
-@keyframes ripple {
-  to { transform: scale(2.4); opacity: 0; }
-}
-
-.btn-press { transition:transform 0.1s cubic-bezier(0.22,1,0.36,1),box-shadow 0.1s ease; }
-.btn-press:active { transform:scale(0.95); }
-
-.badge-pulse { animation: pulseBadge 2s ease-in-out infinite; }
-
-.shimmer-text {
-  background: linear-gradient(90deg, #f0ebe2 30%, #f5c518 50%, #f0ebe2 70%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 3s linear infinite;
-}
-
-.glow-active { animation: glowPulse 2s ease-in-out infinite; }
-
-.score-flash { animation: scoreFlash 0.8s ease both; }
-
-.nav-item { transition: color 0.15s ease, transform 0.15s ease; }
-.nav-item:active { transform: scale(0.9); }
-
-.tag-hover { transition: transform 0.12s ease, box-shadow 0.12s ease; }
-.tag-hover:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
-
-/* Subtle floating animation for empty state icons */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-.float-anim { animation: float 3s ease-in-out infinite; }
-
-/* Hero — Ken Burns slow zoom on background photo */
-@keyframes kenBurns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.12); }
-}
-.ken-burns { animation: kenBurns 30s ease-in-out infinite alternate; transform-origin: center 35%; will-change: transform; }
-
-/* Hero — glowing primary CTA */
-@keyframes heroPulse {
-  0%, 100% { box-shadow: 0 8px 32px rgba(232,25,44,0.5); }
-  50%      { box-shadow: 0 10px 42px rgba(232,25,44,0.95), 0 0 26px rgba(232,25,44,0.6); }
-}
-.hero-cta-glow { animation: heroPulse 2.2s ease-in-out infinite; }
-
-::-webkit-scrollbar { width:3px; height:3px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:#1e3060; border-radius:2px; }
-
-.pill-scroll::-webkit-scrollbar { display:none; }
-.pill-scroll { scrollbar-width:none; }
-
-.msg-list { overflow-y:auto; }
-.msg-list::-webkit-scrollbar { width:2px; }
-`;
 
 // ─── TOKENS ──────────────────────────────────────────────────────────────────
-const C = {
-  bg:"#060a12", card:"#0c1628", cardAlt:"#0a1220",
-  border:"#1a2f52", borderBright:"#2a4070",
-  red:"#e8192c", redDim:"#c01020",
-  gold:"#f5c518", teal:"#00d4aa",
-  blue:"#1e7bd4", purple:"#8b5cf6", orange:"#f97316",
-  text:"#f0ebe2", textMid:"#8a9fc0", textDim:"#3d5070",
-  stripe:"none",
-  msgMe:"#1e3a6e", msgOther:"#0e1f38",
-};
+// Design tokens (C) moved to theme.js
 
-const catMeta = {
-  Hitting:        { color:"#e8192c", icon:"🏏" },
-  Fielding:       { color:"#1e7bd4", icon:"🧤" },
-  Throwing:       { color:"#00d4aa", icon:"💪" },
-  Pitching:       { color:"#f97316", icon:"⚾" },
-  Catching:       { color:"#8b5cf6", icon:"🥎" },
-  "Base Running": { color:"#f5c518", icon:"🏃" },
-  Conditioning:   { color:"#06b6d4", icon:"⚡" },
-  "Mental Skills":{ color:"#ec4899", icon:"🧠" },
-  "Catching a Ball":{ color:"#a3e635", icon:"🫴" },
-  "At Home":      { color:"#22c55e", icon:"🏠" },
-};
+
 const catColor = c => catMeta[c]?.color||"#888";
 const catIcon  = c => catMeta[c]?.icon ||"▸";
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 const POSITIONS  = ["Pitcher","Catcher","1B","2B","3B","SS","LF","CF","RF","Utility"];
 const AGE_GROUPS = ["6–8 (T-ball)","9–12 (Little League)","13–15 (Junior)","16–18 (Senior)"];
-const STAR_LABELS= ["","Needs Work","Below Avg","Average","Good","Excellent"];
 
-const DRILL_LIBRARY = [
-  // ── HITTING ──────────────────────────────────────────────────────────────
-  {id:"h1",name:"Tee Work Progression",        category:"Hitting",      duration:"20 min",
-   desc:"Set up a batting tee at inside, middle, and outside locations at low, mid, and high heights. Work 10 swings at each spot, driving the ball to the appropriate field — inside pitches pulled, middle up the middle, outside to the opposite field.",
-   results:"Develops plate coverage, proper swing path for different pitch locations, and opposite-field power. Players learn to adjust mechanics based on ball location."},
-  {id:"h2",name:"Soft Toss",                   category:"Hitting",      duration:"15 min",
-   desc:"A coach or partner kneels at a 45-degree angle about 8–10 feet away and tosses balls underhand into the hitting zone. Hitter focuses on timing, keeping hands inside the ball, and driving through contact. Mix locations and vary timing.",
-   results:"Builds hand-eye coordination, proper swing mechanics, and allows high repetition without fatigue. Develops quick hands and the ability to adjust to different pitch locations."},
-  {id:"h3",name:"Front Toss with Recognition",  category:"Hitting",      duration:"20 min",
-   desc:"Coach throws from behind a screen about 20 feet away. Call out 'yes' or 'no' before releasing — yes means swing, no means take. Progress to colored balls where the hitter only swings at specific colors.",
-   results:"Improves pitch recognition, plate discipline, and decision-making under time pressure. Develops the ability to lay off bad pitches while being aggressive on strikes."},
-  {id:"h4",name:"Two-Strike Approach",          category:"Hitting",      duration:"20 min",
-   desc:"Every at-bat starts with a 0-2 count using live BP or a pitching machine. Hitters shorten their swing, protect the plate, and focus on putting the ball in play. Emphasize contact over power.",
-   results:"Teaches situational hitting, bat control, and how to battle with two strikes. Reduces strikeouts and develops a more compact swing when needed."},
-  {id:"h5",name:"Opposite Field Drill",         category:"Hitting",      duration:"15 min",
-   desc:"Place cones or targets in the opposite field. All swings must be driven to the opposite field gap or line. Use tee work, soft toss, or live pitching focused on outside locations.",
-   results:"Develops the ability to use the whole field, increases bat control, prevents pulling off the ball, and teaches proper weight transfer through the zone."},
-  {id:"h6",name:"One-Hand Drills",              category:"Hitting",      duration:"10 min",
-   desc:"Hitters swing with only their top hand or bottom hand using a lighter bat on tee or soft toss. Top hand develops power and extension; bottom hand develops control and barrel guidance.",
-   results:"Isolates and strengthens each hand's role in the swing, improves bat control, and identifies weaknesses in swing mechanics."},
-  {id:"h7",name:"Live At-Bat Simulation",       category:"Hitting",      duration:"30 min",
-   desc:"Full at-bats against live pitching with real counts. Track every pitch, work the count, and execute different approaches based on the situation: runner on third, hit-and-run, etc.",
-   results:"Develops game-like approach, mental toughness, pitch recognition in real-time, and situational awareness."},
+// DRILL_LIBRARY moved to data/drills.js
 
-  // ── FIELDING ──────────────────────────────────────────────────────────────
-  {id:"f1",name:"Ground Ball Progression",      category:"Fielding",     duration:"15 min",
-   desc:"Start 10–15 feet from the coach. Coach rolls or bounces balls creating different hops — short, medium, and long. Maintain proper fielding position: feet wider than shoulders, glove out front, backside down, eyes on the ball. Progress to moving left and right.",
-   results:"Develops soft hands, proper fielding fundamentals, and the ability to read hops and adjust positioning. Builds confidence fielding difficult short hops."},
-  {id:"f2",name:"Triangle Drill",               category:"Fielding",     duration:"15 min",
-   desc:"Set up three cones in a triangle 15–20 feet apart. Field a ground ball at one cone, shuffle to the next, receive another ball, then backhand at the third before sprinting back. Continuous rotation for 60–90 seconds.",
-   results:"Improves footwork, fielding on the move, forehand and backhand technique, and conditioning. Develops the ability to field from different angles and body positions."},
-  {id:"f3",name:"Double Play Feeds & Turns",    category:"Fielding",     duration:"20 min",
-   desc:"Middle infielders work receiving feeds from different angles and making the pivot at second base. Start slow focusing on footwork and clean transfers, then progress to game speed. Practice both feed directions.",
-   results:"Builds chemistry between middle infielders, develops quick hands and feet for turning double plays, and teaches proper footwork to avoid base runners."},
-  {id:"f4",name:"Do or Die Drill",              category:"Fielding",     duration:"15 min",
-   desc:"Ball is hit or rolled to an outfielder who must charge hard, field cleanly, and make an accurate throw home. Simulate a runner trying to score from third, creating real urgency.",
-   results:"Teaches aggressive fielding, clean transfers under pressure, and accurate throws when everything is on the line. Develops confidence in high-pressure situations."},
-  {id:"f5",name:"Reaction Ball Drill",          category:"Fielding",     duration:"10 min",
-   desc:"Use a reaction ball or have a coach purposely bounce balls off the ground at odd angles. Players must react quickly and adjust their positioning to field the unpredictable bounces.",
-   results:"Improves reaction time, hand-eye coordination, and the ability to adjust to bad hops. Builds athleticism and confidence handling difficult plays."},
-  {id:"f6",name:"Fly Ball Communication",       category:"Fielding",     duration:"15 min",
-   desc:"Two or three players position near each other. Coach hits fly balls between them and they must communicate loudly ('I got it!') to determine who catches. Include both routine and difficult balls.",
-   results:"Develops verbal communication, awareness of teammates, and establishes priority systems. Prevents collisions and dropped balls due to confusion."},
-  {id:"f7",name:"First-to-Third Drill",         category:"Fielding",     duration:"15 min",
-   desc:"Outfielders field a ball in the gap or down the line and make a strong accurate throw to third to prevent a runner advancing. Focus on proper footwork, crow hop, and throwing through the cutoff man.",
-   results:"Improves arm strength, accuracy, and decision-making. Teaches proper throwing mechanics and angles to hit cutoff men or bases."},
-
-  // ── THROWING ──────────────────────────────────────────────────────────────
-  {id:"t1",name:"Long Toss Progression",        category:"Throwing",     duration:"20 min",
-   desc:"Partners start 30–40 feet apart with proper mechanics. After 10 throws each partner takes 2–3 steps back. Continue to maximum distance then work back in. Focus on four-seam grip, arm angle, and follow-through throughout.",
-   results:"Builds arm strength, proper throwing mechanics, and develops the arm arc needed for longer throws. Serves as both a drill and arm care routine."},
-  {id:"t2",name:"Crow Hop & Release",           category:"Throwing",     duration:"10 min",
-   desc:"Practice the proper crow hop: field position, quick shuffle step, gather and push off back leg, aggressive step toward target, quick release. Start without a ball to perfect footwork, then add throws.",
-   results:"Develops quick efficient transfers and throws. Essential for outfielders and any position needing to make a strong throw after fielding."},
-  {id:"t3",name:"Targets & Accuracy Work",      category:"Throwing",     duration:"15 min",
-   desc:"Set up targets at various distances and angles. Players must hit specific zones called by coach. Start close and increase distance. Award points for accuracy to add competition.",
-   results:"Improves throwing accuracy, builds confidence hitting cutoff men and bases, and adds a competitive element to throwing practice."},
-  {id:"t4",name:"Knee Throws",                  category:"Throwing",     duration:"10 min",
-   desc:"Players kneel on their throwing-side knee and make throws from this position. Isolates the upper body and arm action, removing lower body compensation.",
-   results:"Teaches proper arm mechanics, shoulder rotation, and follow-through. Identifies mechanical flaws that might be hidden by a strong lower body."},
-  {id:"t5",name:"Quick Release Drill",          category:"Throwing",     duration:"10 min",
-   desc:"Players field a ball and must release it within 1.5–2 seconds (timed by coach stopwatch). Practice from various fielding positions and angles. Goal is clean transfer and fast, accurate throw.",
-   results:"Develops quick hands, efficient glove-to-hand transfers, and fast release. Critical for preventing stolen bases and getting lead runners."},
-  {id:"t6",name:"Relay Throws",                 category:"Throwing",     duration:"15 min",
-   desc:"Set up multiple players in a line practicing relay throws from outfield to infield. Outfielder throws to cutoff man, who immediately relays to a base. Emphasize quick catch-and-throw, proper positioning, and accuracy.",
-   results:"Develops teamwork, communication, and the ability to make quick accurate throws. Teaches proper relay positioning and technique."},
-
-  // ── PITCHING ──────────────────────────────────────────────────────────────
-  {id:"p1",name:"Balance Point Drill",          category:"Pitching",     duration:"15 min",
-   desc:"Lift the leg to maximum height, hold for 3–5 seconds in perfect balance (weight over the rubber, eyes on target, hands at chest), then complete the pitch. Start with 10 holds without throwing, then progress to full pitches.",
-   results:"Develops body control, proper balance throughout the delivery, and consistent leg lift. Prevents rushing and falling off toward first or third base. Builds core strength and stability."},
-  {id:"p2",name:"Towel Drill",                  category:"Pitching",     duration:"10 min",
-   desc:"Pitcher holds a towel instead of a ball and goes through the full pitching motion. At release point, snap the towel toward the target with proper arm action and follow-through. Focus on extension, pronation, and finishing with the chest over the front knee.",
-   results:"Reinforces proper arm path, follow-through, and finish position without arm stress. Helps develop muscle memory for correct mechanics and allows high-volume repetition safely."},
-  {id:"p3",name:"Flat Ground Work",             category:"Pitching",     duration:"20 min",
-   desc:"Throw from flat ground (not elevated mound) at 75–90% effort, focusing on specific mechanics: arm slot consistency, hip drive, landing position, or follow-through. Complete 20–30 throws per session.",
-   results:"Allows pitchers to work on mechanics with less arm stress. Builds feel for different pitches, improves command, and provides opportunity to make adjustments without game pressure."},
-  {id:"p4",name:"Target Practice with Zones",   category:"Pitching",     duration:"15 min",
-   desc:"Set up a strike zone target with four quadrants (inside/outside, up/down). Pitcher must hit specific zones called by coach. Track success rate: 10 pitches to each zone. Progress to sequencing.",
-   results:"Develops pinpoint command, ability to hit spots on demand, and teaches pitch sequencing. Builds confidence commanding all parts of the strike zone."},
-  {id:"p5",name:"Pick-Off & Runner Control",    category:"Pitching",     duration:"15 min",
-   desc:"Practice pick-off moves to all bases: slide-step delivery, various pick-off looks, timing moves, and varying times to the plate. Include reads of runner's secondary leads. Time delivery home (goal: under 1.3–1.4 sec with slide step).",
-   results:"Develops ability to control the running game, multiple looks to keep runners honest, and quick delivery. Teaches deception and timing."},
-  {id:"p6",name:"Long Toss for Pitchers",       category:"Pitching",     duration:"20 min",
-   desc:"Start at 60 feet and progress to 150–180 feet, then work back in. Focus on maintaining proper arm slot and delivery mechanics even at longer distances. Emphasize extension and finish through all distances.",
-   results:"Builds arm strength, develops proper arm action, and increases velocity. Serves as arm care and helps develop the feeling of throwing through targets rather than to them."},
-  {id:"p7",name:"Pitch Arsenal Development",    category:"Pitching",     duration:"25 min",
-   desc:"Dedicate bullpen sessions to specific pitch development. Throw 15–20 of each pitch type: four-seam, two-seam, changeup, curveball, slider. Focus on grip, arm speed consistency, and movement. Track results with video or catcher feedback.",
-   results:"Develops confidence in all pitches, improves feel and command of secondary pitches, and expands pitcher's repertoire."},
-  {id:"p8",name:"PFP – Pitcher Fielding",       category:"Pitching",     duration:"15 min",
-   desc:"Work on fielding comebackers, covering first base, backing up bases, and handling bunts. Practice footwork for each scenario: proper angles to first base and positioning for cutoffs.",
-   results:"Makes pitchers complete defensive players, prevents errors on routine plays, and builds athleticism. Teaches proper techniques for all defensive responsibilities."},
-  {id:"p9",name:"Mental Pitch Sequencing",      category:"Pitching",     duration:"10 min",
-   desc:"Without throwing, pitchers work through at-bats against imaginary hitters in different counts. Call out each pitch selection and location, explaining reasoning. Coach provides feedback on strategy and working the strike zone.",
-   results:"Develops game IQ, teaches pitch selection strategy, and builds understanding of how to attack hitters. Prepares pitchers to think like a pitcher, not just throw."},
-  {id:"p10",name:"Simulated Game Situations",   category:"Pitching",     duration:"30 min",
-   desc:"Set up game-like situations: bases loaded with two outs, runner on third with one out, etc. Pitcher must execute under pressure with proper tempo and focus. Include consequences for walks or hits. Track pitch counts.",
-   results:"Simulates game pressure, teaches composure in high-stress situations, and develops ability to execute when it matters. Builds mental toughness and competitive mindset."},
-
-  // ── CATCHING ──────────────────────────────────────────────────────────────
-  {id:"c1",name:"Blocking Drill",               category:"Catching",     duration:"15 min",
-   desc:"Catchers start in their crouch. Coach throws or bounces balls in the dirt to different locations. Catchers drop to knees, keep chest over the ball, and trap it. Mix speeds and angles.",
-   results:"Develops proper blocking technique, fearlessness in the dirt, and the ability to keep balls in front to prevent wild pitches and passed balls."},
-  {id:"c2",name:"Framing & Receiving Work",     category:"Catching",     duration:"15 min",
-   desc:"Work on receiving balls on the edges of the strike zone, focusing on 'sticking' pitches by catching and holding position rather than jerking the glove. Emphasize quiet hands and subtle movements to make borderline pitches look like strikes.",
-   results:"Improves pitch framing ability to gain called strikes, develops soft hands, and teaches how to work with umpires effectively."},
-  {id:"c3",name:"Pop-Up Priority Drill",        category:"Catching",     duration:"10 min",
-   desc:"Hit or throw pop-ups around home plate in various directions. Catcher must quickly remove mask away from the ball, locate it, and make the catch. Remember pop-ups spin back toward the infield.",
-   results:"Teaches proper technique for tracking pop-ups, removing equipment safely, and understanding spin dynamics of foul balls."},
-  {id:"c4",name:"Throw Down Progression",       category:"Catching",     duration:"15 min",
-   desc:"Work on throwing mechanics to second base: receiving position, quick transfer, step and throw. Focus on getting rid of the ball in under 2.0 seconds catch-to-base. Also practice throws to third and first.",
-   results:"Develops quick release, accuracy, and proper footwork to control the running game and pick off base runners."},
-  {id:"c5",name:"Tag Plays at Home",            category:"Catching",     duration:"15 min",
-   desc:"Set up situations where a runner is trying to score. Catchers practice receiving throws from various angles, positioning to block the plate (within current rules), and applying tags quickly and safely. Include dropped ball recoveries.",
-   results:"Teaches proper technique for high-pressure plays at home, body positioning, and safe tagging technique while protecting against injury."},
-  {id:"c6",name:"One-Knee Receiving",           category:"Catching",     duration:"10 min",
-   desc:"Catchers practice receiving from a one-knee stance (now common with no runners on base). Focus on staying low, quiet glove presentation, and framing pitches effectively from this position.",
-   results:"Develops comfort and effectiveness in the one-knee stance, improves framing from this position, and teaches when to use traditional versus one-knee setup."},
-
-  // ── BASE RUNNING ──────────────────────────────────────────────────────────
-  {id:"br1",name:"First-Step Quickness",        category:"Base Running",  duration:"10 min",
-   desc:"Runners take their lead and react to different commands: 'go' (steal), 'back' (pickoff), or 'hold' (no pitch). Use a stopwatch to time the first three steps. Focus on explosive first step and proper crossover technique.",
-   results:"Develops quick reactions, explosive starts, and proper crossover step technique for stealing bases and advancing on balls in play."},
-  {id:"br2",name:"Round-the-Bases Technique",   category:"Base Running",  duration:"15 min",
-   desc:"Runners practice hitting the inside of the bag when rounding, maintaining speed through the base, and taking the proper angle to set up for the next bag. Time full circuits and individual base-to-base segments.",
-   results:"Teaches efficient base running, proper angles and footwork on turns, and how to maintain maximum speed throughout the bases."},
-  {id:"br3",name:"Secondary Lead & Reads",      category:"Base Running",  duration:"15 min",
-   desc:"Runners take their primary lead, then execute a secondary lead timing with the pitcher's release. Practice reading balls in the dirt, line drives, and fly balls with proper reactions. Include freeze or advance decisions.",
-   results:"Develops proper lead technique, improves reading the ball off the bat, and teaches appropriate reactions to different batted balls."},
-  {id:"br4",name:"Tag-Up Drill",                category:"Base Running",  duration:"10 min",
-   desc:"Runners practice tagging up on fly balls from all three bases. Coach hits fly balls at different depths and runners must time their break. Emphasize third-to-home on sacrifice flies.",
-   results:"Teaches proper tag-up technique, improves timing, and develops the ability to judge flyball depth and make advancement decisions."},
-  {id:"br5",name:"First-to-Third",              category:"Base Running",  duration:"15 min",
-   desc:"Hit or throw balls into the outfield gaps. Runners practice going first-to-third, focusing on reading the outfielder, hitting the inside corner of second base, and listening for coaches. Time the plays and create competition.",
-   results:"Develops aggressive base running, proper technique for two-base advancement, and teaches when to challenge outfielders' arms."},
-  {id:"br6",name:"Slide Progression",           category:"Base Running",  duration:"20 min",
-   desc:"Teach proper sliding technique starting in grass. Progress through: bent-leg slide, head-first slide, pop-up slide, and hook slide. Practice both sides for hook slides.",
-   results:"Teaches safe efficient sliding technique, prevents injuries, and develops ability to avoid tags and reach bases quickly."},
-  {id:"br7",name:"Situational Base Running",    category:"Base Running",  duration:"20 min",
-   desc:"Set up game scenarios: runner on first with less than two outs (must advance on ground ball), runner on third with less than two outs (tag and score on fly ball), etc. Runners must execute proper technique for each.",
-   results:"Develops baseball IQ, teaches situation-specific base running, and ensures players know proper protocols in all game situations."},
-
-  // ── CONDITIONING ──────────────────────────────────────────────────────────
-  {id:"co1",name:"60-Yard Sprints",             category:"Conditioning", duration:"20 min",
-   desc:"Sprint 60 yards at maximum effort. Rest 90–120 seconds between reps. Complete 6–10 reps. Focus on explosion off the start and maintaining form throughout.",
-   results:"Builds speed, explosive power, and anaerobic capacity needed for base running and fielding plays. Mimics game distances."},
-  {id:"co2",name:"Ladder Drills",               category:"Conditioning", duration:"15 min",
-   desc:"Perform various footwork patterns through an agility ladder: one foot per square, two feet per square, lateral shuffles, icky shuffle, in-in-out-out. Complete 5–6 different patterns, 3–4 reps each.",
-   results:"Improves foot speed, coordination, agility, and body control. Develops the quick feet needed for fielding and base running."},
-  {id:"co3",name:"Shuttle Runs (5-10-5)",       category:"Conditioning", duration:"15 min",
-   desc:"Start at a center cone, sprint 5 yards right and touch the line, sprint 10 yards left and touch that line, then sprint 5 yards back through the center. Time each rep with 60-second rest. Complete 6–8 reps.",
-   results:"Develops change-of-direction ability, acceleration, deceleration, and anaerobic endurance needed for multiple plays in an inning."},
-  {id:"co4",name:"Pole-to-Pole Runs",           category:"Conditioning", duration:"20 min",
-   desc:"Start at the left field foul pole, jog down the line to home, sprint across the field to the right field foul pole, jog down that line, then sprint back. Complete 3–5 circuits with 2-minute rest between.",
-   results:"Builds aerobic base, stamina for full games, and mental toughness. Teaches proper pacing and recovery while moving."},
-  {id:"co5",name:"Weighted Ball Throws",        category:"Conditioning", duration:"15 min",
-   desc:"Use 2–6 pound weighted balls or medicine balls for rotational throws, overhead slams, chest passes, and side throws. Complete 3 sets of 10–12 reps for each exercise.",
-   results:"Builds explosive power, core strength, and rotational strength needed for hitting and throwing. Develops fast-twitch muscle fibers."},
-  {id:"co6",name:"Plank Circuit",               category:"Conditioning", duration:"10 min",
-   desc:"Hold front plank for 30–60 seconds, side plank each side for 30–45 seconds, and reverse plank for 30 seconds. Complete 3–4 rounds with 30-second rest between exercises.",
-   results:"Builds core stability essential for throwing, hitting, and injury prevention. Develops muscular endurance and body control."},
-  {id:"co7",name:"Hill Sprints / Stadium Stairs",category:"Conditioning",duration:"20 min",
-   desc:"Sprint up a hill or stadium stairs (50–100 feet), walk down for recovery. Complete 8–12 reps. Focus on driving knees up and maintaining good running form despite fatigue.",
-   results:"Builds leg power, cardiovascular endurance, and mental toughness. Develops the leg drive needed for base running and explosive movements."},
-
-  // ── MENTAL SKILLS ─────────────────────────────────────────────────────────
-  {id:"m1",name:"Visualization Practice",       category:"Mental Skills", duration:"10 min",
-   desc:"Players sit quietly for 5–10 minutes with eyes closed. Guide them through visualizing successful at-bats, difficult defensive plays, or pressure situations. Emphasize seeing, feeling, and hearing every detail.",
-   results:"Develops mental rehearsal skills, builds confidence through repeated 'successful' experiences, and prepares the mind for actual game situations."},
-  {id:"m2",name:"Breathing & Composure",        category:"Mental Skills", duration:"5 min",
-   desc:"Teach box breathing (4-4-4-4: inhale 4 sec, hold 4, exhale 4, hold 4). Practice during breaks or before pressure situations. Create pressure scenarios where players must use breathing to stay calm.",
-   results:"Provides tools to manage anxiety and pressure, slows heart rate in tense situations, and helps maintain focus and composure."},
-  {id:"m3",name:"Failure Response Drill",       category:"Mental Skills", duration:"15 min",
-   desc:"Set up difficult drills where failure is likely (machine set very fast, extremely hard ground balls). After each failure, players must immediately demonstrate positive body language: shoulders back, head up, positive self-talk out loud ('next one', 'I got this').",
-   results:"Teaches resilience, positive response to failure, and body language awareness. Builds mental toughness and the ability to move on quickly from mistakes."},
-  {id:"m4",name:"Situational IQ Quiz",          category:"Mental Skills", duration:"10 min",
-   desc:"Coach calls out game situations (runner on second, one out, ground ball to short, etc.) and players must quickly state what they would do defensively. Rotate through all positions. Also run hitting scenarios.",
-   results:"Develops baseball IQ, situational awareness, and preparation. Ensures players know what to do before situations arise in games."},
-  {id:"m5",name:"Pre-Pitch Routine Development",category:"Mental Skills", duration:"15 min",
-   desc:"Each player develops and practices their pre-pitch or pre-swing routine until it becomes automatic. Batters establish their stance and timing. Pitchers develop their mound routine. Practice these until fully grooved.",
-   results:"Creates consistency and comfort in game situations, provides a mental reset between pitches, and helps maintain focus and composure."},
-  {id:"m6",name:"Goal Setting Session",         category:"Mental Skills", duration:"15 min",
-   desc:"Players write down specific, measurable goals for the season, month, and week. Include outcome goals (batting average, stolen bases) and process goals (quality at-bats, proper footwork). Review and adjust regularly.",
-   results:"Provides direction and motivation, teaches self-assessment, and helps players take ownership of their development. Builds accountability."},
-  {id:"m7",name:"Pressure Simulation",          category:"Mental Skills", duration:"20 min",
-   desc:"Create high-pressure practice situations: bases loaded scrimmage, timed competitions between teams, must-succeed scenarios with real consequences. Simulate game pressure so players can learn to perform under stress.",
-   results:"Develops ability to perform under pressure, simulates game stress in practice, and builds mental toughness and confidence in execution."},
-
-  // ── CATCHING A BALL (General) ──────────────────────────────────────────────
-  {id:"cb1",name:"Two-Hand Catch Progression",  category:"Catching a Ball", duration:"10 min",
-   desc:"Start with easy tosses from 10–15 feet. Players practice catching every ball with two hands. Progress to harder throws, fly balls, and ground balls. Emphasize keeping the throwing hand near the glove at all times, ready to secure the ball.",
-   results:"Develops proper catching fundamentals, prevents dropped balls, enables quick transfers for throws, and builds secure catching habits with correct muscle memory."},
-  {id:"cb2",name:"Fly Ball Priority System",    category:"Catching a Ball", duration:"15 min",
-   desc:"Groups of 3–4 players spread out. Coach hits fly balls between them at various angles and depths. Players must call loudly ('I got it! I got it!'). Establish priority rules: center fielder over corners, infielders give way to outfielders.",
-   results:"Prevents collisions and dropped balls, establishes clear communication protocols, and teaches priority systems in traffic situations."},
-  {id:"cb3",name:"Over-the-Shoulder Tracking",  category:"Catching a Ball", duration:"15 min",
-   desc:"Coach hits or throws fly balls requiring the player to turn and run to catch over their shoulder. Players must locate immediately, turn and run to the spot (not backpedal), and catch while running at full speed. Practice both directions.",
-   results:"Develops ability to track balls in the air while running, teaches proper drop-step technique, prevents backpedaling injuries, and builds confidence catching on the run."},
-  {id:"cb4",name:"Sun & Lights Drill",          category:"Catching a Ball", duration:"10 min",
-   desc:"Hit fly balls directly into the sun or stadium lights. Players practice using their glove to shield their eyes, locating the ball despite the glare, and making the catch. Use sunglasses when appropriate.",
-   results:"Prepares players for real-game situations with sun/light interference, teaches proper shielding technique, and builds confidence in difficult visual conditions."},
-  {id:"cb5",name:"Short-Hop Emphasis",          category:"Catching a Ball", duration:"10 min",
-   desc:"Coach throws or hits balls that create short hops specifically — bouncing 1–3 feet in front of the player. Work on attacking the ball, getting the glove down early, and soft hands to absorb the tricky bounce. Mix forehand and backhand.",
-   results:"Develops soft hands and proper technique for the most difficult hops to field. Most errors happen on short hops — this drill builds confidence and aggression on these plays."},
-  {id:"cb6",name:"Dive Progression",            category:"Catching a Ball", duration:"15 min",
-   desc:"Start on knees or sitting. Roll balls to the side requiring extension to catch. Progress to diving from a standing position. Use softer surfaces initially. Emphasize extending the glove, two hands when possible, and protecting the body on landing.",
-   results:"Teaches proper diving technique, builds confidence in laying out for balls, prevents injuries from poor diving form, and develops full-extension catching ability."},
-  {id:"cb7",name:"Line Drive Reaction",         category:"Catching a Ball", duration:"10 min",
-   desc:"Coach uses a fungo bat or throws hard line drives directly at players from 30–40 feet away. Players must react quickly, getting their glove up and reading the trajectory instantly. Mix balls to left, right, and directly at them.",
-   results:"Improves reaction time and hand-eye coordination, teaches proper positioning for line drives, and builds confidence tracking hard-hit balls."},
-  {id:"cb8",name:"Catch and Crow Hop",          category:"Catching a Ball", duration:"10 min",
-   desc:"Players catch fly balls or line drives and immediately execute a proper crow hop and throw to a target. Focus on catching with momentum toward the target, quick transfer, and explosive throw. Time from catch to release.",
-   results:"Develops smooth transition from catching to throwing, teaches proper footwork after the catch, and builds throwing accuracy after fielding."},
-  {id:"cb9",name:"Pop-Up Drift Awareness",      category:"Catching a Ball", duration:"10 min",
-   desc:"Coach hits high pop-ups with backspin (most pop-ups naturally drift back toward the infield). Players must read the spin, adjust positioning, and catch while moving appropriately. Learn the physics of the spin.",
-   results:"Teaches pop-up physics, prevents players from camping under spots where the ball won't land, and develops ability to read ball rotation and adjust positioning."},
-  {id:"cb10",name:"Glove Positioning Fundamentals",category:"Catching a Ball", duration:"10 min",
-   desc:"For balls above the waist: thumbs together, fingers pointing up. For balls below the waist: pinkies together, fingers pointing down. Practice rapid transitions between high and low balls so players automatically position correctly.",
-   results:"Creates automatic correct glove positioning, prevents awkward catches that lead to drops, and builds fundamentally sound catching technique for all situations."},
-  {id:"cb11",name:"Wind Drill",                 category:"Catching a Ball", duration:"10 min",
-   desc:"On windy days, intentionally practice catching fly balls in difficult wind. Teach players to read how wind affects the ball's flight, adjust positioning early, and use two hands even more diligently in wind.",
-   results:"Prepares players for challenging weather conditions, develops ability to adjust to wind interference, and builds confidence catching in less-than-ideal conditions."},
-  {id:"cb12",name:"Basket vs. Traditional Catch",category:"Catching a Ball", duration:"10 min",
-   desc:"Practice both techniques: basket catch (waist level, palms up) for balls directly overhead and traditional catch (hands above head) for balls in front. Explain when each is appropriate and situationally safest.",
-   results:"Provides options based on ball trajectory and situation, teaches when each technique is safest and most effective, and develops versatility in catching approach."},
-
-  // ─── AT HOME — parent + player, minimal equipment ───────────────────────────
-  {id:"hm1",name:"Wall Ball Fielding",           category:"At Home",       duration:"15 min",
-   desc:"Player throws a tennis ball against a garage door, brick wall, or porch steps and fields the rebound. Start with easy straight throws, then mix in angles for short hops and one-handed picks. Work 3 rounds of 20: forehand, backhand, and charging the ball. Parent can call \"runner!\" on random reps to add a quick throw back to the wall.",
-   results:"Builds soft hands, reaction time, and glove work with zero special equipment. The ball never stops — players get more fielding reps in 15 minutes than in most team practices."},
-  {id:"hm2",name:"Driveway Tee Work",            category:"At Home",       duration:"15 min",
-   desc:"Set a tee in front of a fence, net, or hung blanket and hit wiffle or soft-training balls. Work 3 rounds of 10 swings: tee inside, middle, and outside — pulling the inside pitch, driving the middle pitch straight, and taking the outside pitch the other way. Parent watches for a level swing and a balanced finish.",
-   results:"Grooves swing mechanics and plate coverage with daily repetitions the season schedule can't provide. Wiffle balls make it safe for any backyard or garage."},
-  {id:"hm3",name:"Sock-Ball Mirror Swings",      category:"At Home",       duration:"10 min",
-   desc:"Roll a pair of socks into a ball for fully indoor swing work. Player takes 20 slow-motion swings in front of a mirror, pausing at load, contact, and finish while a parent checks each position. Then 20 swings at game speed hitting the sock ball off a parent's soft toss from one knee.",
-   results:"Develops swing awareness and muscle memory safely indoors — perfect for rainy days and winter. Slow-motion mirror work catches habits full-speed swings hide."},
-  {id:"hm4",name:"Short-Hop Hands",              category:"At Home",       duration:"10 min",
-   desc:"Player kneels on both knees, glove out front. Parent kneels 8-10 feet away and firmly bounces a tennis ball just in front of the glove — the dreaded in-between hop. Work 3 rounds of 15, moving the bounce point glove-side, backhand-side, and at the body. Emphasize soft hands giving with the ball, not stabbing at it.",
-   results:"Turns the scariest hop in baseball into a comfortable one. Kneeling removes footwork so all focus goes to glove action and tracking the bounce."},
-  {id:"hm5",name:"Footwork Box",                 category:"At Home",       duration:"10 min",
-   desc:"Draw a 3x3-foot chalk square on the driveway (or lay out a towel square indoors). Player does quick-feet patterns around and through it: two-feet-in-two-out, lateral shuffles side to side, and forward-back hops — 30 seconds each with 30 seconds rest, twice through. Parent times and counts touches, trying to beat last session's score.",
-   results:"Builds the first-step quickness and light feet behind every good defensive play. The score-beating format turns conditioning into a game kids ask to repeat."},
-  {id:"hm6",name:"Backyard Catch Ladder",        category:"At Home",       duration:"15 min",
-   desc:"Classic catch with a plan. Start 15 feet apart with 10 throws focused on a four-seam grip and hitting the chest. Step back 10 feet after each clean round of 10. When a throw misses badly, step back in one level. Finish with 5 throws at max comfortable distance using a crow hop.",
-   results:"Turns everyday catch into structured arm strength and accuracy development. The ladder format gives a clear goal and shows progress week over week."},
-  {id:"hm7",name:"Quick-Transfer Countdown",     category:"At Home",       duration:"10 min",
-   desc:"Player holds the ball in their glove, and on \"go\" makes as many clean glove-to-throwing-hand transfers as possible in 30 seconds, finishing each in throwing position without actually throwing. Parent counts. Three rounds, resting between, trying to beat the record. Then repeat with the parent tossing the ball in from 5 feet for catch-and-transfer reps.",
-   results:"Develops the fast, clean exchange that turns close plays into outs. Perfect for middle infielders and catchers, and requires nothing but a ball, a glove, and a timer."},
-  {id:"hm8",name:"Balance & Mirror Pitching",    category:"At Home",       duration:"10 min",
-   desc:"In front of a mirror with no ball, player works their pitching delivery in three pauses: leg lift held for 3 full seconds at the balance point, stride landing checked for direction and alignment, and full finish with chest over the landing knee. Ten reps at each pause point, then five smooth full-speed deliveries.",
-   results:"Builds a repeatable, balanced delivery without throwing a single pitch — protecting young arms while improving mechanics. The pauses expose balance problems immediately."},
-  {id:"hm9",name:"Stairs & Curb Quick Feet",     category:"At Home",       duration:"10 min",
-   desc:"Using the bottom porch step or a curb: quick alternating toe taps for 30 seconds, both-feet up-and-down hops for 30 seconds, and lateral step-up shuffles for 30 seconds. Rest one minute; repeat 3 rounds. Parent keeps time and counts the last round out loud.",
-   results:"Builds leg drive, foot speed, and conditioning in any driveway. Short timed bursts match the explosive efforts baseball actually demands."},
-  {id:"hm10",name:"Watch-and-Call",              category:"At Home",       duration:"20 min",
-   desc:"Watch an inning of any baseball game together — TV or a local field. Before each pitch, player calls out what they'd do as a chosen fielder if the ball came to them: \"runner on first, ground ball to me, I'm going to second.\" Parent picks random moments to ask \"what if it's hit to the right fielder?\" Rotate positions each half-inning.",
-   results:"Builds game IQ and situational awareness faster than any physical drill — the same read-and-react thinking the Positioning Trainer builds, applied to live baseball. Also quality couch time that counts as practice."},
-  {id:"hm11",name:"Grip Flips",                  category:"At Home",       duration:"10 min",
-   desc:"Player lies on their back on a bed or couch and flips the ball straight up 2-3 feet using only a proper four-seam grip and wrist snap, catching it bare-handed. 3 sets of 20 flips. The ball should have tight backspin and go straight up — sideways spin means the grip or release is off. Parent checks the grip before each set.",
-   results:"Ingrains the four-seam grip and clean wrist action behind every accurate throw. Ten relaxed minutes at night adds up to thousands of correct releases a season."},
-  {id:"hm12",name:"Bare-Hand Rollers",           category:"At Home",       duration:"10 min",
-   desc:"No gloves. Parent rolls a tennis ball firmly across grass or carpet from 15 feet. Player fields it bare-handed with wide fingers, soft wrists, and eyes following the ball all the way in — 3 rounds of 12, then the last round mixing in slow rollers the player must charge and scoop on the run.",
-   results:"Removes the glove to force true soft hands and full ball-tracking. Fielding confidence transfers immediately when the glove goes back on."},
-];
 
 // ─── SKILL TRACKING ──────────────────────────────────────────────────────────
 // ─── RUBRIC SYSTEM ───────────────────────────────────────────────────────────
@@ -652,89 +214,9 @@ const getCriteriaKeys = (skill, rubric={}) => {
   return Object.keys(rubric).filter(k => prefixes.some(p => k.startsWith(p+"_")));
 };
 
-const initSkillSnapshots = [
-  // Marcus Rivera — SS, improving steadily
-  {id:"sk1",playerId:"p1",date:"2026-01-05",notes:"Season baseline — range needs work",rubric:{
-    fd_in_Mechanics:2,fd_in_Range:2,fd_in_Overall:2,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2}},
-  {id:"sk2",playerId:"p1",date:"2026-01-19",notes:"Range improving a lot",rubric:{
-    fd_in_Mechanics:2,fd_in_Range:3,fd_in_Overall:2,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:2}},
-  {id:"sk3",playerId:"p1",date:"2026-02-16",notes:"Backhand is reliable now",rubric:{
-    fd_in_Mechanics:3,fd_in_Range:3,fd_in_Overall:3,
-    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
-    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:3}},
-  {id:"sk4",playerId:"p1",date:"2026-03-01",notes:"Jump throw clicking — best outing yet",rubric:{
-    fd_in_Mechanics:4,fd_in_Range:4,fd_in_Overall:4,
-    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:4,tc_th_Overall:4,tc_ca_Overall:3,
-    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
 
-  // Tyler Owens — CF, outfield focus
-  {id:"sk5",playerId:"p2",date:"2026-01-05",notes:"Baseline — reads need work",rubric:{
-    fd_out_Range:2,fd_out_Overall:2,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2}},
-  {id:"sk6",playerId:"p2",date:"2026-01-26",notes:"Bat speed improving",rubric:{
-    fd_out_Range:3,fd_out_Overall:2,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:2}},
-  {id:"sk7",playerId:"p2",date:"2026-02-16",notes:"Drop step much more consistent",rubric:{
-    fd_out_Range:3,fd_out_Overall:3,
-    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
-    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
-  {id:"sk8",playerId:"p2",date:"2026-03-01",notes:"Speed is a real weapon now",rubric:{
-    fd_out_Range:4,fd_out_Overall:4,
-    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:3,
-    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:4,hi_hi_Overall:3}},
 
-  // Caleb Simmons — Pitcher
-  {id:"sk9",playerId:"p3",date:"2026-01-05",notes:"Mechanics inconsistent baseline",rubric:{
-    fd_out_Range:2,fd_out_Overall:2,
-    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:1,hi_hi_Contact:2,hi_hi_Overall:2,
-    pc_pi_Mechanics:2,pc_pi_Speed:2,pc_pi_Accuracy:2}},
-  {id:"sk10",playerId:"p3",date:"2026-02-02",notes:"Arm action cleaned up, change-up grip improving",rubric:{
-    fd_out_Range:2,fd_out_Overall:2,
-    tc_th_Mechanics:3,tc_th_Strength:3,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:1,hi_hi_Contact:2,hi_hi_Overall:2,
-    pc_pi_Mechanics:3,pc_pi_Speed:2,pc_pi_Accuracy:3}},
-  {id:"sk11",playerId:"p3",date:"2026-03-01",notes:"Best pitching session of the year — spin is legit",rubric:{
-    fd_out_Range:3,fd_out_Overall:2,
-    tc_th_Mechanics:4,tc_th_Strength:3,tc_th_Accuracy:4,tc_th_Overall:4,tc_ca_Overall:2,
-    hi_hi_Mechanics:2,hi_hi_Power:2,hi_hi_Contact:2,hi_hi_Overall:2,
-    pc_pi_Mechanics:4,pc_pi_Speed:3,pc_pi_Accuracy:4}},
 
-  // Jaylen Brooks — 1B
-  {id:"sk12",playerId:"p4",date:"2026-01-05",notes:"Footwork is the big focus",rubric:{
-    fd_in_Mechanics:2,fd_in_Range:2,fd_in_Overall:2,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:3,hi_hi_Power:2,hi_hi_Contact:3,hi_hi_Overall:3}},
-  {id:"sk13",playerId:"p4",date:"2026-02-02",notes:"First step improving, hitting to all fields",rubric:{
-    fd_in_Mechanics:3,fd_in_Range:2,fd_in_Overall:3,
-    tc_th_Mechanics:2,tc_th_Strength:2,tc_th_Accuracy:2,tc_th_Overall:2,tc_ca_Overall:2,
-    hi_hi_Mechanics:3,hi_hi_Power:3,hi_hi_Contact:3,hi_hi_Overall:3}},
-  {id:"sk14",playerId:"p4",date:"2026-03-01",notes:"Scoops in the dirt are automatic now",rubric:{
-    fd_in_Mechanics:4,fd_in_Range:3,fd_in_Overall:4,
-    tc_th_Mechanics:3,tc_th_Strength:2,tc_th_Accuracy:3,tc_th_Overall:3,tc_ca_Overall:2,
-    hi_hi_Mechanics:4,hi_hi_Power:3,hi_hi_Contact:4,hi_hi_Overall:4}},
-];
-
-// Extra completed assignments spread across dates for streaks
-const extraAssignments = [
-  {id:"ax1",playerId:"p1",drillId:"f1",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax2",playerId:"p1",drillId:"t4",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax3",playerId:"p1",drillId:"f1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax4",playerId:"p1",drillId:"t1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax5",playerId:"p3",drillId:"p3",assignedDate:"2026-02-24",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax6",playerId:"p3",drillId:"p7",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax7",playerId:"p3",drillId:"p3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax8",playerId:"p2",drillId:"f6",assignedDate:"2026-02-25",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax9",playerId:"p2",drillId:"cb3",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax10",playerId:"p4",drillId:"h1",assignedDate:"2026-02-26",completed:true,coachRating:null,notes:"",acknowledged:false},
-  {id:"ax11",playerId:"p4",drillId:"f1",assignedDate:"2026-02-27",completed:true,coachRating:null,notes:"",acknowledged:false},
-];
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 // IDs are database primary keys, so they come from the crypto RNG rather than
@@ -768,7 +250,6 @@ const randomToken = (len = 10) => {
   } catch (_) { /* fall through */ }
   return Math.random().toString(36).slice(2, 2 + len);
 };
-const CATEGORIES = ["Mental Skills","At Home","Hitting","Fielding","Throwing","Pitching","Catching","Base Running","Conditioning","Catching a Ball"];
 
 // Global mutable ref for custom drills — updated by App when loaded from Supabase
 let _customDrillsRef = [];
@@ -3608,92 +3089,9 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
   const [form,setForm]=useState({name:"",age:"",ageGroup:AGE_GROUPS[1],position:"SS",number:"",bats:"R",throws:"R",parent1:"",parent1phone:"",parent1email:"",parent2:"",parent2phone:"",parent2email:"",goals:""});
   const f=(k,v)=>setForm(p=>({...p,[k]:v}));
 
-  // ── Roster scanner state ──
+  // Scanner lives in components/RosterScanner.jsx — shared with onboarding.
   const [showScanner, setShowScanner] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState("");
-  const [scannedPlayers, setScannedPlayers] = useState([]);
-  const scanFileRef = useRef(null);
 
-  const handleScanFile = async (e) => {
-    const file = e.target.files?.[0];
-    if(!file) return;
-    setScanError("");
-    setScanLoading(true);
-    setScannedPlayers([]);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve,reject)=>{
-        reader.onload = ()=>{
-          const result = reader.result;
-          const b64 = result.split(',')[1];
-          resolve(b64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-roster`, {
-        method: "POST",
-        headers: await scanAuthHeaders(),
-        body: JSON.stringify({
-          imageBase64: base64,
-          mediaType: file.type || "image/jpeg",
-        }),
-      });
-      const data = await res.json();
-      if(data.error) throw new Error(data.error);
-      if(!data.players || data.players.length===0) {
-        setScanError("No players could be detected in this image. Try a clearer photo or a different section of the roster.");
-      } else {
-        setScannedPlayers(data.players.map((p,i)=>({...p, _localId:`scan_${Date.now()}_${i}`, _include:true})));
-      }
-    } catch(err) {
-      setScanError("Scan failed: " + (err.message||String(err)));
-    } finally {
-      setScanLoading(false);
-      if(scanFileRef.current) scanFileRef.current.value = "";
-    }
-  };
-
-  const updateScannedPlayer = (localId, field, value) => {
-    setScannedPlayers(prev => prev.map(p => p._localId===localId ? {...p, [field]:value} : p));
-  };
-
-  const toggleScannedPlayer = (localId) => {
-    setScannedPlayers(prev => prev.map(p => p._localId===localId ? {...p, _include:!p._include} : p));
-  };
-
-  const removeScannedPlayer = (localId) => {
-    setScannedPlayers(prev => prev.filter(p => p._localId!==localId));
-  };
-
-  const importScannedPlayers = async () => {
-    const toAdd = scannedPlayers.filter(p => p._include && p.name && p.name.trim());
-    if(toAdd.length===0) return;
-    const newPlayers = toAdd.map(p => {
-      const pid = uid();
-      const parents = [];
-      if(p.parent1 && p.parent1.trim()) parents.push({id:pid+"a",name:p.parent1.trim(),phone:(p.parent1phone||"").trim(),email:(p.parent1email||"").trim()});
-      return {
-        id: pid,
-        name: p.name.trim(),
-        age: parseInt(p.age)||0,
-        ageGroup: AGE_GROUPS[1],
-        position: p.position||"SS",
-        number: p.number||"",
-        bats: p.bats||"R",
-        throws: p.throws||"R",
-        parents,
-        goals: [],
-        createdAt: Date.now(),
-      };
-    });
-    // setPlayers is the DB-aware setter — it persists each new player and surfaces save errors itself.
-    setPlayers(prev => [...prev, ...newPlayers]);
-    setShowScanner(false);
-    setScannedPlayers([]);
-    setScanError("");
-  };
   const save= async ()=>{
     if(!form.name.trim())return;
     const parents=[];
@@ -3788,93 +3186,18 @@ function Roster({players,setPlayers,goToPlayer,playerPhotos={},teamId}) {
         ))}
       </div>
 
-      {/* ── ROSTER SCANNER MODAL ──────────────────────────────────────────── */}
+      {/* Shared scanner — see components/RosterScanner.jsx */}
       {showScanner && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-          <div style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div>
-                <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1}}>📸 Scan Roster</div>
-                <div style={{fontSize:12,color:C.textDim,marginTop:4}}>Upload a photo, let AI extract the players</div>
-              </div>
-              <button onClick={()=>{setShowScanner(false);setScannedPlayers([]);setScanError("");}} style={{width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,color:"#fff",fontSize:16,cursor:"pointer"}}>✕</button>
-            </div>
-
-            {scannedPlayers.length===0 && !scanLoading && (
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                <button onClick={()=>scanFileRef.current?.click()} style={{padding:"40px 20px",borderRadius:16,background:`${C.teal}10`,border:`2px dashed ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                  <div style={{fontSize:36}}>📷</div>
-                  <div>Tap to upload roster photo</div>
-                  <div style={{fontSize:11,color:C.textDim,fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:400,letterSpacing:0,textTransform:"none"}}>Team sign-up sheet, spreadsheet screenshot, email list, or handwritten list</div>
-                </button>
-                <input ref={scanFileRef} type="file" accept="image/*" onChange={handleScanFile} style={{display:"none"}}/>
-                {scanError && <div style={{padding:"12px 14px",borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontSize:13,lineHeight:1.5}}>⚠️ {scanError}</div>}
-                <div style={{padding:"14px 16px",background:C.card,borderRadius:12,border:`1px solid ${C.border}`,fontSize:12,color:C.textMid,lineHeight:1.6}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:6}}>💡 Tips</div>
-                  • Clear, well-lit photos work best<br/>
-                  • Names and parent contacts detected automatically<br/>
-                  • You can review and edit everyone before adding
-                </div>
-              </div>
-            )}
-
-            {scanLoading && (
-              <div style={{padding:"60px 20px",textAlign:"center"}}>
-                <div style={{display:"inline-block",width:36,height:36,border:`3px solid ${C.teal}30`,borderTopColor:C.teal,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid,letterSpacing:2,textTransform:"uppercase",marginTop:14}}>Reading roster...</div>
-                <div style={{fontSize:12,color:C.textDim,marginTop:6}}>This usually takes 5-10 seconds</div>
-              </div>
-            )}
-
-            {scannedPlayers.length>0 && !scanLoading && (
-              <div>
-                <div style={{padding:"12px 14px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.teal,fontSize:13,marginBottom:14,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1}}>✓ Found {scannedPlayers.length} player{scannedPlayers.length!==1?'s':''} — review and edit below</div>
-                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-                  {scannedPlayers.map(p=>(
-                    <div key={p._localId} style={{background:p._include?C.card:"#0a1525",border:`1px solid ${p._include?C.red+"40":C.border}`,borderRadius:12,padding:"12px 14px",opacity:p._include?1:0.5,transition:"all 0.2s"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                        <button onClick={()=>toggleScannedPlayer(p._localId)} style={{width:22,height:22,borderRadius:6,background:p._include?C.teal:"transparent",border:`1.5px solid ${p._include?C.teal:C.border}`,cursor:"pointer",color:"#fff",fontSize:13,flexShrink:0}}>{p._include?"✓":""}</button>
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.textDim,letterSpacing:1,textTransform:"uppercase"}}>Player</div>
-                        <button onClick={()=>removeScannedPlayer(p._localId)} style={{marginLeft:"auto",background:"transparent",border:"none",color:C.red+"99",fontSize:16,cursor:"pointer",padding:4}}>🗑</button>
-                      </div>
-                      <input value={p.name||""} onChange={e=>updateScannedPlayer(p._localId,"name",e.target.value)} placeholder="Player name" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8}}>
-                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
-                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
-                          <option value="R">Bats R</option>
-                          <option value="L">Bats L</option>
-                          <option value="S">Bats S</option>
-                        </select>
-                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
-                          <option value="R">Throws R</option>
-                          <option value="L">Throws L</option>
-                        </select>
-                      </div>
-                      <div style={{background:`${C.blue}08`,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.blue,textTransform:"uppercase"}}>Parent / Guardian</div>
-                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:10}}>
-                  <button onClick={importScannedPlayers} disabled={scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length===0} style={{flex:1,padding:"14px 0",borderRadius:12,background:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?`linear-gradient(135deg,${C.teal},#0a8a72)`:"#1a2a2a",border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?"pointer":"default",minHeight:50,boxShadow:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?`0 4px 20px ${C.teal}40`:"none"}}>
-                    ✓ Add {scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length} Player{scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length!==1?'s':''}
-                  </button>
-                  <button onClick={()=>{setScannedPlayers([]);setScanError("");}} style={{padding:"14px 20px",borderRadius:12,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,cursor:"pointer",minHeight:50}}>Start Over</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <RosterScanner
+          defaultAgeGroup={AGE_GROUPS[1]}
+          onClose={()=>setShowScanner(false)}
+          onImport={(newPlayers)=>{
+            // setPlayers is the DB-aware setter — it persists each new player
+            // and surfaces save errors itself.
+            setPlayers(prev => [...prev, ...newPlayers]);
+            setShowScanner(false);
+          }}
+        />
       )}
     </div>
   );
@@ -4062,7 +3385,6 @@ function AssignDrills({players,assignments,setAsgn,drillVideos,setDrillVideos,ca
 }
 
 // ─── SCHEDULE ─────────────────────────────────────────────────────────────────
-const PITCH_TYPES = ["Fastball","Two-Seam","Curveball","Slider","Changeup","Sinker","Cutter","Splitter"];
 
 function Schedule({events,setEvents,gamePlans={},setGamePlans=()=>{},players=[],lineups={},setLineups=()=>{},teamId,canAccess=()=>true,onUpgrade=()=>{},session=null}) {
   const [view,      setView]      = useState("list"); // "list" | "form"
@@ -6377,12 +5699,8 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
   const [drillSearch, setDrillSearch] = useState("");
   const [drillCat, setDrillCat] = useState("All");
 
-  // ── Roster scanner state (same AI flow as the Roster screen) ──
+  // Scanner lives in components/RosterScanner.jsx — shared with the Roster screen.
   const [showScanner, setShowScanner] = useState(false);
-  const [scanLoading, setScanLoading] = useState(false);
-  const [scanError, setScanError] = useState("");
-  const [scannedPlayers, setScannedPlayers] = useState([]);
-  const scanFileRef = useRef(null);
 
   const firstName = (coachName||"Coach").split(" ")[0];
 
@@ -6396,87 +5714,6 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
     setPlayers(prev=>[...prev,newPlayer]);
     setAddedPlayer(newPlayer);
     setStep(2);
-  };
-
-  // ── Scanner handlers ──
-  const handleScanFile = async (e) => {
-    const file = e.target.files?.[0];
-    if(!file) return;
-    setScanError("");
-    setScanLoading(true);
-    setScannedPlayers([]);
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise((resolve,reject)=>{
-        reader.onload = ()=>{
-          const result = reader.result;
-          const b64 = result.split(',')[1];
-          resolve(b64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const res = await fetch(`https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/scan-roster`, {
-        method: "POST",
-        headers: await scanAuthHeaders(),
-        body: JSON.stringify({
-          imageBase64: base64,
-          mediaType: file.type || "image/jpeg",
-        }),
-      });
-      const data = await res.json();
-      if(data.error) throw new Error(data.error);
-      if(!data.players || data.players.length===0) {
-        setScanError("No players could be detected in this image. Try a clearer photo or a different section of the roster.");
-      } else {
-        setScannedPlayers(data.players.map((p,i)=>({...p, _localId:`scan_${Date.now()}_${i}`, _include:true})));
-      }
-    } catch(err) {
-      setScanError("Scan failed: " + (err.message||String(err)));
-    } finally {
-      setScanLoading(false);
-      if(scanFileRef.current) scanFileRef.current.value = "";
-    }
-  };
-
-  const updateScannedPlayer = (localId, field, value) => {
-    setScannedPlayers(prev => prev.map(p => p._localId===localId ? {...p, [field]:value} : p));
-  };
-  const toggleScannedPlayer = (localId) => {
-    setScannedPlayers(prev => prev.map(p => p._localId===localId ? {...p, _include:!p._include} : p));
-  };
-  const removeScannedPlayer = (localId) => {
-    setScannedPlayers(prev => prev.filter(p => p._localId!==localId));
-  };
-
-  const importScannedPlayers = async () => {
-    const toAdd = scannedPlayers.filter(p => p._include && p.name && p.name.trim());
-    if(toAdd.length===0) return;
-    const newPlayers = toAdd.map(p => {
-      const pid = uid();
-      const parents = [];
-      if(p.parent1 && p.parent1.trim()) parents.push({id:pid+"a",name:p.parent1.trim(),phone:(p.parent1phone||"").trim(),email:(p.parent1email||"").trim()});
-      return {
-        id: pid,
-        name: p.name.trim(),
-        age: parseInt(p.age)||0,
-        ageGroup: form.ageGroup || AGE_GROUPS[1],
-        position: p.position||"SS",
-        number: p.number||"",
-        bats: p.bats||"R",
-        throws: p.throws||"R",
-        parents,
-        goals: [],
-      };
-    });
-    // setPlayers is the DB-aware setter — it persists each new player and surfaces save errors itself.
-    setPlayers(prev => [...prev, ...newPlayers]);
-    setBulkAddedCount(newPlayers.length);
-    setAddedPlayer(null);
-    setShowScanner(false);
-    setScannedPlayers([]);
-    setScanError("");
-    setStep(3); // bulk import meets the onboarding goal — go straight to the finish screen
   };
 
   const assignDrill = () => {
@@ -6696,93 +5933,21 @@ function OnboardingFlow({coachName, teamName, teamId, setPlayers, setAsgn, onSki
         </div>
       )}
 
-      {/* ── ROSTER SCANNER MODAL (same AI flow as the Roster screen) ── */}
+      {/* Shared scanner — same component the Roster screen uses */}
       {showScanner && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
-          <div style={{width:"100%",maxWidth:560,boxSizing:"border-box",background:C.bg,borderRadius:"20px 20px 0 0",padding:"20px 16px 32px",boxShadow:"0 -8px 40px #000",maxHeight:"90vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <div>
-                <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:26,letterSpacing:2,color:"#fff",lineHeight:1}}>📸 Scan Roster</div>
-                <div style={{fontSize:12,color:C.textDim,marginTop:4}}>Upload a photo, let AI extract the players</div>
-              </div>
-              <button onClick={()=>{setShowScanner(false);setScannedPlayers([]);setScanError("");}} style={{width:36,height:36,borderRadius:10,background:"#ffffff10",border:`1px solid #ffffff20`,color:"#fff",fontSize:16,cursor:"pointer"}}>✕</button>
-            </div>
-
-            {scannedPlayers.length===0 && !scanLoading && (
-              <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                <button onClick={()=>scanFileRef.current?.click()} style={{padding:"40px 20px",borderRadius:16,background:`${C.teal}10`,border:`2px dashed ${C.teal}60`,color:C.teal,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-                  <div style={{fontSize:36}}>📷</div>
-                  <div>Tap to upload roster photo</div>
-                  <div style={{fontSize:11,color:C.textDim,fontFamily:"Plus Jakarta Sans, sans-serif",fontWeight:400,letterSpacing:0,textTransform:"none"}}>Team sign-up sheet, spreadsheet screenshot, email list, or handwritten list</div>
-                </button>
-                <input ref={scanFileRef} type="file" accept="image/*" onChange={handleScanFile} style={{display:"none"}}/>
-                {scanError && <div style={{padding:"12px 14px",borderRadius:10,background:`${C.red}15`,border:`1px solid ${C.red}40`,color:C.red,fontSize:13,lineHeight:1.5}}>⚠️ {scanError}</div>}
-                <div style={{padding:"14px 16px",background:C.card,borderRadius:12,border:`1px solid ${C.border}`,fontSize:12,color:C.textMid,lineHeight:1.6}}>
-                  <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,color:C.gold,textTransform:"uppercase",marginBottom:6}}>💡 Tips</div>
-                  • Clear, well-lit photos work best<br/>
-                  • Names and parent contacts detected automatically<br/>
-                  • You can review and edit everyone before adding
-                </div>
-              </div>
-            )}
-
-            {scanLoading && (
-              <div style={{padding:"60px 20px",textAlign:"center"}}>
-                <div style={{display:"inline-block",width:36,height:36,border:`3px solid ${C.teal}30`,borderTopColor:C.teal,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-                <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,color:C.textMid,letterSpacing:2,textTransform:"uppercase",marginTop:14}}>Reading roster...</div>
-                <div style={{fontSize:12,color:C.textDim,marginTop:6}}>This usually takes 5-10 seconds</div>
-              </div>
-            )}
-
-            {scannedPlayers.length>0 && !scanLoading && (
-              <div>
-                <div style={{padding:"12px 14px",borderRadius:10,background:`${C.teal}15`,border:`1px solid ${C.teal}40`,color:C.teal,fontSize:13,marginBottom:14,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,letterSpacing:1}}>✓ Found {scannedPlayers.length} player{scannedPlayers.length!==1?'s':''} — review and edit below</div>
-                <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
-                  {scannedPlayers.map(p=>(
-                    <div key={p._localId} style={{background:p._include?C.card:"#0a1525",border:`1px solid ${p._include?C.red+"40":C.border}`,borderRadius:12,padding:"12px 14px",opacity:p._include?1:0.5,transition:"all 0.2s"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                        <button onClick={()=>toggleScannedPlayer(p._localId)} style={{width:22,height:22,borderRadius:6,background:p._include?C.teal:"transparent",border:`1.5px solid ${p._include?C.teal:C.border}`,cursor:"pointer",color:"#fff",fontSize:13,flexShrink:0}}>{p._include?"✓":""}</button>
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,color:C.textDim,letterSpacing:1,textTransform:"uppercase"}}>Player</div>
-                        <button onClick={()=>removeScannedPlayer(p._localId)} style={{marginLeft:"auto",background:"transparent",border:"none",color:C.red+"99",fontSize:16,cursor:"pointer",padding:4}}>🗑</button>
-                      </div>
-                      <input value={p.name||""} onChange={e=>updateScannedPlayer(p._localId,"name",e.target.value)} placeholder="Player name" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,marginBottom:8,outline:"none"}}/>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:8}}>
-                        <input value={p.number||""} onChange={e=>updateScannedPlayer(p._localId,"number",e.target.value)} placeholder="#" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.position||""} onChange={e=>updateScannedPlayer(p._localId,"position",e.target.value)} placeholder="Pos" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                        <input value={p.age||""} onChange={e=>updateScannedPlayer(p._localId,"age",e.target.value)} placeholder="Age" type="number" style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}/>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
-                        <select value={p.bats||"R"} onChange={e=>updateScannedPlayer(p._localId,"bats",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
-                          <option value="R">Bats R</option>
-                          <option value="L">Bats L</option>
-                          <option value="S">Bats S</option>
-                        </select>
-                        <select value={p.throws||"R"} onChange={e=>updateScannedPlayer(p._localId,"throws",e.target.value)} style={{boxSizing:"border-box",minWidth:0,padding:"8px 10px",borderRadius:8,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,outline:"none"}}>
-                          <option value="R">Throws R</option>
-                          <option value="L">Throws L</option>
-                        </select>
-                      </div>
-                      <div style={{background:`${C.blue}08`,border:`1px solid ${C.blue}20`,borderRadius:8,padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>
-                        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1.5,color:C.blue,textTransform:"uppercase"}}>Parent / Guardian</div>
-                        <input value={p.parent1||""} onChange={e=>updateScannedPlayer(p._localId,"parent1",e.target.value)} placeholder="Parent name" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          <input value={p.parent1phone||""} onChange={e=>updateScannedPlayer(p._localId,"parent1phone",e.target.value)} placeholder="Phone" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                          <input value={p.parent1email||""} onChange={e=>updateScannedPlayer(p._localId,"parent1email",e.target.value)} placeholder="Email" style={{boxSizing:"border-box",minWidth:0,padding:"7px 9px",borderRadius:6,background:"#0a1525",border:`1px solid ${C.border}`,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:12,outline:"none"}}/>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{display:"flex",gap:10}}>
-                  <button onClick={importScannedPlayers} disabled={scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length===0} style={{flex:1,padding:"14px 0",borderRadius:12,background:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?`linear-gradient(135deg,${C.teal},#0a8a72)`:"#1a2a2a",border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?"pointer":"default",minHeight:50,boxShadow:scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length>0?`0 4px 20px ${C.teal}40`:"none"}}>
-                    ✓ Add {scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length} Player{scannedPlayers.filter(p=>p._include && p.name && p.name.trim()).length!==1?'s':''}
-                  </button>
-                  <button onClick={()=>{setScannedPlayers([]);setScanError("");}} style={{padding:"14px 20px",borderRadius:12,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,cursor:"pointer",minHeight:50}}>Start Over</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <RosterScanner
+          defaultAgeGroup={form.ageGroup || AGE_GROUPS[1]}
+          onClose={()=>setShowScanner(false)}
+          onImport={(newPlayers)=>{
+            // setPlayers is the DB-aware setter — it persists each new player
+            // and surfaces save errors itself.
+            setPlayers(prev => [...prev, ...newPlayers]);
+            setBulkAddedCount(newPlayers.length);
+            setAddedPlayer(null);
+            setShowScanner(false);
+            setStep(3); // bulk import meets the onboarding goal — go to the finish screen
+          }}
+        />
       )}
     </div>
   );
@@ -7076,197 +6241,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-function CoachVideoReview({player, assignments, playerVideos, setPlayerVideos}) {
-  const myKeys = Object.keys(playerVideos).filter(k => k.startsWith(player.id + "_") && playerVideos[k]?.url);
-  const [activeKey, setActiveKey] = useState(null);
-  const [note, setNote] = useState("");
-  const [pendingTime, setPendingTime] = useState(null);
-  const videoRef = React.useRef();
-
-  // Set first key once available
-  React.useEffect(()=>{ if(myKeys.length>0 && !activeKey) setActiveKey(myKeys[0]); },[myKeys.length]);
-
-  const entry = activeKey ? playerVideos[activeKey] : null;
-  const drillId = activeKey ? activeKey.split("_")[1] : null;
-  const drill = drillId ? findDrill(drillId) : null;
-
-  const fmt = s => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2,"0")}`;
-  };
-
-  const markTimestamp = () => {
-    const t = videoRef.current?.currentTime || 0;
-    setPendingTime(t);
-    videoRef.current?.pause();
-  };
-
-  const submitFeedback = () => {
-    if (!note.trim() || pendingTime === null) return;
-    const fb = { id: uid(), timeCode: fmt(pendingTime), rawTime: pendingTime, note: note.trim(), ts: Date.now() };
-    setPlayerVideos(prev => ({
-      ...prev,
-      [activeKey]: { ...prev[activeKey], feedback: [...(prev[activeKey].feedback || []), fb].sort((a,b)=>a.rawTime-b.rawTime) }
-    }));
-    setNote("");
-    setPendingTime(null);
-  };
-
-  const deleteFeedback = (fbId) => {
-    setPlayerVideos(prev => ({
-      ...prev,
-      [activeKey]: { ...prev[activeKey], feedback: prev[activeKey].feedback.filter(f => f.id !== fbId) }
-    }));
-  };
-
-  const seekTo = (t) => {
-    if (videoRef.current) { videoRef.current.currentTime = t; videoRef.current.play(); }
-  };
-
-  if (myKeys.length === 0) return (
-    <div>
-      <SectionHead accent>Player Videos</SectionHead>
-      <div style={{textAlign:"center",padding:"48px 20px",color:C.textDim}}>
-        <div style={{fontSize:48,marginBottom:16}}>📹</div>
-        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:14,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>No Videos Yet</div>
-        <div style={{fontSize:13,lineHeight:1.6}}>{player.name.split(" ")[0]}'s parent can film drill practice at home and upload it from their Drills tab. You'll be able to review the footage and leave timestamped coaching notes here.</div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div>
-      <SectionHead accent>Player Videos</SectionHead>
-
-      {/* Video selector tabs */}
-      {myKeys.length > 1 && (
-        <div style={{overflowX:"auto",marginBottom:14}}>
-          <div style={{display:"flex",gap:8,width:"max-content",paddingBottom:4}}>
-            {myKeys.map(k => {
-              const dId = k.split("_")[1];
-              const d = findDrill( dId);
-              return (
-                <button key={k} onClick={()=>{setActiveKey(k);setNote("");setPendingTime(null);}}
-                  style={{padding:"7px 12px",borderRadius:9,background:activeKey===k?`${C.teal}25`:"transparent",border:`1px solid ${activeKey===k?C.teal+"60":C.border}`,color:activeKey===k?C.teal:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,whiteSpace:"nowrap",cursor:"pointer",minHeight:36}}>
-                  {d?.name||dId}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {entry && (
-        <div>
-          {/* Drill label */}
-          <div style={{marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:16,color:C.text}}>{drill?.name || drillId}</div>
-            <Tag label={drill?.category||""} color={catColor(drill?.category||"")} small/>
-          </div>
-
-          {/* Video player */}
-          <div style={{borderRadius:14,overflow:"hidden",background:"#000",marginBottom:12,position:"relative"}}>
-            <video ref={videoRef} src={entry.url} controls playsInline style={{width:"100%",display:"block",maxHeight:260,objectFit:"contain"}}
-              onError={()=>{ setActiveKey(null); }}/>
-          </div>
-
-          <div style={{fontSize:11,color:C.textDim,marginBottom:14}}>
-            Uploaded by {player.parents?.map(x=>x.name).join(" / ")||"parent"} · {new Date(entry.uploadedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}
-          </div>
-
-          {/* Mark timestamp button */}
-          <div style={{background:`${C.blue}10`,border:`1px solid ${C.blue}30`,borderRadius:12,padding:"14px",marginBottom:14}}>
-            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.blue,textTransform:"uppercase",marginBottom:10}}>📍 Add Timestamped Feedback</div>
-
-            {pendingTime === null ? (
-              <button onClick={markTimestamp} style={{width:"100%",padding:"11px 0",borderRadius:10,background:`linear-gradient(135deg,${C.blue},#1a5fa0)`,border:"none",color:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",minHeight:44,boxShadow:`0 4px 14px ${C.blue}40`}}>
-                📍 Mark This Moment
-              </button>
-            ) : (
-              <div>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                  <div style={{background:`${C.teal}25`,border:`1px solid ${C.teal}50`,borderRadius:8,padding:"6px 12px",fontFamily:"Bebas Neue, sans-serif",fontSize:20,color:C.teal}}>⏱ {fmt(pendingTime)}</div>
-                  <div style={{fontSize:12,color:C.textMid}}>Timestamp locked — add your note below</div>
-                </div>
-                <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. Good hip rotation here — keep your elbow up on the follow-through…"
-                  style={{width:"100%",background:"#08111e",border:`1px solid ${C.border}`,borderRadius:10,padding:"10px 12px",color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:13,lineHeight:1.5,resize:"vertical",minHeight:72,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={submitFeedback} disabled={!note.trim()} style={{flex:1,padding:"10px 0",borderRadius:10,background:note.trim()?`linear-gradient(135deg,${C.teal},#00a884)`:"#1a2a2a",border:"none",color:note.trim()?"#000":C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:note.trim()?"pointer":"default",minHeight:42}}>
-                    ✓ Save Feedback
-                  </button>
-                  <button onClick={()=>{setPendingTime(null);setNote("");}} style={{padding:"10px 16px",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textDim,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,cursor:"pointer",minHeight:42}}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Feedback timeline */}
-          {entry.feedback?.length > 0 && (
-            <div>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:10}}>
-                💬 {entry.feedback.length} Timestamp{entry.feedback.length!==1?"s":""} Left
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {entry.feedback.map((fb,i)=>(
-                  <div key={fb.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <button onClick={()=>seekTo(fb.rawTime)} style={{flexShrink:0,background:`${C.teal}20`,border:`1px solid ${C.teal}50`,borderRadius:8,padding:"5px 10px",fontFamily:"Bebas Neue, sans-serif",fontSize:16,color:C.teal,cursor:"pointer",transition:"all 0.15s",minWidth:52,textAlign:"center"}}>
-                      ▶ {fb.timeCode}
-                    </button>
-                    <div style={{flex:1,fontSize:13,color:C.textMid,lineHeight:1.55,paddingTop:2}}>{fb.note}</div>
-                    <button onClick={()=>deleteFeedback(fb.id)} style={{background:"none",border:"none",color:C.textDim,cursor:"pointer",fontSize:14,flexShrink:0,padding:"2px 4px",marginTop:2}}>✕</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {entry.feedback?.length === 0 && pendingTime === null && (
-            <div style={{textAlign:"center",padding:"16px 0",color:C.textDim,fontSize:13}}>
-              Play the video, pause at a key moment, and tap "Mark This Moment" to add your feedback.
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-
-// (PracticePlans component moved to components/PracticePlans.jsx)
-
-
-// ─── ACHIEVEMENT BADGES ───────────────────────────────────────────────────────
-const BADGES = [
-  { id:"first_drill",   icon:"⚾", name:"First Rep",        desc:"Completed your first drill",          color:"#f97316",
-    check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=1 },
-  { id:"streak3",       icon:"🔥", name:"3-Day Streak",      desc:"Completed drills 3 days in a row",    color:"#e8192c",
-    check:(p,asgn,snaps,streak)=>streak>=3 },
-  { id:"streak7",       icon:"🔥", name:"Week Warrior",      desc:"7-day drill streak",                  color:"#e8192c",
-    check:(p,asgn,snaps,streak)=>streak>=7 },
-  { id:"drills10",      icon:"💪", name:"10 Drills Done",    desc:"Completed 10 total drills",           color:"#1e7bd4",
-    check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=10 },
-  { id:"drills25",      name:"Grinder",           desc:"Completed 25 total drills",           color:"#1e7bd4",
-    check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.completed).length>=25 },
-  { id:"allstar_rating",icon:"⭐", name:"All-Star",          desc:"Any skill rated Excellent by coach",   color:"#f5c518",
-    check:(p,asgn,snaps)=>snaps.filter(s=>s.playerId===p.id).some(s=>Object.values(s.rubric||{}).some(r=>r>=4)) },
-  { id:"five_star",     icon:"🌟", name:"5-Star Drill",      desc:"Received a 5-star coach rating",      color:"#f5c518",
-    check:(p,asgn)=>asgn.filter(a=>a.playerId===p.id&&a.coachRating===5).length>=1 },
-  { id:"skill_up",      icon:"📈", name:"Level Up",          desc:"Improved any skill since first snapshot", color:"#00d4aa",
-    check:(p,asgn,snaps)=>{const ps=snaps.filter(s=>s.playerId===p.id).sort((a,b)=>a.date.localeCompare(b.date));if(ps.length<2)return false;const first=computeChartRatings(ps[0].rubric||{}),last=computeChartRatings(ps[ps.length-1].rubric||{});return Object.keys(last).some(k=>last[k]>first[k]);} },
-  { id:"multi_cat",     icon:"🎯", name:"All-Around",        desc:"Completed drills in 4+ categories",   color:"#8b5cf6",
-    check:(p,asgn)=>{const cats=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed).map(a=>{const d=findDrill(a.drillId);return d?.category;}));return cats.size>=4;} },
-  { id:"team_player",   icon:"🤝", name:"Team Player",       desc:"Part of a scheduled game",            color:"#06b6d4",
-    check:(p,asgn,snaps,streak,events)=>(events||[]).filter(e=>e.type==="game").length>=1 },
-  { id:"consistency",   name:"Consistent",        desc:"Completed drills in 3 different weeks", color:"#ec4899",
-    check:(p,asgn)=>{const weeks=new Set(asgn.filter(a=>a.playerId===p.id&&a.completed&&a.assignedDate).map(a=>{const d=new Date(a.assignedDate+"T12:00:00");const jan=new Date(d.getFullYear(),0,1);return Math.ceil(((d-jan)/86400000+jan.getDay()+1)/7);}));return weeks.size>=3;} },
-  { id:"overachiever",  icon:"🏆", name:"Overachiever",      desc:"Earned 5+ other badges",              color:"#f5c518",
-    check:()=>false }, // computed after others
-];
-
 function computeBadges(player, assignments, skillSnapshots, events) {
   const streak = computeStreak(player.id, assignments).currentStreak;
   const earned = BADGES.filter(b=>b.id!=="overachiever" && b.check(player,assignments,skillSnapshots,streak,events));
@@ -7324,134 +6298,6 @@ function BadgesPanel({player, assignments, skillSnapshots, events}) {
   );
 }
 
-// ─── IN-GAME SCOREBOOK ────────────────────────────────────────────────────────
-const STAT_FIELDS = ["AB","H","R","RBI","BB","K","E"];
-
-function Scorebook({players, events}) {
-  const games = events.filter(e=>e.type==="game").sort((a,b)=>a.date.localeCompare(b.date));
-  const [selGame, setSelGame] = useState(games[0]?.id||null);
-  const [stats, setStats]     = useState({}); // {[gameId]:{[playerId]:{AB,H,R,RBI,BB,K,E}}}
-  const [viewMode, setViewMode] = useState("game"); // "game"|"season"
-
-  const game = events.find(e=>e.id===selGame);
-  const gameStats = stats[selGame]||{};
-
-  const setStat=(pid,field,val)=>{
-    const num = Math.max(0,parseInt(val)||0);
-    setStats(prev=>({...prev,[selGame]:{...(prev[selGame]||{}),[pid]:{...(prev[selGame]?.[pid]||{}),[field]:num}}}));
-  };
-  const getSeasonTotals=()=>{
-    const totals={};
-    players.forEach(p=>{
-      totals[p.id]={AB:0,H:0,R:0,RBI:0,BB:0,K:0,E:0};
-      Object.values(stats).forEach(gs=>{
-        STAT_FIELDS.forEach(f=>{ totals[p.id][f]+=(gs[p.id]?.[f]||0); });
-      });
-    });
-    return totals;
-  };
-  const avg=(h,ab)=>ab>0?((h/ab).toFixed(3)).replace(/^0/,""):".000";
-
-  if(!selGame||games.length===0) return (
-    <div><SectionHead accent>Scorebook</SectionHead>
-      <EmptyState icon="⚾" title="No games scheduled yet" body="Head over to Schedule and add your first game. Once it's there, you can build your lineup and game plan right here."/>
-    </div>
-  );
-
-  return (
-    <div>
-      <SectionHead accent>Scorebook</SectionHead>
-
-      {/* View toggle */}
-      <div style={{display:"flex",gap:0,marginBottom:16,background:C.card,borderRadius:12,padding:4,border:`1px solid ${C.border}`}}>
-        {[{id:"game",label:"📋 Game Stats"},{id:"season",label:"📊 Season Totals"}].map(v=>(
-          <button key={v.id} onClick={()=>setViewMode(v.id)} style={{flex:1,padding:"10px 0",borderRadius:9,background:viewMode===v.id?`linear-gradient(135deg,${C.red},${C.redDim})`:"transparent",border:"none",color:viewMode===v.id?"#fff":C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:1.5,textTransform:"uppercase",cursor:"pointer",minHeight:42,transition:"all 0.2s"}}>{v.label}</button>
-        ))}
-      </div>
-
-      {/* Game selector */}
-      {viewMode==="game"&&(
-        <div style={{marginBottom:16}}>
-          <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:2,color:C.textMid,textTransform:"uppercase",marginBottom:8}}>Select Game</div>
-          <div style={{overflowX:"auto"}}><div style={{display:"flex",gap:8,width:"max-content",paddingBottom:4}}>
-            {games.map(g=>{
-              const active=g.id===selGame;
-              return <button key={g.id} onClick={()=>setSelGame(g.id)} style={{padding:"8px 14px",borderRadius:10,background:active?`${C.red}25`:"transparent",border:`1px solid ${active?C.red+"60":C.border}`,color:active?C.red:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1,whiteSpace:"nowrap",cursor:"pointer",minHeight:36}}>
-                {new Date(g.date+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"})} vs {g.opponent||"TBD"}
-              </button>;
-            })}
-          </div></div>
-        </div>
-      )}
-
-      {/* ── GAME STATS INPUT ── */}
-      {viewMode==="game"&&game&&(
-        <div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-            {/* Header row */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr repeat(7,40px)",gap:4,padding:"10px 12px",borderBottom:`1px solid ${C.border}`,background:"#08111e"}}>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase"}}>Player</div>
-              {STAT_FIELDS.map(f=><div key={f} style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1,color:C.textMid,textTransform:"uppercase",textAlign:"center"}}>{f}</div>)}
-            </div>
-            {/* Player rows */}
-            {players.map((p,i)=>{
-              const ps=gameStats[p.id]||{};
-              const batAvg=avg(ps.H||0,ps.AB||0);
-              return (
-                <div key={p.id} style={{display:"grid",gridTemplateColumns:"1fr repeat(7,40px)",gap:4,padding:"10px 12px",borderBottom:i<players.length-1?`1px solid ${C.border}40`:"none",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.text,marginBottom:1}}>{p.name.split(" ")[0]}</div>
-                    <div style={{fontSize:10,color:C.textDim}}>{p.position} · {batAvg}</div>
-                  </div>
-                  {STAT_FIELDS.map(f=>(
-                    <input key={f} type="number" min="0" value={ps[f]||""} onChange={e=>setStat(p.id,f,e.target.value)}
-                      placeholder="0"
-                      style={{width:"100%",background:"#08111e",border:`1px solid ${C.border}`,borderRadius:6,padding:"6px 4px",color:C.text,fontFamily:"Bebas Neue, sans-serif",fontSize:16,textAlign:"center",outline:"none"}}/>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{fontSize:11,color:C.textDim,marginTop:8,textAlign:"center"}}>AB=At Bats · H=Hits · R=Runs · RBI · BB=Walks · K=Strikeouts · E=Errors</div>
-        </div>
-      )}
-
-      {/* ── SEASON TOTALS ── */}
-      {viewMode==="season"&&(()=>{
-        const totals=getSeasonTotals();
-        return (
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr repeat(8,38px)",gap:2,padding:"10px 12px",borderBottom:`1px solid ${C.border}`,background:"#08111e"}}>
-              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:10,letterSpacing:1.5,color:C.textMid,textTransform:"uppercase"}}>Player</div>
-              {[...STAT_FIELDS,"AVG"].map(f=><div key={f} style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:9,letterSpacing:1,color:C.textMid,textTransform:"uppercase",textAlign:"center"}}>{f}</div>)}
-            </div>
-            {[...players].sort((a,b)=>{
-              const ta=totals[a.id],tb=totals[b.id];
-              return (tb.H/Math.max(tb.AB,1))-(ta.H/Math.max(ta.AB,1));
-            }).map((p,i)=>{
-              const t=totals[p.id];
-              const ba=avg(t.H,t.AB);
-              const isTop=i===0&&t.AB>0;
-              return (
-                <div key={p.id} style={{display:"grid",gridTemplateColumns:"1fr repeat(8,38px)",gap:2,padding:"10px 12px",borderBottom:i<players.length-1?`1px solid ${C.border}40`:"none",alignItems:"center",background:isTop?`${C.gold}08`:"transparent"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    {isTop&&<div style={{fontSize:14}}>👑</div>}
-                    <div>
-                      <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:isTop?C.gold:C.text}}>{p.name.split(" ")[0]}</div>
-                      <div style={{fontSize:10,color:C.textDim}}>{p.position}</div>
-                    </div>
-                  </div>
-                  {STAT_FIELDS.map(f=><div key={f} style={{fontFamily:"Bebas Neue, sans-serif",fontSize:18,color:t[f]>0?C.text:C.textDim,textAlign:"center"}}>{t[f]||0}</div>)}
-                  <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:16,color:C.teal,textAlign:"center"}}>{ba}</div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-    </div>
-  );
-}
 
 // ─── PARENT REPORT CARD ───────────────────────────────────────────────────────
 function ParentReportCard({player, assignments, skillSnapshots, events}) {
@@ -7581,4 +6427,4 @@ function ParentReportCard({player, assignments, skillSnapshots, events}) {
 }
 
 // ─── SHARED EXPORTS (used by component files) ────────────────────────────────
-export { C, uid, randomToken, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast, signedUrl, resolveMediaUrl, SignedMedia, SIGNED_URL_TTL };
+export { C, uid, randomToken, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard, FONTS, LOGO, supabase, Avatar, fmtTime, avatarColor, toast, signedUrl, resolveMediaUrl, SignedMedia, SIGNED_URL_TTL, AGE_GROUPS, scanAuthHeaders };
