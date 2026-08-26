@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { C, inp, FONTS, LOGO, supabase, uid } from "../App";
+import { C, FONTS } from "../theme";
+import { inp, LOGO, supabase, uid } from "../App";
 
 // ─── LANDING PAGE — clean, emoji-free design ─────────────────────────────────
 function LandingPage({onAuth}) {

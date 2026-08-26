@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { C, uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard } from "../App";
+import { C } from "../theme";
+import { uid, inp, Tag, SectionHead, PrimaryBtn, GhostBtn, Inp, NewCoachCard } from "../App";
 
 // ─── PRACTICE PLANS ───────────────────────────────────────────────────────────
 
