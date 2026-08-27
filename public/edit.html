@@ -1036,8 +1036,17 @@ var REVIEW_FLAGS={"r2-single-lf-home":[{"who":"P","why":"Pitcher is sent behind 
          '</div>'+
          '<div style="color:#c8d5ea;font-size:13.5px;line-height:1.5">'+it.why+'</div>'+
          '<div style="display:flex;gap:7px;margin-top:10px">'+
-           '<button data-v="ok" data-i="'+ix+'" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1b2942;background:transparent;color:#7fd48a;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer">LOOKS RIGHT</button>'+
-           '<button data-v="fix" data-i="'+ix+'" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1b2942;background:transparent;color:#e8192c;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer">NEEDS CHANGE</button>'+
+           (function(){
+             /* Reflect a verdict already given for this flag. The panel used to
+                rebuild blank every time it opened, so answers looked lost after
+                running the play — they were recorded, just not shown. */
+             var v = done[pid+'|'+it.who+'|'+it.src];
+             var base='flex:1;padding:10px;border-radius:8px;border:1px solid #1b2942;font-family:inherit;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer;';
+             var okSel  = v==='ok'  ? 'background:#7fd48a;color:#08111f;' : 'background:transparent;color:#7fd48a;';
+             var fixSel = v==='fix' ? 'background:#e8192c;color:#fff;'    : 'background:transparent;color:#e8192c;';
+             return '<button data-v="ok" data-i="'+ix+'" style="'+base+okSel+'">'+(v==='ok'?'\u2713 ':'')+'LOOKS RIGHT</button>'+
+                    '<button data-v="fix" data-i="'+ix+'" style="'+base+fixSel+'">'+(v==='fix'?'\u2713 ':'')+'NEEDS CHANGE</button>';
+           })()+
          '</div></div>';
     });
     h+='<button id="rvClose" style="width:100%;padding:14px;border-radius:9px;border:1px solid #1b2942;background:transparent;color:#93a6c4;font-family:inherit;font-weight:800;letter-spacing:1.2px;font-size:14px;cursor:pointer">BACK TO THE PLAY</button>';
@@ -1048,9 +1057,14 @@ var REVIEW_FLAGS={"r2-single-lf-home":[{"who":"P","why":"Pitcher is sent behind 
         verdicts=verdicts.filter(function(v){ return !(v.play===pid&&v.who===it.who&&v.src===it.src); });
         verdicts.push({play:pid,who:it.who,src:it.src,verdict:b.dataset.v});
         done[pid+'|'+it.who+'|'+it.src]=b.dataset.v;
-        b.parentNode.querySelectorAll('button').forEach(function(x){ x.style.background='transparent'; x.style.color=x.dataset.v==='ok'?'#7fd48a':'#e8192c'; });
+        b.parentNode.querySelectorAll('button').forEach(function(x){
+          x.style.background='transparent';
+          x.style.color = x.dataset.v==='ok' ? '#7fd48a' : '#e8192c';
+          x.textContent = x.dataset.v==='ok' ? 'LOOKS RIGHT' : 'NEEDS CHANGE';
+        });
         b.style.background = b.dataset.v==='ok' ? '#7fd48a' : '#e8192c';
-        b.style.color='#08111f';
+        b.style.color = b.dataset.v==='ok' ? '#08111f' : '#fff';
+        b.textContent = '\u2713 ' + (b.dataset.v==='ok' ? 'LOOKS RIGHT' : 'NEEDS CHANGE');
         badge();
       };
     });
@@ -1083,6 +1097,6 @@ var REVIEW_FLAGS={"r2-single-lf-home":[{"who":"P","why":"Pitcher is sent behind 
   setTimeout(badge,120);
 })();
 </script>
-<div id="buildstamp">PT v21 EDITOR</div>
+<div id="buildstamp">PT v22 EDITOR</div>
 </body>
 </html>
