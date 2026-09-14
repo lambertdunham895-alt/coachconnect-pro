@@ -156,6 +156,16 @@ footer a{color:var(--mid)}
   font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;flex:0 0 auto}
 #buildstamp{position:fixed;left:7px;bottom:5px;z-index:50;font-family:'Barlow Condensed',sans-serif;
 font-size:10.5px;letter-spacing:1.6px;color:#3d4d68;pointer-events:none;user-select:none}
+
+.sheetlink{display:inline-flex;align-items:center;gap:11px;margin-top:14px;padding:11px 16px;
+  border:1px solid var(--border);border-radius:11px;background:var(--card);color:var(--text);
+  text-decoration:none;transition:border-color .15s,transform .15s}
+.sheetlink:hover{border-color:var(--gold);transform:translateY(-1px)}
+.sheetlink svg{color:var(--gold);flex:0 0 auto}
+.sheetlink b{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:.6px}
+.sheetlink small{display:block;font-size:11.5px;color:var(--dim);margin-top:1px}
+.sheetlink i{margin-left:4px;color:var(--dim);font-style:normal}
+@media print{ .sheetlink{display:none} }
 </style>
 </head>
 <body>
@@ -177,6 +187,12 @@ font-size:10.5px;letter-spacing:1.6px;color:#3d4d68;pointer-events:none;user-sel
     <span class="pill"><i class="dot" style="background:var(--cut)"></i>Cut it</span>
     <span class="pill">Four jobs, nine players</span>
   </div>
+
+  <a class="sheetlink" href="/all-73-plays.html" target="_blank" rel="noopener">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    <span><b>Print all 73 plays</b><small>Field diagrams and every job, ready for the binder</small></span>
+    <i>&rarr;</i>
+  </a>
 
   <div class="modes">
     <button id="mStudy" class="on" onclick="setMode('study')">Study<small>Watch the play</small></button>
@@ -205,9 +221,6 @@ font-size:10.5px;letter-spacing:1.6px;color:#3d4d68;pointer-events:none;user-sel
       <div class="steps" id="steps"></div>
       <button class="btn sec" onclick="sharePlay()" title="Share this play" aria-label="Share this play">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.7" x2="15.4" y2="6.3"/><line x1="8.6" y1="13.3" x2="15.4" y2="17.7"/></svg>
-      </button>
-      <button class="btn sec" onclick="window.print()" title="Print this play" aria-label="Print this play">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       </button>
     </div>
 
@@ -752,6 +765,6 @@ function setDrill(p){ store.drill=p; save(); renderDrillPick(); newQuestion(); }
 })();
 drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
 </script>
-<div id="buildstamp">PT v29</div>
+<div id="buildstamp">PT v30</div>
 </body>
 </html>
