@@ -620,7 +620,13 @@ function setCat(c){ store.cat=c; save(); renderList(); renderHead(); }
    same list — otherwise the arrows would jump to a play you cannot see. */
 function visiblePlays(){
   var cat=store.cat||'All';
-  return PLAYS.filter(function(p){ return cat==='All'||p.cat===cat; });
+  var v=PLAYS.filter(function(p){ return cat==='All'||p.cat===cat; });
+  // If the current play is not in the filtered list — a saved filter from a
+  // previous visit, or a deep link into another category — navigate the full
+  // list instead. Otherwise both arrows would sit disabled with no explanation.
+  var inList=false;
+  for(var i=0;i<v.length;i++){ if(cur && v[i].id===cur.id){ inList=true; break; } }
+  return inList ? v : PLAYS;
 }
 function renderHead(){
   if(!cur) return;
@@ -631,7 +637,8 @@ function renderHead(){
   document.getElementById('phSit').textContent=cur.sit||'';
   document.getElementById('phDesc').textContent=cur.desc||'';
   var cnt=document.getElementById('phCount');
-  cnt.textContent = ix>=0 ? ('Play '+(ix+1)+' of '+vis.length+((store.cat&&store.cat!=='All')?' in '+store.cat:'')) : '';
+  var filtered = vis.length!==PLAYS.length;
+  cnt.textContent = ix>=0 ? ('Play '+(ix+1)+' of '+vis.length+(filtered?' in '+store.cat:'')) : '';
   document.getElementById('prevBtn').disabled = ix<=0;
   document.getElementById('nextBtn').disabled = ix<0 || ix>=vis.length-1;
 }
@@ -815,6 +822,6 @@ function setDrill(p){ store.drill=p; save(); renderDrillPick(); newQuestion(); }
 })();
 drawField(); renderLens(); renderJobs(); renderList(); renderHead(); resetPlay(); syncUrl();
 </script>
-<div id="buildstamp">PT v31</div>
+<div id="buildstamp">PT v32</div>
 </body>
 </html>
