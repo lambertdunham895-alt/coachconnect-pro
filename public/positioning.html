@@ -144,9 +144,7 @@ footer a{color:var(--mid)}
   .job p{color:#333;font-size:11pt}
   .job .num{color:#000!important;border:1px solid #666!important;background:#eee!important}
   .tag{border:1px solid #999;color:#000!important;background:#fff!important}
-  #printHead{display:block!important}
 }
-#printHead{display:none}
 .steplbl{display:flex;align-items:center;gap:8px;padding:13px 13px 0}
 .steplbl .n{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
   font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:11px;flex:0 0 auto}
@@ -166,6 +164,24 @@ font-size:10.5px;letter-spacing:1.6px;color:#3d4d68;pointer-events:none;user-sel
 .sheetlink small{display:block;font-size:11.5px;color:var(--dim);margin-top:1px}
 .sheetlink i{margin-left:4px;color:var(--dim);font-style:normal}
 @media print{ .sheetlink{display:none} }
+
+.playhead{display:flex;align-items:center;gap:10px;padding:14px 12px 4px}
+.playhead .nav{flex:0 0 auto;width:42px;height:42px;border-radius:11px;border:1px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:24px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s}
+.playhead .nav:hover{border-color:var(--gold);color:var(--gold)}
+.playhead .nav:disabled{opacity:.3;cursor:default;border-color:var(--border);color:var(--dim)}
+.ph-mid{flex:1;min-width:0;text-align:center}
+.ph-cat{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:10px;letter-spacing:2.2px;
+  text-transform:uppercase;color:var(--gold)}
+.ph-title{font-family:'Bebas Neue',sans-serif;font-size:25px;letter-spacing:1.4px;line-height:1.08;margin-top:2px}
+.ph-sit{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:1px;
+  color:var(--dim);margin-top:2px}
+.ph-desc{font-size:12.5px;color:var(--mid);line-height:1.45;margin-top:6px;max-width:56ch;
+  margin-left:auto;margin-right:auto}
+.ph-count{text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:1.6px;
+  color:var(--dim);padding-bottom:6px}
+@media (max-width:520px){ .ph-desc{display:none} .ph-title{font-size:21px} }
 </style>
 </head>
 <body>
@@ -200,11 +216,17 @@ font-size:10.5px;letter-spacing:1.6px;color:#3d4d68;pointer-events:none;user-sel
   </div>
 
   <div class="panel">
-    <div id="printHead" style="padding:14px 4px 8px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px" id="phTitle"></div>
-      <div style="font-size:12pt;margin-top:4px" id="phSit"></div>
-      <div style="font-size:9pt;margin-top:6px;color:#555">coachconnectpro.net — Positioning Trainer</div>
+    <div class="playhead">
+      <button class="nav" id="prevBtn" onclick="stepPlay(-1)" aria-label="Previous play">&#8249;</button>
+      <div class="ph-mid">
+        <div class="ph-cat" id="phCat"></div>
+        <div class="ph-title" id="phTitle"></div>
+        <div class="ph-sit" id="phSit"></div>
+        <div class="ph-desc" id="phDesc"></div>
+      </div>
+      <button class="nav" id="nextBtn" onclick="stepPlay(1)" aria-label="Next play">&#8250;</button>
     </div>
+    <div class="ph-count" id="phCount"></div>
     <div class="fieldwrap">
       <svg class="field" id="svg" viewBox="113.9 244 772.2 608" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-label="Baseball field diagram"></svg>
     </div>
@@ -592,12 +614,40 @@ function renderList(){
   });
   document.getElementById('list').innerHTML=h;
 }
-function setCat(c){ store.cat=c; save(); renderList(); }
-function pick(id){
+function setCat(c){ store.cat=c; save(); renderList(); renderHead(); }
+
+/* The visible list depends on the category filter, so next/previous walk that
+   same list — otherwise the arrows would jump to a play you cannot see. */
+function visiblePlays(){
+  var cat=store.cat||'All';
+  return PLAYS.filter(function(p){ return cat==='All'||p.cat===cat; });
+}
+function renderHead(){
+  if(!cur) return;
+  var vis=visiblePlays(), ix=-1;
+  for(var i=0;i<vis.length;i++){ if(vis[i].id===cur.id){ ix=i; break; } }
+  document.getElementById('phCat').textContent=cur.cat||'';
+  document.getElementById('phTitle').textContent=cur.title||'';
+  document.getElementById('phSit').textContent=cur.sit||'';
+  document.getElementById('phDesc').textContent=cur.desc||'';
+  var cnt=document.getElementById('phCount');
+  cnt.textContent = ix>=0 ? ('Play '+(ix+1)+' of '+vis.length+((store.cat&&store.cat!=='All')?' in '+store.cat:'')) : '';
+  document.getElementById('prevBtn').disabled = ix<=0;
+  document.getElementById('nextBtn').disabled = ix<0 || ix>=vis.length-1;
+}
+function stepPlay(dir){
+  var vis=visiblePlays(), ix=-1;
+  for(var i=0;i<vis.length;i++){ if(vis[i].id===cur.id){ ix=i; break; } }
+  if(ix<0) return;
+  var nx=ix+dir;
+  if(nx<0||nx>=vis.length) return;
+  pick(vis[nx].id,true);
+}
+function pick(id,keepScroll){
   var p=PLAYS.filter(function(x){return x.id===id})[0]; if(!p) return;
-  cur=p; renderJobs(); renderList(); resetPlay(); syncUrl();
+  cur=p; renderJobs(); renderList(); renderHead(); resetPlay(); syncUrl();
   if(mode==='quiz') newQuestion();
-  document.querySelector('.panel').scrollIntoView({behavior:'smooth',block:'start'});
+  if(!keepScroll) document.querySelector('.panel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function markStudied(){ store.studied=store.studied||{}; if(!store.studied[cur.id]){ store.studied[cur.id]=1; save(); renderList(); addXp(5); } }
 
@@ -763,8 +813,8 @@ function setDrill(p){ store.drill=p; save(); renderDrillPick(); newQuestion(); }
     if(q){ var f=PLAYS.filter(function(x){return x.id===q})[0]; if(f) cur=f; }
   }catch(e){}
 })();
-drawField(); renderLens(); renderJobs(); renderList(); resetPlay(); syncUrl();
+drawField(); renderLens(); renderJobs(); renderList(); renderHead(); resetPlay(); syncUrl();
 </script>
-<div id="buildstamp">PT v30</div>
+<div id="buildstamp">PT v31</div>
 </body>
 </html>
