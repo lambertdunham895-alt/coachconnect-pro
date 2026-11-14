@@ -10,11 +10,11 @@
  const X=v=>map(v)[0].toFixed(1),Y=v=>map(v)[1].toFixed(1),id='ar-'+String(p.id).replace(/[^a-z0-9]/gi,'');
  let arrows='',runnerPaths='',runnerSprites='';
  order.forEach(k=>{const from=base[k],to=moves[k]||from;if(Math.hypot(from[0]-to[0],from[1]-to[1])>18)arrows+='<path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#101820" stroke-width="1.2" stroke-linecap="round" marker-end="url(#'+id+')" opacity=".86"/>';});
- Object.keys(p.runners||{}).forEach((k,i)=>{
-  const from=p.runners[k],to=runs[k]||from,travel=Math.hypot(from[0]-to[0],from[1]-to[1]),bags=[[499,770],[688,557],[500,401],[312,557]],snap=v=>{let nearest=v,best=56;bags.forEach(b=>{const d=Math.hypot(v[0]-b[0],v[1]-b[1]);if(d<best){best=d;nearest=b;}});return nearest;},fromPt=map(snap(from)),pt=map(snap(to)),w=23,h=28,frame=i%3;
-  if(k==='BR'&&travel<24)return;
-  if(travel>18)runnerPaths+='<path d="M'+fromPt[0].toFixed(1)+' '+fromPt[1].toFixed(1)+' L'+pt[0].toFixed(1)+' '+pt[1].toFixed(1)+'" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="5 3"/><path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#c83a2f" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#'+id+')"/>';
-  runnerSprites+='<svg x="'+(pt[0]-w/2).toFixed(1)+'" y="'+(pt[1]-h+2).toFixed(1)+'" width="'+w+'" height="'+h+'" viewBox="'+(frame*180)+' 0 180 220" preserveAspectRatio="xMidYMid meet"><image href="/assets/coachconnect-baserunners.png" xlink:href="/assets/coachconnect-baserunners.png" x="0" y="0" width="540" height="220"/></svg>';
+ ['R1','R2','R3'].forEach((k)=>{
+  const from=p.runners&&p.runners[k];if(!from)return;
+  const to=runs[k]||from,travel=Math.hypot(from[0]-to[0],from[1]-to[1]),bags=[[499,770],[688,557],[500,401],[312,557]],snap=v=>{let nearest=v,best=56;bags.forEach(b=>{const d=Math.hypot(v[0]-b[0],v[1]-b[1]);if(d<best){best=d;nearest=b;}});return nearest;},startPt=map(snap(from)),endPt=map(to),w=23,h=28,frame=({R1:0,R2:1,R3:2})[k];
+  if(travel>18)runnerPaths+='<path d="M'+startPt[0].toFixed(1)+' '+startPt[1].toFixed(1)+' L'+endPt[0].toFixed(1)+' '+endPt[1].toFixed(1)+'" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="5 3"/><path d="M'+startPt[0].toFixed(1)+' '+startPt[1].toFixed(1)+' L'+endPt[0].toFixed(1)+' '+endPt[1].toFixed(1)+'" fill="none" stroke="#c83a2f" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#'+id+')"/>';
+  runnerSprites+='<svg x="'+(startPt[0]-w/2).toFixed(1)+'" y="'+(startPt[1]-h+2).toFixed(1)+'" width="'+w+'" height="'+h+'" viewBox="'+(frame*180)+' 0 180 220" preserveAspectRatio="xMidYMid meet"><image href="/assets/coachconnect-baserunners.png" xlink:href="/assets/coachconnect-baserunners.png" x="0" y="0" width="540" height="220"/></svg>';
  });
  const ball=first.ball&&first.ball.to?'<circle cx="'+X(first.ball.to)+'" cy="'+Y(first.ball.to)+'" r="2.8" fill="#fff" stroke="#c83a2f" stroke-width="1.8"/>':'';
  const steps=(p.phases||[]).map(ph=>'<li>'+esc(ph.txt)+'</li>').join('');
