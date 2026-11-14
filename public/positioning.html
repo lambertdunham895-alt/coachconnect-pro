@@ -368,7 +368,7 @@ function bag(p){ return ''; }  // the photo already has the bases
 
 function fielderEl(id,job,dim){
   var c=JOBC[job]||'#8fa3c0',r=26;
-  return '<g data-player="'+id+'" opacity="'+(dim?.3:1)+'">'+
+  return '<g data-player="'+id+'" opacity="'+(dim?.3:1)+'" filter="url(#soft)">'+
     '<ellipse cx="0" cy="'+(r*.72)+'" rx="'+(r*.78)+'" ry="'+(r*.26)+'" fill="#000" opacity=".3"/>'+
     '<circle cx="0" cy="0" r="'+r+'" fill="#0b1622"/>'+
     '<circle cx="0" cy="0" r="'+r+'" fill="'+c+'" opacity=".26"/>'+
@@ -389,7 +389,10 @@ function render(){
   POS.forEach(function(p){
     var id=NUM[p],node=f.querySelector('[data-player="'+id+'"]');
     if(!node){f.insertAdjacentHTML('beforeend',fielderEl(id,cur.jobs[p]?cur.jobs[p].type:'backup',lens&&lens!==p));node=f.querySelector('[data-player="'+id+'"]');}
-    var pos=fpos[p]||START[p];node.setAttribute('transform','translate('+pos[0]+' '+pos[1]+')');
+    var pos=fpos[p]||START[p],job=cur.jobs[p]?cur.jobs[p].type:'backup',color=JOBC[job]||'#8fa3c0',circles=node.querySelectorAll('circle');
+    node.setAttribute('transform','translate('+pos[0]+' '+pos[1]+')');
+    if(circles[1])circles[1].setAttribute('fill',color);
+    if(circles[2])circles[2].setAttribute('stroke',color);
     node.setAttribute('opacity',lens&&lens!==p?'.3':'1');
   });
   Object.keys(rpos).forEach(function(k){
