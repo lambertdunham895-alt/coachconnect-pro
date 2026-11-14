@@ -2458,7 +2458,7 @@ function UnlinkedParentHub({parentName="", parentEmail="", parentId="", onSignOu
           </div>
           <div style={{flex:1}}>
             <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:14,color:"#fff"}}>Positioning Trainer</div>
-            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Watch all 9 players move on 73 plays — then test yourself</div>
+            <div style={{fontSize:11,color:C.textDim,marginTop:2}}>Watch all 9 players move on 66 plays — then test yourself</div>
           </div>
           <div style={{color:C.teal,fontSize:14}}>↗</div>
         </a>
