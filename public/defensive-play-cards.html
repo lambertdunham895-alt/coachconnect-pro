@@ -19,7 +19,7 @@
  (p.phases||[]).forEach((ph,i)=>{if(!ph.ball||!ph.ball.to)return;const next=ph.ball.to,origin=previousBall;if(origin&&Math.hypot(origin[0]-next[0],origin[1]-next[1])>12){ballPaths+='<path d="M'+X(origin)+' '+Y(origin)+' L'+X(next)+' '+Y(next)+'" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><path d="M'+X(origin)+' '+Y(origin)+' L'+X(next)+' '+Y(next)+'" fill="none" stroke="#d71935" stroke-width="1.8" stroke-dasharray="5 3" stroke-linecap="round" marker-end="url(#'+id+'-ball)"/>';}previousBall=next;});
  ['R1','R2','R3'].forEach((k)=>{
   const from=p.runners&&p.runners[k];if(!from)return;
-  const startPt=map(({R1:base['1B'],R2:base['2B'],R3:base['3B']})[k]),w=13.5,h=17,frame=({R1:0,R2:1,R3:2})[k];
+  const startBase=({R1:[688,557],R2:[500,401],R3:[312,557]})[k],startPt=map(startBase),w=13.5,h=17,frame=({R1:0,R2:1,R3:2})[k];
   runnerSprites+='<svg x="'+(startPt[0]-w/2).toFixed(1)+'" y="'+(startPt[1]-h).toFixed(1)+'" width="'+w+'" height="'+h+'" viewBox="'+(frame*48)+' 0 48 60" preserveAspectRatio="xMidYMid meet"><image href="/assets/coachconnect-baserunners.png" xlink:href="/assets/coachconnect-baserunners.png" x="0" y="0" width="144" height="60"/></svg>';
  });
  const ball=first.ball&&first.ball.to?'<circle cx="'+X(first.ball.to)+'" cy="'+Y(first.ball.to)+'" r="2.8" fill="#fff" stroke="#d71935" stroke-width="1.8"/>':'';
