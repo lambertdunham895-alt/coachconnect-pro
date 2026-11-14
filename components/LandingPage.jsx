@@ -3,6 +3,7 @@ import { C, FONTS } from "../theme";
 import { inp, LOGO, supabase, uid } from "../App";
 
 // ─── LANDING PAGE — clean, emoji-free design ─────────────────────────────────
+// Homepage trainer count is kept in sync with the 66-play trainer.
 function LandingPage({onAuth}) {
   const [showLogin, setShowLogin] = useState(false);
 
