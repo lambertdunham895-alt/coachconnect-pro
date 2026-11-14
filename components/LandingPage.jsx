@@ -126,7 +126,7 @@ function LandingPage({onAuth}) {
               Free Positioning Trainer — No Signup
             </a>
           </div>
-          <div className="fade-up-5" style={{fontSize:11.5,color:"#c9d2e0",marginTop:9,letterSpacing:0.3,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>73 animated plays · watch all 9 players move · test yourself</div>
+          <div className="fade-up-5" style={{fontSize:11.5,color:"#c9d2e0",marginTop:9,letterSpacing:0.3,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>66 animated plays · watch all 9 players move · test yourself</div>
           <div className="fade-up-5" style={{fontSize:12,color:"#c9d2e0",marginTop:18,letterSpacing:0.5,textShadow:"0 2px 8px rgba(0,0,0,0.8)"}}>14-day free trial · No credit card required</div>
         </div>
       </div>
@@ -220,7 +220,7 @@ function LandingPage({onAuth}) {
               Training that follows them <span style={{color:C.gold}}>home.</span>
             </div>
             <div style={{fontSize:15,color:C.textMid,lineHeight:1.6}}>
-              While you plan practices and run games, your players sharpen their baseball IQ on the couch. The Positioning Trainer turns 10 minutes of screen time into smarter defensive instincts — 73 animated plays, quiz mode, badges to earn. Parents love it. Kids actually use it.
+              While you plan practices and run games, your players sharpen their baseball IQ on the couch. The Positioning Trainer turns 10 minutes of screen time into smarter defensive instincts — 66 animated plays, quiz mode, badges to earn. Parents love it. Kids actually use it.
             </div>
           </div>
         </div>
@@ -281,7 +281,7 @@ function LandingPage({onAuth}) {
                 <div style={{padding:"2px 7px",borderRadius:5,background:`${C.gold}20`,border:`1px solid ${C.gold}50`,fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:8,letterSpacing:1.5,color:C.gold,textTransform:"uppercase"}}>New</div>
               </div>
               <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:20,letterSpacing:1,color:"#fff",marginBottom:10,lineHeight:1.1}}>Positioning Trainer</div>
-              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Watch all nine defenders move through 73 real plays, then test yourself before the answer shows. Earn XP, level up, unlock badges. Built for players ages 8-14.</div>
+              <div style={{fontSize:12,color:C.textMid,lineHeight:1.6,marginBottom:14}}>Watch all nine defenders move through 66 real plays, then test yourself before the answer shows. Earn XP, level up, unlock badges. Built for players ages 8-14.</div>
               <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:11,letterSpacing:1.5,color:C.teal,textTransform:"uppercase"}}>Play Free →</div>
             </a>
             <a href="/Youth_Baseball_Parent_Guide.pdf" download="" target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",background:C.card,border:`1px solid ${C.red}40`,borderRadius:14,padding:"22px 20px",display:"block",position:"relative",overflow:"hidden"}}>
