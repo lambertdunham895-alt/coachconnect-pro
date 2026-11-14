@@ -11,8 +11,9 @@
  let arrows='',runnerPaths='',runnerSprites='';
  order.forEach(k=>{const from=base[k],to=moves[k]||from;if(Math.hypot(from[0]-to[0],from[1]-to[1])>18)arrows+='<path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#101820" stroke-width="1.8" stroke-linecap="round" marker-end="url(#'+id+')" opacity=".86"/>';});
  Object.keys(p.runners||{}).forEach((k,i)=>{
-  const from=p.runners[k],to=runs[k]||from,pt=map(to),w=22,h=28,frame=i%3;
-  if(Math.hypot(from[0]-to[0],from[1]-to[1])>18)runnerPaths+='<path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#fff" stroke-width="3.2" stroke-dasharray="5 3"/><path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#c83a2f" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#'+id+')"/>';
+  const from=p.runners[k],to=runs[k]||from,travel=Math.hypot(from[0]-to[0],from[1]-to[1]),pt=map(to),w=22,h=28,frame=i%3;
+  if(k==='BR'&&travel<24)return;
+  if(travel>18)runnerPaths+='<path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#fff" stroke-width="3.2" stroke-dasharray="5 3"/><path d="M'+X(from)+' '+Y(from)+' L'+X(to)+' '+Y(to)+'" fill="none" stroke="#c83a2f" stroke-width="1.7" stroke-dasharray="5 3" marker-end="url(#'+id+')"/>';
   runnerSprites+='<svg x="'+(pt[0]-w/2).toFixed(1)+'" y="'+(pt[1]-h+2).toFixed(1)+'" width="'+w+'" height="'+h+'" viewBox="'+(frame*48)+' 0 48 60" preserveAspectRatio="xMidYMid meet"><image href="/assets/coachconnect-baserunners.png" xlink:href="/assets/coachconnect-baserunners.png" x="0" y="0" width="144" height="60"/></svg>';
  });
  const ball=first.ball&&first.ball.to?'<circle cx="'+X(first.ball.to)+'" cy="'+Y(first.ball.to)+'" r="3.5" fill="#fff" stroke="#c83a2f" stroke-width="1.8"/>':'';
