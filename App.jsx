@@ -4,6 +4,11 @@ import LandingPage from "./components/LandingPage";
 import ChatView from "./components/ChatView";
 import RosterScanner from "./components/RosterScanner";
 import { C, FONTS } from "./theme";
+import {
+  saveTeamData, loadCachedTeamData, cacheMediaFromUrls,
+  getCachedMedia, cacheMedia, isOnline, watchConnection, describeAge,
+  saveSession, loadSession, clearSession,
+} from "./lib/offline";
 import { DRILL_LIBRARY, catMeta, CATEGORIES } from "./data/drills";
 import { createClient } from "@supabase/supabase-js";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -777,6 +782,7 @@ function AppInner() {
     }
   };
 
+  // Fetch from Supabase, render it, then keep a copy on the device.
   const loadTeamData = async (teamId, userId) => {
     try {
       const [
@@ -805,6 +811,29 @@ function AppInner() {
         q(()=>supabase.from('blocked_users').select('*').eq('team_id',teamId),'blocked_users'),
         q(()=>supabase.from('chat_reports').select('*').eq('team_id',teamId).order('created_at',{ascending:false}),'chat_reports'),
       ]);
+
+      // Keep the raw rows for offline. Stored before rendering so a crash
+      // mid-render still leaves a usable cache behind.
+      const raw = {pData,aData,eData,mData,sData,lData,gData,dvData,
+                   cpData,phData,readData,pvData,cdData,buData,crData};
+      saveTeamData(teamId, raw);
+      setCacheAge(Date.now());
+
+      await applyTeamData(raw, userId, true);
+    } catch(err) {
+      console.error('loadTeamData error:', err);
+      throw err; // re-throw so loadProfile's catch picks it up
+    }
+  };
+
+  // Turn raw rows into React state. Runs for both a live fetch and a cache
+  // restore, so there is one mapping to maintain rather than two.
+  //   online=true  → sign media URLs from Supabase and cache the bytes
+  //   online=false → serve media from the bytes already on the device
+  const applyTeamData = async (raw, userId, online) => {
+    const {pData,aData,eData,mData,sData,lData,gData,dvData,
+           cpData,phData,readData,pvData,cdData,buData,crData} = raw;
+    try {
 
     // Build players
     const loadedPlayers = (pData||[]).map(p=>({
@@ -907,24 +936,42 @@ function AppInner() {
 
     // Buckets are private: sign all photo paths in ONE batched call.
     // Each signed URL carries a unique token, so no cache-buster is needed.
+    // Offline, signed URLs are worthless — serve the bytes already on the
+    // device instead, which is why the cache stores blobs and not links.
     const photoMap = {};
     const photoRows = (phData||[]).filter(ph=>ph.player_id && ph.storage_path);
-    if (photoRows.length) {
+    if (photoRows.length && online) {
       const {data:signedPhotos} = await supabase.storage.from('player-photos')
         .createSignedUrls(photoRows.map(r=>r.storage_path), SIGNED_URL_TTL);
+      const toCache = [];
       photoRows.forEach((ph,i)=>{
         const u = signedPhotos?.[i]?.signedUrl;
-        if (u) photoMap[ph.player_id] = u;
+        if (u) { photoMap[ph.player_id] = u; toCache.push({path:ph.storage_path, url:u}); }
       });
+      // Pull the bytes down in the background, after this render. Never awaited:
+      // a slow photo must not hold up the roster appearing.
+      if (toCache.length) setTimeout(()=>cacheMediaFromUrls(toCache), 1200);
+    } else if (photoRows.length) {
+      for (const ph of photoRows) {
+        const local = await getCachedMedia(ph.storage_path);
+        if (local) photoMap[ph.player_id] = local;
+      }
     }
     setPlayerPhotos(photoMap);
 
     // Load player videos from DB
+    // Videos are up to 50MB each and get reviewed at home on wifi, never in a
+    // dugout, so they are deliberately not cached. Offline the row still loads
+    // with a null url, so the UI shows "needs a connection" rather than
+    // claiming the video does not exist.
     const pvMap = {};
     const videoRows = (pvData||[]).filter(pv=>pv.player_id && pv.drill_id && pv.storage_path);
     if (videoRows.length) {
-      const {data:signedVids} = await supabase.storage.from('player-videos')
-        .createSignedUrls(videoRows.map(r=>r.storage_path), SIGNED_URL_TTL);
+      let signedVids = null;
+      if (online) {
+        ({data:signedVids} = await supabase.storage.from('player-videos')
+          .createSignedUrls(videoRows.map(r=>r.storage_path), SIGNED_URL_TTL));
+      }
       videoRows.forEach((pv,i)=>{
         const key = `${pv.player_id}_${pv.drill_id}`;
         pvMap[key] = { url: signedVids?.[i]?.signedUrl || null, storagePath: pv.storage_path, uploadedAt: new Date(pv.uploaded_at).getTime(), feedback: [] };
@@ -938,8 +985,23 @@ function AppInner() {
 
     // setDataLoaded is called in loadProfile after parent link is also set
     } catch(err) {
-      console.error('loadTeamData error:', err);
+      console.error('applyTeamData error:', err);
       throw err; // re-throw so loadProfile's catch picks it up
+    }
+  };
+
+  // Render whatever is already on the device. Returns true if anything was
+  // restored, so the caller knows whether the screen is usable yet.
+  const hydrateFromCache = async (teamId, userId) => {
+    try {
+      const rec = await loadCachedTeamData(teamId);
+      if (!rec) return false;
+      await applyTeamData(rec.raw, userId, false);
+      setCacheAge(rec.cachedAt);
+      return true;
+    } catch (err) {
+      console.warn('cache restore failed:', err);
+      return false;
     }
   };
 
@@ -948,6 +1010,25 @@ function AppInner() {
   const loadProfile = async (userId, attempt = 0) => {
     const MAX_ATTEMPTS = 6;   // up to ~6 tries before giving up
     const RETRY_DELAY = 600;  // ms between tries
+
+    // Cache first: paint from the device, then refresh from the network. On a
+    // field with no signal this is the whole app; online it just means the
+    // roster is up before the first query returns. Only on the first attempt —
+    // a retry has already hydrated.
+    let hydrated = false;
+    if (attempt === 0) {
+      const sess = loadSession(userId);
+      if (sess?.profile?.team_id) {
+        try {
+          setProfile(sess.profile);
+          if (sess.team?.name) setTeamDisplayName(sess.team.name);
+          if (sess.team) setTeamData(sess.team);
+          hydrated = await hydrateFromCache(sess.profile.team_id, userId);
+          if (hydrated) { setDataLoaded(true); setAuthReady(true); }
+        } catch (err) { console.warn('cache boot failed:', err); }
+      }
+    }
+
     try {
       // maybeSingle() returns null (not an error) when the row isn't there yet —
       // important right after signup, when the profile/team rows may still be inserting.
@@ -960,6 +1041,7 @@ function AppInner() {
           await new Promise(r=>setTimeout(r, RETRY_DELAY));
           return loadProfile(userId, attempt + 1);
         }
+        if (hydrated) { setOnline(false); setAuthReady(true); return; }
         setLoadError("Couldn't load your profile. Please try again."); setAuthReady(true); return;
       }
 
@@ -983,7 +1065,10 @@ function AppInner() {
           resolveMediaUrl('player-photos', td.logo_url).then(u=>{ if (u) setTeamLogo(u); });
         }
         if (td) setTeamData(td);
+        // Remember enough to boot offline next time: which team, and its row.
+        saveSession(data, td || null);
         await loadTeamData(data.team_id, userId);
+        setOnline(true);
         if(data.role === 'parent' && data.player_id) {
           setParentPlayerLink({player_id: data.player_id, parent_id: userId});
           setPUID(userId);
@@ -999,6 +1084,7 @@ function AppInner() {
         await new Promise(r=>setTimeout(r, RETRY_DELAY));
         return loadProfile(userId, attempt + 1);
       }
+      if (hydrated) { setOnline(false); setAuthReady(true); return; }
       setLoadError("Something went wrong loading your data. Check your internet connection and try again.");
       setAuthReady(true);
     }
@@ -1021,8 +1107,21 @@ function AppInner() {
     setProfile(prof);
   };
 
+  // Watch the connection. Coming back online refetches silently so the coach
+  // never has to think about pulling to refresh.
+  useEffect(()=>{
+    return watchConnection((up)=>{
+      setOnline(up);
+      if (up && profile?.team_id && session?.user?.id) {
+        loadTeamData(profile.team_id, session.user.id).catch(()=>{});
+      }
+    });
+  },[profile?.team_id, session?.user?.id]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    clearSession();            // never boot the next user into this roster
+    setCacheAge(null);
     setSession(null); setProfile(null); setPUID(null);
     setPlayers([]); setAsgn([]); setEvents([]); setMessages({}); setUnread({});
     setSkillSnapshots([]); setLineups({}); setGamePlans({});
@@ -1088,6 +1187,9 @@ function AppInner() {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [chatReports, setChatReports]   = useState([]);
   const [dataLoaded, setDataLoaded]   = useState(false);
+  // Offline support: when the cached copy was taken, and whether we are online.
+  const [cacheAge, setCacheAge]       = useState(null);
+  const [online, setOnline]           = useState(isOnline());
 
   // Keep a ref so DB functions always have the current profile
   const profileRef = useRef(null);
@@ -1636,6 +1738,7 @@ function AppInner() {
     return (
       <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif"}}>
         <style>{FONTS}</style>
+        <OfflineBanner online={online} cacheAge={cacheAge}/>
         <TopBar
           title={activeChat ? (activeChat==="team"?"Team Chat": "Messages") : (player?.name||"My Player")}
           sub={activeChat ? null : `${parent?.name||"Parent"} · Parent View`}
@@ -1643,7 +1746,7 @@ function AppInner() {
           onBack={activeChat ? ()=>setActiveChat(null) : handleSignOut}
         />
         {activeChat
-          ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
+          ? <ChatView online={online} channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:parentUserId,name:parent?.name||"Parent"},att)} myId={parentUserId} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
           : <ParentView onSupport={()=>setShowSupport(true)} player={player} parent={parent} assignments={myAsgn} events={events} setAsgn={setAsgnDb} unread={myUnread} onOpenChat={(ch)=>{setActiveChat(ch);markRead(ch);}} parentUserId={parentUserId} dmChannel={myDmChannel} drillVideos={drillVideos} skillSnapshots={skillSnapshots} playerVideos={playerVideos} setPlayerVideos={setPlayerVideos} gamePlans={gamePlans} lineups={lineups} players={players} playerPhotos={playerPhotos} setPlayerPhotos={setPlayerPhotos} onPhotoUpload={handlePlayerPhotoUpload} teamLogo={teamLogo} teamName={teamDisplayName} canAccess={canAccess} customDrills={customDrills}/>
         }
         {showSupport && <SupportModal session={session} profile={profile} onClose={()=>setShowSupport(false)}/>}
@@ -1676,6 +1779,7 @@ function AppInner() {
     <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",paddingBottom:"calc(72px + env(safe-area-inset-bottom))"}}>
 
       <style>{FONTS}</style>
+      <OfflineBanner online={online} cacheAge={cacheAge}/>
       <TopBar
         title={activeChat ? (activeChat==="team"?"Team Chat": (()=>{
           const chId = activeChat.replace('dm-','');
@@ -1740,7 +1844,7 @@ function AppInner() {
       )}
 
       {activeChat
-        ? <ChatView channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
+        ? <ChatView online={online} channelId={activeChat} messages={messages[activeChat]||[]} onSend={(t,att)=>sendMsg(activeChat,t,{id:session?.user?.id||'coach',name:profile?.full_name||"Coach"},att)} myId={session?.user?.id||'coach'} onOpen={()=>markRead(activeChat)} players={players} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} teamId={profile?.team_id} blockedUsers={blockedUsers} onBlock={blockUser} onUnblock={unblockUser} onReport={reportMessage}/>
         : (
           <div style={{padding:"20px 14px",maxWidth:640,margin:"0 auto"}}>
             {tab==="home"     && <CoachHome onSupport={()=>setShowSupport(true)} players={players} assignments={assignments} events={events} customPlans={customPlans} goToPlayer={goToPlayer} setTab={setTab} teamLogo={teamLogo} onTeamLogoChange={handleTeamLogoChange} teamName={teamDisplayName} playerVideos={playerVideos} teamData={teamData} onTeamSettingsSave={handleTeamSettingsSave} chatReports={chatReports} onResolveReport={resolveReport} canAccess={canAccess} onUpgrade={()=>setShowUpgrade(true)}/>}
@@ -6106,11 +6210,56 @@ function UpgradeScreen({daysLeft, isTrial, isExpired, onClose, onSubscribe, sess
 // ─── SIGNED MEDIA (render prop) ──────────────────────────────────────────────
 // Resolves a storage path or legacy public URL to a fresh signed URL at render
 // time. Renders nothing until resolved; renders nothing at all on failure.
+// ─── OFFLINE BANNER ──────────────────────────────────────────────────────────
+// One quiet line, not a modal. A coach on a field already knows the signal is
+// bad; what they need is confidence the data in front of them is recent enough
+// to use, so the banner leads with when it was taken.
+function OfflineBanner({online, cacheAge}) {
+  if (online) return null;
+  const age = describeAge(cacheAge);
+  return (
+    <div role="status" style={{
+      position:"sticky", top:0, zIndex:200,
+      background:"#3a2a0c", borderBottom:`1px solid ${C.gold}55`,
+      color:C.gold, padding:"7px 14px",
+      display:"flex", alignItems:"center", gap:9,
+      fontFamily:"Barlow Condensed, sans-serif", fontWeight:700,
+      fontSize:12.5, letterSpacing:0.7,
+    }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+        <path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
+      <span>Offline{age ? ` — showing data from ${age}` : " — showing saved data"}</span>
+    </div>
+  );
+}
+
 function SignedMedia({bucket, pathOrUrl, children}){
   const [url, setUrl] = useState(null);
   useEffect(()=>{
     let live = true;
-    resolveMediaUrl(bucket, pathOrUrl).then(u=>{ if (live) setUrl(u); });
+    (async ()=>{
+      // Bytes on the device first: they render instantly and work with no
+      // signal. A signed URL is only fetched when nothing is cached, and the
+      // bytes are kept so the next view needs no network at all.
+      const isPath = pathOrUrl && !/^(https?:|data:|blob:)/.test(String(pathOrUrl));
+      if (isPath) {
+        const local = await getCachedMedia(pathOrUrl);
+        if (local) { if (live) setUrl(local); return; }
+      }
+      const u = await resolveMediaUrl(bucket, pathOrUrl);
+      if (live) setUrl(u);
+      if (u && isPath) {
+        try {
+          const res = await fetch(u);
+          if (res.ok) cacheMedia(pathOrUrl, await res.blob());
+        } catch (_) { /* caching is best-effort */ }
+      }
+    })();
     return ()=>{ live=false; };
   },[bucket, pathOrUrl]);
   if (!url) return null;

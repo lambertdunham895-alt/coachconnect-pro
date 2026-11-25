@@ -3,7 +3,7 @@ import { C } from "../theme";
 import { Avatar, supabase, fmtTime, avatarColor, toast, signedUrl, SignedMedia, uid, randomToken } from "../App";
 
 // ─── CHAT VIEW ────────────────────────────────────────────────────────────────
-function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId,blockedUsers=[],onBlock=()=>{},onUnblock=()=>{},onReport=()=>{}}) {
+function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeamLogoChange,teamName,teamId,blockedUsers=[],onBlock=()=>{},onUnblock=()=>{},onReport=()=>{},online=true}) {
   const [text,setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [pendingFile, setPendingFile] = useState(null); // {file, preview, type, name}
@@ -341,10 +341,18 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
         </div>
       )}
 
+      {/* Offline notice — chat needs a live connection, so say so rather than
+          letting messages pile up unsent or look like a broken screen. */}
+      {!online && (
+        <div style={{padding:"9px 14px",background:"#3a2a0c",borderTop:`1px solid ${C.gold}40`,color:C.gold,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:12,letterSpacing:0.6,textAlign:"center"}}>
+          Offline — messages send when you reconnect
+        </div>
+      )}
+
       {/* Input bar */}
       <div style={{padding:"10px 12px 10px",background:`${C.bg}`,borderTop:`1px solid ${C.border}`,display:"flex",gap:8,alignItems:"flex-end"}}>
         {/* Attachment button */}
-        <button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{width:40,height:40,borderRadius:"50%",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16,color:C.blue}}>
+        <button onClick={()=>fileRef.current?.click()} disabled={uploading||!online} style={{width:40,height:40,borderRadius:"50%",background:`${C.blue}15`,border:`1px solid ${C.blue}40`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16,color:C.blue}}>
           📎
         </button>
         {isCoach&&<button onClick={()=>setShowQuickMsgs(q=>!q)} style={{width:40,height:40,borderRadius:"50%",background:showQuickMsgs?`${C.gold}25`:`${C.gold}15`,border:`1px solid ${showQuickMsgs?C.gold:C.gold+"40"}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16}}>⚾</button>}
@@ -357,13 +365,13 @@ function ChatView({channelId,messages,onSend,myId,onOpen,players,teamLogo,onTeam
             value={text}
             onChange={e=>setText(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
-            placeholder={uploading?"Uploading...":"Type a message..."}
+            placeholder={!online?"Offline — reconnecting...":(uploading?"Uploading...":"Type a message...")}
             rows={1}
-            disabled={uploading}
+            disabled={uploading||!online}
             style={{flex:1,background:"transparent",border:"none",outline:"none",color:C.text,fontFamily:"Plus Jakarta Sans, sans-serif",fontSize:14,lineHeight:1.5,resize:"none",padding:0,maxHeight:100,overflow:"auto"}}
           />
         </div>
-        <button onClick={send} disabled={(!text.trim()&&!pendingFile)||uploading} style={{width:44,height:44,borderRadius:"50%",background:(text.trim()||pendingFile)&&!uploading?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",cursor:(text.trim()||pendingFile)&&!uploading?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:(text.trim()||pendingFile)&&!uploading?`0 4px 16px ${C.red}50`:"none"}}>
+        <button onClick={send} disabled={(!text.trim()&&!pendingFile)||uploading||!online} style={{width:44,height:44,borderRadius:"50%",background:(text.trim()||pendingFile)&&!uploading?`linear-gradient(135deg,${C.red},${C.redDim})`:"#1a2f52",border:"none",cursor:(text.trim()||pendingFile)&&!uploading?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:(text.trim()||pendingFile)&&!uploading?`0 4px 16px ${C.red}50`:"none"}}>
           {uploading ? (
             <div style={{width:16,height:16,border:"2px solid #fff",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
           ) : (
