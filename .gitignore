@@ -1,0 +1,24 @@
+# Dependencies — reinstalled from package.json, never committed
+node_modules/
+
+# Build output — Vercel builds this itself on every deploy
+dist/
+.vercel/
+
+# Secrets. API keys live in Vercel env vars and Supabase secrets, never here.
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
