@@ -2726,6 +2726,64 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSuppor
   const f = (k,v) => setForm(p=>({...p,[k]:v}));
   const [billingLoading, setBillingLoading] = useState(false);
 
+  // ── Delete team & account ────────────────────────────────────────────────
+  // Required by App Store Guideline 5.1.1(v) and Google Play's account
+  // deletion policy: a user has to be able to do this from inside the app.
+  //
+  // A coach owns the whole team, so this is far bigger than the parent-side
+  // version — it takes the roster, the schedule, the chat and every parent
+  // account on the team. Two gates before it can run: open this panel, then
+  // type the team name exactly.
+  const [showDanger, setShowDanger]       = useState(false);
+  const [dangerConfirm, setDangerConfirm] = useState("");
+  const [dangerBusy, setDangerBusy]       = useState(false);
+  const [dangerError, setDangerError]     = useState("");
+  const [dangerCounts, setDangerCounts]   = useState(null); // {players, parents}
+  const teamIdForDelete = teamData?.id || null;
+  const liveTeamName    = (teamData.name || teamName || "").trim();
+
+  // Show the coach exactly what they are about to destroy before they confirm.
+  const openDanger = async () => {
+    setShowDanger(true); setDangerConfirm(""); setDangerError(""); setDangerCounts(null);
+    if (!teamIdForDelete) return;
+    try {
+      const [pRes, parRes] = await Promise.all([
+        supabase.from("players").select("id",{count:"exact",head:true}).eq("team_id",teamIdForDelete),
+        supabase.from("profiles").select("id",{count:"exact",head:true}).eq("team_id",teamIdForDelete).eq("role","parent"),
+      ]);
+      setDangerCounts({ players: pRes.count ?? 0, parents: parRes.count ?? 0 });
+    } catch { setDangerCounts(null); }
+  };
+
+  const confirmMatches =
+    liveTeamName.length > 0 &&
+    dangerConfirm.trim().toLowerCase() === liveTeamName.toLowerCase();
+
+  const handleDeleteCoachAccount = async () => {
+    if (!confirmMatches || dangerBusy) return;
+    setDangerBusy(true); setDangerError("");
+    try {
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Your session expired. Please sign in again.");
+      const res = await fetch("https://hcadlkmejdekhbgfvyaq.supabase.co/functions/v1/delete-coach-account", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization:`Bearer ${session.access_token}` },
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Could not delete the account. Nothing was changed. Please try again, or contact support.");
+      }
+      // Clear the offline cache too, or the next sign-in on this device would
+      // boot straight into a roster that no longer exists.
+      try { clearSession(); } catch {}
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch (e) {
+      setDangerError(String(e.message || e));
+      setDangerBusy(false);
+    }
+  };
+
   const manageSubscription = async () => {
     setBillingLoading(true);
     try {
@@ -2840,6 +2898,106 @@ function TeamSettingsPanel({teamData={}, teamName="", onSave, onCancel, onSuppor
           Cancel
         </button>
       </div>
+
+      {/* ── Danger zone ──────────────────────────────────────────────────── */}
+      <div style={{marginTop:34,paddingTop:20,borderTop:`1px solid ${C.border}`}}>
+        <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.textDim,marginBottom:12}}>
+          Danger Zone
+        </div>
+        <button onClick={openDanger} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:"transparent",border:`1px solid ${C.red}35`,borderRadius:12,padding:"14px",cursor:"pointer",textAlign:"left"}}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:13,color:C.red,letterSpacing:0.5}}>Delete Team &amp; Account</div>
+            <div style={{fontSize:11,color:C.textDim}}>Permanently removes this team and everything in it</div>
+          </div>
+          <div style={{color:C.textDim,fontSize:15}}>›</div>
+        </button>
+      </div>
+
+      {showDanger && (
+        <div
+          style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:220,padding:16}}
+          onClick={()=>!dangerBusy&&setShowDanger(false)}
+        >
+          <div
+            style={{background:"#060a12",border:`1px solid ${C.red}45`,borderRadius:16,padding:"22px 20px",maxWidth:460,width:"100%",maxHeight:"88vh",overflowY:"auto"}}
+            onClick={e=>e.stopPropagation()}
+          >
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <div style={{fontFamily:"Bebas Neue, sans-serif",fontSize:22,letterSpacing:1.5,color:C.red}}>DELETE TEAM &amp; ACCOUNT</div>
+            </div>
+
+            <div style={{fontSize:13,color:C.text,lineHeight:1.65,marginBottom:14}}>
+              This removes <strong style={{color:C.text}}>{liveTeamName||"your team"}</strong> and everything in it. It cannot be undone, and there is no way for support to bring it back.
+            </div>
+
+            <div style={{background:C.cardAlt,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 15px",marginBottom:14}}>
+              <div style={{fontFamily:"Barlow Condensed, sans-serif",fontWeight:800,fontSize:11,letterSpacing:1.6,textTransform:"uppercase",color:C.textDim,marginBottom:9}}>
+                What gets deleted
+              </div>
+              <div style={{fontSize:12.5,color:C.textMid,lineHeight:1.9}}>
+                {dangerCounts
+                  ? <>
+                      <div>{dangerCounts.players} player {dangerCounts.players===1?"profile":"profiles"}, with their photos, videos and stats</div>
+                      <div>{dangerCounts.parents} parent {dangerCounts.parents===1?"account":"accounts"} on this team — they lose access immediately</div>
+                    </>
+                  : <div style={{color:C.textDim}}>Counting what's on the team…</div>}
+                <div>Your schedule, lineups, game plans and practice plans</div>
+                <div>Every chat message and attachment</div>
+                <div>Your own coach login</div>
+              </div>
+            </div>
+
+            <div style={{fontSize:12,color:C.textDim,lineHeight:1.65,marginBottom:16}}>
+              If you have an active subscription, it is cancelled as part of this. Your parents are not notified automatically — tell them first if you want them to know.
+            </div>
+
+            <div style={{marginBottom:6,fontSize:12,color:C.textMid}}>
+              Type <strong style={{color:C.text}}>{liveTeamName||"your team name"}</strong> to confirm:
+            </div>
+            <input
+              value={dangerConfirm}
+              onChange={e=>setDangerConfirm(e.target.value)}
+              disabled={dangerBusy}
+              placeholder={liveTeamName||"Team name"}
+              autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              style={{width:"100%",boxSizing:"border-box",padding:"12px 13px",borderRadius:10,background:C.cardAlt,border:`1px solid ${confirmMatches?`${C.red}70`:C.border}`,color:C.text,fontSize:14,marginBottom:14,outline:"none"}}
+            />
+
+            {dangerError && (
+              <div style={{fontSize:12,color:C.red,background:`${C.red}15`,border:`1px solid ${C.red}40`,borderRadius:8,padding:"9px 11px",marginBottom:13,lineHeight:1.5}}>
+                {dangerError}
+              </div>
+            )}
+
+            <div style={{display:"flex",gap:10}}>
+              <button
+                disabled={dangerBusy}
+                onClick={()=>setShowDanger(false)}
+                style={{flex:1,padding:"13px 0",borderRadius:10,background:"transparent",border:`1px solid ${C.border}`,color:C.textMid,fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:dangerBusy?"default":"pointer"}}
+              >
+                Keep My Team
+              </button>
+              <button
+                disabled={!confirmMatches||dangerBusy}
+                onClick={handleDeleteCoachAccount}
+                style={{flex:1,padding:"13px 0",borderRadius:10,background:(!confirmMatches||dangerBusy)?`${C.red}40`:C.red,border:"none",color:(!confirmMatches||dangerBusy)?`${C.text}70`:"#fff",fontFamily:"Barlow Condensed, sans-serif",fontWeight:700,fontSize:13,letterSpacing:1.5,textTransform:"uppercase",cursor:(!confirmMatches||dangerBusy)?"default":"pointer"}}
+              >
+                {dangerBusy?"Deleting…":"Delete Everything"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
